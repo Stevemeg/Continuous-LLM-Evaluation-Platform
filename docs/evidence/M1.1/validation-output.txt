@@ -1,0 +1,16 @@
+==============================================================================
+M1.1 VALIDATION
+==============================================================================
+[PASS   ] AC-1         documents present: ['non_goals', 'personas', 'prd', 'success_criteria', 'use_cases']; missing: []; sizes(chars,lines): {'prd': (23813, 299), 'personas': (25591, 389), 'use_cases': (49998, 687), 'success_criteria': (21915, 221), 'non_goals': (16332, 217)}
+[PASS   ] AC-2         capabilities absent from use-cases.md: none
+[PASS   ] AC-3         canonical user groups absent from personas.md: none
+[PASS   ] AC-4         canonical citations absent from prd.md: none
+[PASS   ] AC-6         raw matches: 16; auto-adjudicated as legitimate: 16; OUTSTANDING requiring human adjudication: 0
+[PASS   ] AC-7         raw matches: 3; auto-adjudicated as canonical citations: 3; OUTSTANDING technology decisions: 0; product-level library references (expected, canonical framing): 16
+[PASS   ] AC-8         0 AI-attribution match(es) — must be zero
+[PASS   ] AC-9         0 secret-pattern match(es) — must be zero
+[PASS   ] PLACEHOLDER  0 placeholder marker(s)
+[PASS   ] AC-10        40 relative link(s) checked; broken: none
+[PASS   ] AC-11        canonical §25 anti-pattern themes absent from non-goals.md: none
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 11}

@@ -1,0 +1,31 @@
+# Line-ending normalization.
+#
+# Development occurs on Windows; continuous integration and deployment targets
+# are Linux. Text files are stored in the repository with LF and checked out
+# using the platform default, so that content digests and diffs are stable
+# across platforms.
+
+* text=auto eol=lf
+
+# Windows-only scripts must retain CRLF to remain executable on Windows.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binary files: never normalized, never diffed as text.
+*.docx  binary
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.zip   binary
+*.gz    binary
+*.parquet binary
+
+# Lockfiles are generated; collapse them in diffs and reviews.
+*.lock          linguist-generated=true
+package-lock.json linguist-generated=true
+poetry.lock     linguist-generated=true
+uv.lock         linguist-generated=true

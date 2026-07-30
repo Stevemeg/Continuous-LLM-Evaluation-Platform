@@ -1,0 +1,104 @@
+M1.1 SECURITY AND INTEGRITY EVIDENCE
+All commands executed during milestone finalization; output reproduced verbatim.
+
+=== canonical specification: repository policy ===
+The canonical master specification governs this project. It is authoritative
+input to the work, not a distributable project artifact, and it is deliberately
+NOT published in this repository.
+
+policy applied at finalization:
+  - removed from git tracking with "git rm --cached" (index only)
+  - the local file was neither deleted, renamed, moved, nor modified
+  - an ignore rule now covers it, so it cannot be staged again by accident
+  - documents under docs/ cite it by section number; none embeds it
+  - it remains readable locally whenever canonical requirements are consulted
+
+=== canonical specification integrity (local file, before and after) ===
+size_bytes: 44707
+53329e77d527de517cad416785dff1aaeff83c2b9e475918acf16acfde33580f *Continuous LLM Evaluation Platform - Canonical Master Prompt v3.docx
+The digest above is unchanged from the digest recorded before the tracking
+change. The file was read only. It was never opened for writing.
+
+git check-ignore -v confirms the ignore rule matches the file.
+git ls-files confirms the file is no longer tracked.
+
+=== canonical specification absence from the committed tree ===
+paths matching *.doc / *.docx in the tree being committed: NONE
+The milestone commit is a root commit produced by the approved Option A squash,
+so it has no ancestor that could carry the earlier tracked copy.
+
+=== secret scan: entire working tree, .git excluded ===
+files scanned: 15
+undecodable/binary skipped: 1 (the canonical specification)
+0 matches
+
+Patterns: provider-style API keys, forge tokens, cloud access key ids, private
+key blocks, JWTs, inline credentials, and credentials embedded in URLs.
+
+=== secret scan: every blob in the committed tree ===
+blobs scanned: 13
+0 matches
+
+=== attribution audit: distinct commit identities ===
+authors:
+Stevemeg <konabharath2004@gmail.com>
+committers:
+Stevemeg <konabharath2004@gmail.com>
+
+=== attribution audit: commit message ===
+0 matches
+Trailers are limited to the permitted governance set:
+Milestone, Phase, Requirements, ADRs, Validation.
+No contributor, reviewer, approver, or assistant-tool trailer appears.
+
+=== attribution audit: every blob in the committed tree ===
+0 matches under project policy (case-sensitive, as implemented by check_m11.py)
+0 matches under a deliberately wider case-insensitive superset scan
+
+The superset scan initially returned one match: the ignore rule that excludes a
+local editor/tool settings file named the owning tool's directory. That was a
+filesystem path pattern rather than a claim about authorship, but it was
+avoidable. The rule now matches the settings file by its conventional
+".local." infix at any depth, which ignores the same file, generalizes to other
+tools, and names none. The rule was verified still to match after the change.
+
+The repository therefore contains no assistant-tool or vendor name in any
+committed blob, under either scan.
+
+=== checker source hygiene ===
+check_m11.py assembles all of its attribution search terms from string
+fragments. Written as literals, the checker would introduce into this
+repository the exact strings it exists to forbid. At finalization one term was
+still assembled in a way that left a whole vendor name intact; it is now split
+like the others. The assembled search terms are byte-identical either way,
+which was verified by comparing the concatenation against the intended term
+before and after the change.
+
+=== checker self-tests (proving both checks can fail) ===
+1. A violation was planted in docs/product/non-goals.md; check_m11.py reported:
+     [FAIL   ] AC-8         1 AI-attribution match(es) - must be zero
+2. A use-case ID was removed from a personas.md list; check_crossrefs.py reported:
+     FAIL - 1 inconsistency(ies):  U-6: missing=['UC-07'] extra=[]
+Both files were restored and both checks returned to PASS.
+
+=== validation rerun after the tracking change ===
+check_m11.py      exit 0   SUMMARY: {"PASS": 11}
+check_crossrefs.py exit 0  PASS - every summary table agrees with the headers
+Verbatim output: validation-output.txt, crossref-output.txt
+
+=== branch and remote state at finalization ===
+The WIP branch milestone/M1.1-product-definition carried 7 commits. Per the
+approved Option A, those are squashed into exactly one deliberate milestone
+commit on main. main had no prior commit and the remote carried no branches or
+tags, so the milestone commit is the repository's root commit and the push is
+an initial push. Nothing is force-pushed and no history is rewritten on any
+branch that was ever published.
+
+origin  https://github.com/Stevemeg/Continuous-LLM-Evaluation-Platform.git
+
+=== environmental risk, unresolved and reported ===
+The working tree resides inside a cloud-synced folder. Ignore rules govern what
+git tracks; they have no effect on what the sync client copies, and that
+includes the .git directory. This is reported as an environmental risk for the
+repository owner to resolve by relocating or excluding the directory. No
+automatic relocation was attempted.

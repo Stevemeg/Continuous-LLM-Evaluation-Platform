@@ -1,0 +1,66 @@
+==============================================================================
+M1.1 CROSS-DOCUMENT CONSISTENCY
+==============================================================================
+use cases parsed: 18
+personas referenced: 6   capabilities referenced: 12
+
+--- use-case index table (capabilities column) ---
+  ok index UC-01
+  ok index UC-02
+  ok index UC-03
+  ok index UC-04
+  ok index UC-05
+  ok index UC-06
+  ok index UC-07
+  ok index UC-08
+  ok index UC-09
+  ok index UC-10
+  ok index UC-11
+  ok index UC-12
+  ok index UC-13
+  ok index UC-14
+  ok index UC-15
+  ok index UC-16
+  ok index UC-17
+  ok index UC-18
+
+--- capability coverage table (use-cases.md) ---
+  ok CAP-01
+  ok CAP-02
+  ok CAP-03
+  ok CAP-04
+  ok CAP-05
+  ok CAP-06
+  ok CAP-07
+  ok CAP-08
+  ok CAP-09
+  ok CAP-10
+  ok CAP-11
+  ok CAP-12
+
+--- persona coverage table (use-cases.md) ---
+  ok U-1
+  ok U-2
+  ok U-3
+  ok U-4
+  ok U-5
+  ok U-6
+
+--- coverage confirmation table (personas.md) ---
+  ok U-1
+  ok U-2
+  ok U-3
+  ok U-4
+  ok U-5
+  ok U-6
+
+--- per-persona 'Use cases' list (personas.md) ---
+  ok U-1
+  ok U-2
+  ok U-3
+  ok U-4
+  ok U-5
+  ok U-6
+
+------------------------------------------------------------------------------
+PASS — every summary table agrees with the use-case section headers.

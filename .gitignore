@@ -1,0 +1,120 @@
+# ---------------------------------------------------------------------------
+# Continuous LLM Evaluation & Regression Testing Platform
+# Repository ignore rules.
+#
+# Rule 1 of this file: secrets never enter the repository. The patterns in the
+# "Secrets and credentials" block are a backstop, not a substitute for never
+# staging a secret in the first place.
+# ---------------------------------------------------------------------------
+
+# --- Secrets and credentials -----------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*credentials*.json
+*service-account*.json
+secrets/
+.secrets/
+*.tfvars
+!*.tfvars.example
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+env/
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+.hypothesis/
+
+# --- Node / frontend -------------------------------------------------------
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+.eslintcache
+.npm/
+.pnpm-store/
+.yarn/
+
+# --- Local infrastructure volumes and data ---------------------------------
+# Local Postgres / object-store / cache volumes must never be committed.
+.data/
+data/local/
+*.sqlite
+*.sqlite3
+*.db
+
+# --- Editors and OS --------------------------------------------------------
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- OneDrive sync artefacts -----------------------------------------------
+# The working tree currently resides inside a OneDrive-synced folder
+# (environment constraint C-4). These are sync-generated files, never sources.
+*.tmp
+~$*
+
+# --- Logs and local scratch ------------------------------------------------
+*.log
+logs/
+.scratch/
+tmp/
+
+# --- Local developer tool settings -----------------------------------------
+# Machine-specific editor and tool permissions and preferences, wherever they
+# live in the tree. Not project configuration, and not portable between
+# developers or machines. The ".local." infix is the conventional marker.
+**/settings.local.json
+
+# --- Canonical specification -----------------------------------------------
+# The canonical master specification governs this project and is held locally,
+# outside version control. It is authoritative input to the work, not a
+# distributable project artifact, so it is deliberately not published in this
+# repository. Documents under docs/ cite it by section; they do not embed it.
+*.docx
+*.doc
