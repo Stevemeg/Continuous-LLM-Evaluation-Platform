@@ -1,0 +1,1894 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Continuous LLM Evaluation & Regression Testing Platform API",
+    "version": "0.1.0-draft",
+    "summary": "Release-gate system of record for AI quality.",
+    "description": "Specification only; no implementation exists. Serialized as JSON rather than YAML so the contract is validatable with the Python standard library, which keeps Phase 3 free of a dependency manifest.\n\nEvery operation and schema carries an `x-requirements` extension naming the requirements it realises. Traceability is therefore derived from this document mechanically rather than restated in a matrix that can drift.",
+    "license": {
+      "name": "Proprietary",
+      "identifier": "LicenseRef-Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://{host}/v1",
+      "description": "Versioned API root",
+      "variables": {
+        "host": {
+          "default": "localhost:8000"
+        }
+      }
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "runs",
+      "description": "Evaluation execution"
+    },
+    {
+      "name": "gates",
+      "description": "Release gate decisions"
+    },
+    {
+      "name": "datasets",
+      "description": "Golden dataset governance"
+    },
+    {
+      "name": "baselines",
+      "description": "Approved comparison baselines"
+    },
+    {
+      "name": "governance",
+      "description": "Audit, erasure, approvals"
+    }
+  ],
+  "paths": {
+    "/projects/{projectId}/runs": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "createRun",
+        "summary": "Submit an evaluation run",
+        "description": "Freezes run identity before execution begins, estimates cost, and reserves budget. Rejects rather than partially executes when the estimate exceeds budget.",
+        "tags": [
+          "runs"
+        ],
+        "x-requirements": [
+          "REQ-F-07-1",
+          "REQ-F-10-5",
+          "REQ-X-9",
+          "REQ-N-REL-2",
+          "REQ-N-SEC-1"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/idempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/correlationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Run accepted; identity frozen.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Rejected before execution because the cost estimate exceeded the budget.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/PlatformFailure"
+          }
+        }
+      }
+    },
+    "/runs/{runId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ],
+      "get": {
+        "operationId": "getRun",
+        "summary": "Retrieve a run with its completeness and reproducibility state",
+        "tags": [
+          "runs"
+        ],
+        "x-requirements": [
+          "REQ-X-1",
+          "REQ-N-COMP-2",
+          "REQ-F-07-6"
+        ],
+        "responses": {
+          "200": {
+            "description": "The run.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/runs/{runId}/cancel": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ],
+      "post": {
+        "operationId": "cancelRun",
+        "summary": "Cancel an in-flight run",
+        "description": "Leaves a consistent and clearly incomplete record.",
+        "tags": [
+          "runs"
+        ],
+        "x-requirements": [
+          "REQ-F-07-7",
+          "REQ-X-1"
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancellation accepted; the run settles to the cancelled terminal state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Run"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "The run already reached a terminal state.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/runs/{runId}/samples": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ],
+      "get": {
+        "operationId": "listRunSamples",
+        "summary": "List per-sample outcomes",
+        "description": "A sample that failed, timed out, or abstained carries a resolution state and no numeric score.",
+        "tags": [
+          "runs"
+        ],
+        "x-requirements": [
+          "REQ-F-07-2",
+          "REQ-X-2",
+          "REQ-X-8",
+          "REQ-F-01-5"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/cursor"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of samples.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunSamplePage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/gate-evaluations": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "evaluateGate",
+        "summary": "Evaluate a candidate against an approved baseline and return a gate decision",
+        "description": "The CI entry point. Resolves the approved baseline without requiring the caller to restate it. Returns a decision whose outcome distinguishes platform failure from every quality outcome, and which always carries the evidence behind it.",
+        "tags": [
+          "gates"
+        ],
+        "x-requirements": [
+          "REQ-F-09-1",
+          "REQ-F-09-2",
+          "REQ-F-09-4",
+          "REQ-F-09-5",
+          "REQ-F-09-7",
+          "REQ-F-09-8",
+          "REQ-F-08-7",
+          "REQ-X-10",
+          "REQ-F-01-3"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/idempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/correlationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GateEvaluationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A gate decision was reached. Note that a decision of `hard_fail`, `insufficient_evidence`, or `not_comparable` is a successful API call: the platform did its job. Only `503` indicates the platform itself failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateDecision"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "503": {
+            "$ref": "#/components/responses/PlatformFailure"
+          }
+        }
+      }
+    },
+    "/gate-decisions/{gateDecisionId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gateDecisionId"
+        }
+      ],
+      "get": {
+        "operationId": "getGateDecision",
+        "summary": "Retrieve a past gate decision and its evidence",
+        "description": "Answers, for any past release decision, what evidence supported it, who approved it, and under which policy and statistical method version.",
+        "tags": [
+          "gates"
+        ],
+        "x-requirements": [
+          "REQ-N-COMP-1",
+          "REQ-F-09-4",
+          "REQ-F-09-8"
+        ],
+        "responses": {
+          "200": {
+            "description": "The decision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GateDecision"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/gate-decisions/{gateDecisionId}/exceptions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/gateDecisionId"
+        }
+      ],
+      "post": {
+        "operationId": "createPolicyException",
+        "summary": "Waive a gate decision under an audited policy exception",
+        "description": "Requires an actor, a justification, and an expiry. An exception without all three is not representable.",
+        "tags": [
+          "gates",
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-09-6",
+          "REQ-X-5",
+          "REQ-F-12-4"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyExceptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Exception recorded and audited.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyException"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/datasets/{datasetId}/versions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        },
+        {
+          "$ref": "#/components/parameters/datasetId"
+        }
+      ],
+      "get": {
+        "operationId": "listDatasetVersions",
+        "summary": "List dataset versions with approval and release state",
+        "tags": [
+          "datasets"
+        ],
+        "x-requirements": [
+          "REQ-F-05-1",
+          "REQ-F-05-4"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/cursor"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of versions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetVersionPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createDatasetVersion",
+        "summary": "Create a draft dataset version",
+        "description": "Draft versions are mutable. Schema violations are rejected, never coerced. Quality checks run before the version can be approved.",
+        "tags": [
+          "datasets"
+        ],
+        "x-requirements": [
+          "REQ-F-05-3",
+          "REQ-F-05-6",
+          "REQ-F-05-2"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetVersionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetVersion"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "description": "One or more examples violated the declared schema and were rejected.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dataset-versions/{datasetVersionId}/approval": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/datasetVersionId"
+        }
+      ],
+      "post": {
+        "operationId": "approveDatasetVersion",
+        "summary": "Approve and release a dataset version",
+        "description": "Releasing makes the version an immutable snapshot and baseline-eligible. Requires recorded human approval.",
+        "tags": [
+          "datasets",
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-05-5",
+          "REQ-F-05-1",
+          "REQ-F-12-7",
+          "REQ-X-5"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Version released and approval audited.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetVersion"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "description": "Outstanding quality-check findings block approval.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/baselines": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "createBaseline",
+        "summary": "Designate an approved baseline",
+        "description": "Pins dataset, prompt, model configuration, suite, evaluator and judge versions. A change to any pinned version makes a later comparison not comparable.",
+        "tags": [
+          "baselines"
+        ],
+        "x-requirements": [
+          "REQ-F-01-2",
+          "REQ-X-4",
+          "REQ-F-06-5"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaselineRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Baseline created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Baseline"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/erasure-requests": {
+      "post": {
+        "operationId": "createErasureRequest",
+        "summary": "Request erasure of example content",
+        "description": "Destroys content-class artifacts and demotes referencing runs from reproducible to auditable. Decision records and audit records survive. The request itself is audited.",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-05-8",
+          "REQ-N-PRIV-3",
+          "REQ-N-PRIV-4",
+          "REQ-N-COMP-3"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErasureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Erasure accepted. Affected runs are listed so the loss of replay fidelity is visible rather than silent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErasureAcceptance"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "description": "An active baseline pins the target; an audited override is required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/audit-events": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "listAuditEvents",
+        "summary": "Query the audit trail",
+        "description": "Append-only. Not deletable by the actors it records.",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-4",
+          "REQ-N-COMP-1",
+          "REQ-N-COMP-3",
+          "REQ-X-5"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/cursor"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of audit events.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEventPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Scoped credential. Every authorization decision is enforced server-side."
+      }
+    },
+    "parameters": {
+      "projectId": {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "runId": {
+        "name": "runId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "datasetId": {
+        "name": "datasetId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "datasetVersionId": {
+        "name": "datasetVersionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "gateDecisionId": {
+        "name": "gateDecisionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 50
+        }
+      },
+      "idempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "description": "Duplicate delivery must not double-count results or cost.",
+        "schema": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 255
+        },
+        "x-requirements": [
+          "REQ-N-REL-2"
+        ]
+      },
+      "correlationId": {
+        "name": "X-Correlation-Id",
+        "in": "header",
+        "required": false,
+        "description": "Correlates the request through workflow, model call, evaluator, judge, artifact and gate decision. Generated if absent.",
+        "schema": {
+          "type": "string"
+        },
+        "x-requirements": [
+          "REQ-N-OBS-1"
+        ]
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Authentication required or failed.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Authenticated but not authorized. Cross-tenant attempts fail here and are audited.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "No such resource within the caller's tenant scope.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "Unprocessable": {
+        "description": "Well-formed but semantically invalid.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "PlatformFailure": {
+        "description": "The platform failed. This is never a quality verdict, and callers must not interpret it as one.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Ulid": {
+        "type": "string",
+        "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+        "description": "Lexicographically sortable identifier."
+      },
+      "Digest": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "description": "Content-derived identity."
+      },
+      "Decimal": {
+        "type": "string",
+        "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+        "description": "Exact decimal as a string. Money and token quantities are never floating point."
+      },
+      "Instant": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "Problem": {
+        "type": "object",
+        "description": "RFC 9457 problem details, extended with a category that separates platform failure from every other outcome.",
+        "x-requirements": [
+          "REQ-F-09-5",
+          "REQ-X-10",
+          "REQ-N-USE-3"
+        ],
+        "required": [
+          "type",
+          "title",
+          "status",
+          "category"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string",
+            "description": "States which stage failed and what the caller can do about it."
+          },
+          "instance": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "client_error",
+              "authorization",
+              "platform_failure"
+            ],
+            "description": "`platform_failure` means the platform failed and no quality claim is made. A quality failure is never reported as a Problem; it is a successful gate decision."
+          },
+          "correlationId": {
+            "type": "string"
+          }
+        }
+      },
+      "Completeness": {
+        "type": "string",
+        "enum": [
+          "complete",
+          "partial",
+          "exhausted",
+          "cancelled",
+          "rejected"
+        ],
+        "description": "Five states, four of which are not success. Never a boolean.",
+        "x-requirements": [
+          "REQ-X-1",
+          "REQ-F-11-7"
+        ]
+      },
+      "Reproducibility": {
+        "type": "string",
+        "enum": [
+          "reproducible",
+          "auditable"
+        ],
+        "description": "Stored state, not inferred at replay time. `auditable` means content required for replay has been erased.",
+        "x-requirements": [
+          "REQ-N-COMP-2",
+          "REQ-F-05-8"
+        ]
+      },
+      "RunIdentity": {
+        "type": "object",
+        "description": "Frozen before execution begins and never updated.",
+        "x-requirements": [
+          "REQ-F-07-1",
+          "REQ-F-02-2",
+          "REQ-F-06-3"
+        ],
+        "required": [
+          "digest",
+          "datasetVersionId",
+          "suiteVersionId",
+          "modelConfigurationId",
+          "evaluatorVersionIds",
+          "judgeVersionIds",
+          "frozenAt"
+        ],
+        "properties": {
+          "digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "datasetVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "promptVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "suiteVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "modelConfigurationId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "evaluatorVersionIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          "judgeVersionIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          "seed": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "environment": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "frozenAt": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "RunRequest": {
+        "type": "object",
+        "required": [
+          "suiteVersionId",
+          "candidates"
+        ],
+        "properties": {
+          "suiteVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "candidates": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Two or more candidates compare model or provider configurations in one run.",
+            "items": {
+              "$ref": "#/components/schemas/CandidateSpec"
+            },
+            "x-requirements": [
+              "REQ-F-02-1",
+              "REQ-F-02-4"
+            ]
+          },
+          "budget": {
+            "$ref": "#/components/schemas/Budget"
+          },
+          "integrationTier": {
+            "$ref": "#/components/schemas/IntegrationTier"
+          }
+        }
+      },
+      "CandidateSpec": {
+        "type": "object",
+        "required": [
+          "modelConfigurationId"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "modelConfigurationId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "promptVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        }
+      },
+      "IntegrationTier": {
+        "type": "string",
+        "enum": [
+          "full",
+          "partial",
+          "output_only"
+        ],
+        "description": "How much intermediate state the caller exposes. Determines which evaluators are available; unavailable evaluators are reported as unavailable, never approximated.",
+        "x-requirements": [
+          "REQ-F-03-4"
+        ]
+      },
+      "Budget": {
+        "type": "object",
+        "description": "Cost is estimated before execution and enforced during it.",
+        "x-requirements": [
+          "REQ-X-9",
+          "REQ-N-COST-2"
+        ],
+        "required": [
+          "limit",
+          "currency"
+        ],
+        "properties": {
+          "limit": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3
+          }
+        }
+      },
+      "Run": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "identity",
+          "completeness",
+          "reproducibility",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/RunIdentity"
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/Completeness"
+          },
+          "reproducibility": {
+            "$ref": "#/components/schemas/Reproducibility"
+          },
+          "incompleteReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Present whenever completeness is not `complete`."
+          },
+          "cost": {
+            "$ref": "#/components/schemas/CostSummary"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/Instant"
+          },
+          "correlationId": {
+            "type": "string"
+          }
+        }
+      },
+      "CostSummary": {
+        "type": "object",
+        "description": "Written when the run reaches a terminal state so a per-run answer needs no recomputation over history.",
+        "x-requirements": [
+          "REQ-F-07-6",
+          "REQ-N-COST-1",
+          "REQ-N-PERF-4",
+          "REQ-F-02-3"
+        ],
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "promptTokens": {
+            "type": "integer"
+          },
+          "completionTokens": {
+            "type": "integer"
+          }
+        }
+      },
+      "SampleResolution": {
+        "type": "string",
+        "enum": [
+          "scored",
+          "failed",
+          "timed_out",
+          "abstained",
+          "unavailable",
+          "truncated"
+        ],
+        "description": "Only `scored` carries a numeric score. The others never do.",
+        "x-requirements": [
+          "REQ-X-2",
+          "REQ-F-04-5",
+          "REQ-F-08-5"
+        ]
+      },
+      "RunSample": {
+        "type": "object",
+        "required": [
+          "id",
+          "resolution"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "exampleId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "exampleContentDigest": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Null when the content has been erased."
+          },
+          "resolution": {
+            "$ref": "#/components/schemas/SampleResolution"
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Present only when resolution is `scored`."
+          },
+          "servedFromCache": {
+            "type": "boolean",
+            "x-requirements": [
+              "REQ-F-07-4"
+            ]
+          },
+          "consensus": {
+            "$ref": "#/components/schemas/ConsensusResult"
+          }
+        }
+      },
+      "RunSamplePage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunSample"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ConsensusResult": {
+        "type": "object",
+        "description": "Always carries a disagreement measure. A verdict without one is not representable.",
+        "x-requirements": [
+          "REQ-F-AG-2",
+          "REQ-F-AG-3",
+          "REQ-F-AG-4"
+        ],
+        "required": [
+          "state",
+          "disagreement"
+        ],
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "agreed",
+              "escalated"
+            ],
+            "description": "`escalated` is terminal, not a retry marker."
+          },
+          "disagreement": {
+            "type": "number",
+            "minimum": 0
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "votes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JudgeVote"
+            }
+          }
+        }
+      },
+      "JudgeVote": {
+        "type": "object",
+        "required": [
+          "judgeVersionId",
+          "resolution"
+        ],
+        "properties": {
+          "judgeVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "resolution": {
+            "$ref": "#/components/schemas/SampleResolution"
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "cost": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "latencyMs": {
+            "type": "integer"
+          }
+        }
+      },
+      "UncertaintyInterval": {
+        "type": "object",
+        "description": "A verdict without uncertainty is not a verdict.",
+        "x-requirements": [
+          "REQ-F-08-2"
+        ],
+        "required": [
+          "lower",
+          "upper",
+          "confidenceLevel"
+        ],
+        "properties": {
+          "lower": {
+            "type": "number"
+          },
+          "upper": {
+            "type": "number"
+          },
+          "confidenceLevel": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          }
+        }
+      },
+      "Classification": {
+        "type": "string",
+        "enum": [
+          "regression",
+          "improvement",
+          "no_change",
+          "insufficient_evidence",
+          "not_comparable"
+        ],
+        "description": "`insufficient_evidence` and `not_comparable` are first-class outcomes, never error states, and never presented as `no_change`.",
+        "x-requirements": [
+          "REQ-F-08-4",
+          "REQ-X-3",
+          "REQ-X-4"
+        ]
+      },
+      "ComparisonResult": {
+        "type": "object",
+        "x-requirements": [
+          "REQ-F-08-1",
+          "REQ-F-08-2",
+          "REQ-F-08-3",
+          "REQ-F-08-7"
+        ],
+        "required": [
+          "metric",
+          "classification",
+          "statisticalMethodVersion"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/Classification"
+          },
+          "meanDifference": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "interval": {
+            "$ref": "#/components/schemas/UncertaintyInterval"
+          },
+          "effectSize": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "sampleSize": {
+            "type": "integer"
+          },
+          "minimumSampleSize": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Below this the classification is `insufficient_evidence`."
+          },
+          "statisticalMethodVersion": {
+            "type": "string"
+          },
+          "notComparableReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Names the pinned version that differs."
+          }
+        }
+      },
+      "GateOutcome": {
+        "type": "string",
+        "enum": [
+          "pass",
+          "hard_fail",
+          "warning",
+          "approval_required",
+          "exception_applied",
+          "insufficient_evidence",
+          "not_comparable"
+        ],
+        "description": "Platform failure is deliberately absent: it is never a gate outcome and is returned as a 503 Problem instead.",
+        "x-requirements": [
+          "REQ-F-09-2",
+          "REQ-F-09-5",
+          "REQ-X-10"
+        ]
+      },
+      "GateEvaluationRequest": {
+        "type": "object",
+        "required": [
+          "candidateRunId"
+        ],
+        "properties": {
+          "candidateRunId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "baselineId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Omit to use the project's approved baseline."
+          },
+          "gatePolicyVersionId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "GateDecision": {
+        "type": "object",
+        "description": "Carries the exact evidence, the policy version and the statistical method version, so it can be re-derived under the rules that applied at the time.",
+        "x-requirements": [
+          "REQ-F-09-4",
+          "REQ-F-09-8",
+          "REQ-N-COMP-1",
+          "REQ-X-8"
+        ],
+        "required": [
+          "id",
+          "outcome",
+          "comparisons",
+          "gatePolicyVersionId",
+          "decidedAt"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/GateOutcome"
+          },
+          "baselineId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "candidateRunId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "comparisons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComparisonResult"
+            }
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/Completeness"
+          },
+          "gatePolicyVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "gateEvidenceDigest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "exception": {
+            "$ref": "#/components/schemas/PolicyException"
+          },
+          "decidedAt": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "PolicyExceptionRequest": {
+        "type": "object",
+        "required": [
+          "justification",
+          "expiresAt"
+        ],
+        "properties": {
+          "justification": {
+            "type": "string",
+            "minLength": 20
+          },
+          "expiresAt": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "PolicyException": {
+        "type": "object",
+        "x-requirements": [
+          "REQ-F-09-6"
+        ],
+        "required": [
+          "id",
+          "actorId",
+          "justification",
+          "expiresAt",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "actorId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "justification": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "$ref": "#/components/schemas/Instant"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "DatasetVersionRequest": {
+        "type": "object",
+        "required": [
+          "schemaRef",
+          "examples"
+        ],
+        "properties": {
+          "schemaRef": {
+            "type": "string"
+          },
+          "examples": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object"
+            }
+          },
+          "lineage": {
+            "$ref": "#/components/schemas/Lineage"
+          }
+        }
+      },
+      "Lineage": {
+        "type": "object",
+        "x-requirements": [
+          "REQ-F-05-2"
+        ],
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "string"
+          },
+          "usageTerms": {
+            "type": "string"
+          }
+        }
+      },
+      "DatasetVersion": {
+        "type": "object",
+        "x-requirements": [
+          "REQ-F-05-1",
+          "REQ-F-05-4",
+          "REQ-F-05-6"
+        ],
+        "required": [
+          "id",
+          "state",
+          "contentDigest"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "contentDigest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "released"
+            ],
+            "description": "Released versions are immutable snapshots."
+          },
+          "approval": {
+            "$ref": "#/components/schemas/Approval"
+          },
+          "qualityFindings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualityFinding"
+            }
+          },
+          "exampleCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "QualityFinding": {
+        "type": "object",
+        "x-requirements": [
+          "REQ-F-05-6"
+        ],
+        "required": [
+          "kind",
+          "severity"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "duplicate",
+              "leakage",
+              "malformed",
+              "stale",
+              "contamination"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocking",
+              "advisory"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "DatasetVersionPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DatasetVersion"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ApprovalRequest": {
+        "type": "object",
+        "required": [
+          "justification"
+        ],
+        "properties": {
+          "justification": {
+            "type": "string",
+            "minLength": 10
+          }
+        }
+      },
+      "Approval": {
+        "type": "object",
+        "x-requirements": [
+          "REQ-F-12-7",
+          "REQ-F-05-5"
+        ],
+        "required": [
+          "actorId",
+          "approvedAt",
+          "targetVersionDigest"
+        ],
+        "properties": {
+          "actorId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "approvedAt": {
+            "$ref": "#/components/schemas/Instant"
+          },
+          "targetVersionDigest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "justification": {
+            "type": "string"
+          }
+        }
+      },
+      "BaselineRequest": {
+        "type": "object",
+        "required": [
+          "runId"
+        ],
+        "properties": {
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "Baseline": {
+        "type": "object",
+        "x-requirements": [
+          "REQ-F-01-2",
+          "REQ-X-4"
+        ],
+        "required": [
+          "id",
+          "identity",
+          "state"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/RunIdentity"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending_approval",
+              "approved",
+              "superseded"
+            ]
+          },
+          "approval": {
+            "$ref": "#/components/schemas/Approval"
+          }
+        }
+      },
+      "ErasureRequest": {
+        "type": "object",
+        "required": [
+          "exampleContentDigests",
+          "justification"
+        ],
+        "properties": {
+          "exampleContentDigests": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/Digest"
+            }
+          },
+          "justification": {
+            "type": "string",
+            "minLength": 10
+          },
+          "overrideBaselinePin": {
+            "type": "boolean",
+            "default": false,
+            "description": "Explicit and audited."
+          }
+        }
+      },
+      "ErasureAcceptance": {
+        "type": "object",
+        "x-requirements": [
+          "REQ-F-05-8",
+          "REQ-N-PRIV-4"
+        ],
+        "required": [
+          "id",
+          "demotedRunIds"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "demotedRunIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "description": "Runs moved from reproducible to auditable, so the loss of replay fidelity is visible."
+          }
+        }
+      },
+      "AuditEvent": {
+        "type": "object",
+        "x-requirements": [
+          "REQ-F-12-4",
+          "REQ-X-5"
+        ],
+        "required": [
+          "id",
+          "actorId",
+          "action",
+          "occurredAt"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "actorId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "targetVersionDigest": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "justification": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "occurredAt": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "AuditEventPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEvent"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

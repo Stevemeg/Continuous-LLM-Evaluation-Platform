@@ -1,0 +1,24 @@
+==============================================================================
+PHASE 3 COMPREHENSIVE VALIDATION
+==============================================================================
+[PASS   ] S-1   phase 1 regression         Phase 1 milestone validators re-run. M1.1 documents: exit 0 {"PASS": 11}; M1.1 cross-document: exit 0 PASS; M1.2 competitive/positioning: exit 0 {"PASS": 14}; M1.3 requirements: exit 0 {"PASS": 18}
+[PASS   ] S-2   phase 2 gate at its tree   Phase 2 phase-gate re-evaluated against the Phase 2 tree (16894ab6) in a throwaway worktree: exit 0 {"PASS": 20}
+[PASS   ] S-3   traceability               traceability generator: exit 0. requirements defined      : 150; traced to an artifact     : 130; deferred with an owner    : 20
+[PASS   ] S-4   matrix currency            generated traceability matrix regenerates identically
+[PASS   ] S-5   canonical §17 coverage     canonical §17 entities present in the domain model: 44/44; missing: none
+[PASS   ] S-6   data standards             required data-model sections present: 6/6; missing: none
+[PASS   ] S-7   invariant integrity        invariants defined: 35; referenced: 35; referenced but undefined: none
+[PASS   ] S-8   OpenAPI validity           openapi 3.1.0; 13 operations; 40 schemas; 54 $refs; defects: 0
+[PASS   ] S-9   contract guarantees        structural contract guarantees checked: 11; violations: 0
+[PASS   ] S-10  requirement references     requirement references in Phase 3 artifacts; undefined: 0
+[PASS   ] S-11  invented metrics           0 invented figure(s)
+[PASS   ] S-12  links                      12 relative link(s) checked; broken: 0
+[PASS   ] S-13  placeholders               0 placeholder marker(s)
+[PASS   ] S-14  secrets                    working tree: 60 files (1 binary skipped), 0 match(es); all blobs all refs: 0 match(es)
+[PASS   ] S-15  attribution                governed scope: 0 match(es). Superseded blobs on local-only recovery refs, disclosed: 3 (.gitignore, docs/evidence/M1.1/check_m11.py, docs/evidence/M1.1/security-and-integrity.txt)
+[PASS   ] S-16  git identity               authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']
+[PASS   ] S-17  canonical document         local present=True unchanged=True ignored=True tracked=False absent_from_main=True
+[PASS   ] S-18  hygiene                    58 tracked file(s); stray: 0; untracked-and-unignored: 0; clean tree: True
+[PASS   ] S-19  phase boundary             Phase 4+ artifact classes checked: 5; artifacts Phase 3 must not contain: 0
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 19}
