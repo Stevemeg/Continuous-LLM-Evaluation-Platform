@@ -1,0 +1,18 @@
+==============================================================================
+SCHEMA CONFORMANCE
+==============================================================================
+  note: 4 schema file(s), 22 table(s) parsed
+  note: 21 tenant-scoped table(s)
+
+[PASS] ADR-012 D-1 enable row level security
+[PASS] ADR-012 D-2 force row level security
+[PASS] ADR-012 D-3 runtime role cannot bypass
+[PASS] ADR-012 D-4 migration and runtime roles separated
+[PASS] P-1/N-4 organization_id present and not nullable
+[PASS] P-2 every tenant-scoped table has a policy with USING and WITH CHECK
+[PASS] P-5 cross-tenant links rejected by composite foreign keys
+[PASS] I-33 audit tables never granted UPDATE or DELETE
+[PASS] N-1,2,6,7,8,9,10,11 naming and typing standards
+[PASS] domain entity coverage
+------------------------------------------------------------------------------
+SUMMARY: PASS

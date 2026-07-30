@@ -59,14 +59,16 @@ DEFERRED = {
     "REQ-N-MAINT-2": (5, "Deterministic fixtures require code to fixture"),
     "REQ-N-MAINT-4": (5, "Coverage gates require a build to gate"),
     "REQ-N-MAINT-5": (5, "Dependency justification requires a dependency manifest, which Phase 3 deliberately does not create"),
-    "REQ-N-OPS-1": (5, "Local development setup requires something to run"),
     "REQ-N-OPS-2": (5, "Environment configuration requires a running service"),
-    "REQ-N-OPS-3": (4, "Migrations are implementation; Phase 3 specifies the model, Phase 4 builds the registry foundation"),
+    "REQ-N-OPS-3": (5, "Migrations are executable artifacts requiring an implementation phase. Phase 3 specified the model and Phase 4 the schema; neither creates a migration chain"),
 }
 
 LAYERS = [
     ("architecture", ["docs/architecture/*.md", "docs/adr/*.md"]),
     ("data", ["docs/data/*.md"]),
+    # Phase 4 added the schema specification, which realises requirements
+    # directly through constraints and policies rather than describing them.
+    ("schema", ["docs/data/schema/*.sql"]),
 ]
 
 
@@ -156,10 +158,11 @@ def main():
     print(f"traced to an artifact     : {len(traced)}")
     print(f"  architecture layer      : {len(layer_hits['architecture'])}")
     print(f"  data model layer        : {len(layer_hits['data'])}")
+    print(f"  schema layer            : {len(layer_hits['schema'])}")
     print(f"  API contract layer      : {len(layer_hits['api'])}")
     print(f"deferred with an owner    : {len(DEFERRED)}")
-    print(f"implementation layer      : 0 (no implementation exists at Phase 3)")
-    print(f"test layer                : 0 (no tests exist at Phase 3)")
+    print(f"implementation layer      : 0 (no implementation exists yet)")
+    print(f"test layer                : 0 (no tests exist yet)")
     print()
     print(f"[{'FAIL' if untracked else 'PASS'}] untracked requirements   : {len(untracked)}")
     for r in untracked:
@@ -180,13 +183,14 @@ def main():
         for r in sorted(valid, key=lambda x: (len(x), x)):
             arch = ", ".join(sorted(layer_hits["architecture"].get(r, [])))
             data = ", ".join(sorted(layer_hits["data"].get(r, [])))
+            schema = ", ".join(sorted(layer_hits["schema"].get(r, [])))
             api = ", ".join(sorted(layer_hits["api"].get(r, [])))
             if r in DEFERRED:
                 phase, reason = DEFERRED[r]
                 status = f"deferred → Phase {phase}"
             else:
                 status = "traced"
-            rows.append((r, status, arch, data, api))
+            rows.append((r, status, arch, data, schema, api))
 
         lines = [
             "# Requirement Traceability Matrix",
@@ -205,15 +209,16 @@ def main():
             f"**{len(traced)} of {len(valid)} requirements traced**; {len(DEFERRED)} deferred with an "
             "owning phase and a reason; 0 untracked.",
             "",
-            "Implementation and test columns are absent because neither exists at Phase 3. "
+            "Implementation and test columns are absent because neither exists yet. "
             "`SC-G7` becomes fully measurable when they do; this generator is the mechanism "
             "that will measure it.",
             "",
-            "| Requirement | Status | Architecture | Data model | API contract |",
-            "|---|---|---|---|---|",
+            "| Requirement | Status | Architecture | Data model | Schema | API contract |",
+            "|---|---|---|---|---|---|",
         ]
-        for r, status, arch, data, api in rows:
-            lines.append(f"| `{r}` | {status} | {arch or '—'} | {data or '—'} | {api or '—'} |")
+        for r, status, arch, data, schema, api in rows:
+            lines.append(f"| `{r}` | {status} | {arch or '—'} | {data or '—'} | "
+                         f"{schema or '—'} | {api or '—'} |")
 
         lines += ["", "## Deferred requirements", "",
                   "| Requirement | Owning phase | Reason |", "|---|---|---|"]
