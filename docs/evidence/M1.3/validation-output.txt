@@ -1,0 +1,23 @@
+==============================================================================
+M1.3 VALIDATION
+==============================================================================
+[PASS   ] AC-1         requirements.md present (50290 chars, 470 lines); requirements parsed: 150 (functional 93, cross-cutting 10, non-functional 47)
+[PASS   ] AC-2         capabilities with at least one functional requirement: 12/12; uncovered: none
+[PASS   ] AC-3         cross-cutting behaviours realised: 10/10; unrealised: none
+[PASS   ] AC-4         0 requirement attribute defect(s) across 150 requirements
+[PASS   ] AC-5         150 requirement identifier(s); duplicates: none
+[PASS   ] AC-6         use cases traced by at least one requirement: 18/18; untraced: none
+[PASS   ] AC-7         user groups traced: 6/6; untraced: none
+[PASS   ] AC-8         0 canonical citation(s) outside the specification's section range
+[PASS   ] AC-9         coverage summary rows checked: 12 capability + 10 cross-cutting; disagreements with the requirement rows: 0
+[PASS   ] AC-10        0 invented figure(s) - a document that measures nothing must carry none
+[PASS   ] AC-11        0 technology or product name(s) - requirements must not name implementation technology
+[PASS   ] AC-12        0 attribution match(es) - must be zero
+[PASS   ] AC-13        0 secret-pattern match(es) - must be zero
+[PASS   ] AC-14        12 relative link(s) checked; broken: none
+[PASS   ] AC-15        open product questions resolved: 4/4; unresolved: none
+[PASS   ] AC-16        47 non-functional requirement(s); defects: 0; targets explicitly not yet set: 7
+[PASS   ] AC-17        0 reference(s) to an undefined requirement identifier
+[PASS   ] PLACEHOLDER  0 placeholder marker(s)
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 18}
