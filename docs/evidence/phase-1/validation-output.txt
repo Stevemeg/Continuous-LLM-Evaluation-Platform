@@ -1,0 +1,19 @@
+==============================================================================
+PHASE 1 COMPREHENSIVE VALIDATION
+==============================================================================
+[PASS   ] P-1    milestone validators     4 milestone validator(s) executed. M1.1 document validation: exit 0 {"PASS": 11}; M1.1 cross-document consistency: exit 0 PASS; M1.2 competitive analysis & positioning: exit 0 {"PASS": 14}; M1.3 requirements: exit 0 {"PASS": 18}
+[PASS   ] P-2    canonical coverage       canonical Phase 1 requirements with a resulting artifact: 8/8
+[PASS   ] P-3    identifier integrity     identifier references checked across 8 documents; CAP 12, UC 18, U 6, X 10, SC 58, REQ 150 defined; undefined references: 0
+[PASS   ] P-4    links                    74 relative link(s) checked across product and evidence documents; broken: 0
+[PASS   ] P-5    placeholders             0 placeholder marker(s)
+[PASS   ] P-6    unsupported claims       0 outstanding unsupported-claim match(es)
+[PASS   ] P-7    invented metrics         0 outstanding invented-metric match(es)
+[PASS   ] P-8    secrets                  working tree: 28 files scanned (1 binary skipped), 0 match(es); all git blobs across all refs: 0 match(es)
+[PASS   ] P-9    attribution              governed scope (product documents, blobs reachable from main and phase/1-product-foundation, and their commit messages): 0 match(es). Superseded blobs on local-only recovery refs, disclosed and unpublishable: 3 (.gitignore, docs/evidence/M1.1/check_m11.py, docs/evidence/M1.1/security-and-integrity.txt)
+[PASS   ] P-10   git identity             authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']; expected sole identity: ['Stevemeg <konabharath2004@gmail.com>']
+[PASS   ] P-11   repository hygiene       26 tracked file(s); stray build/scratch artifacts tracked: 0; untracked-and-unignored paths: 0; working tree clean: True
+[PASS   ] P-12   canonical document       local: present=True size=44707 sha256=53329e77d527de51… unchanged=True; ignored=True; tracked=False; absent from main=True
+[PASS   ] P-13   architecture boundary    0 line(s) asserting adoption of a named technology for this system
+[PASS   ] P-14   phase boundary           Phase 2+ artifact classes checked: 6; artifacts found that Phase 1 must not contain: 0
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 14}
