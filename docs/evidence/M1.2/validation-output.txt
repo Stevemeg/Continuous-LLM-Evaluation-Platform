@@ -1,0 +1,19 @@
+==============================================================================
+M1.2 VALIDATION
+==============================================================================
+[PASS   ] AC-1         documents present: ['competitive_analysis', 'positioning']; missing: []; source register present: True; sizes(chars,lines): {'competitive_analysis': (32713, 312), 'positioning': (19676, 227)}
+[PASS   ] AC-2         competitors analysed: 9/9; absent: none
+[PASS   ] AC-3         0 VERIFIED claim(s) citing no source identifier
+[PASS   ] AC-4         sources defined: 10; cited: 10; cited-but-undefined: none; defined-but-uncited: none
+[PASS   ] AC-5         0 competitor factual claim(s) carrying neither a marker nor a source
+[PASS   ] AC-6         hard numeric/pricing/adoption matches: 0 (must be zero); comparative-claim matches: 0, of which adjudicated as prohibitions or gap statements: 0; OUTSTANDING: 0
+[PASS   ] AC-7         0 premature technology decision(s) about this system (technology token on a line asserting our own adoption)
+[PASS   ] AC-8         0 attribution match(es) - must be zero
+[PASS   ] AC-9         0 secret-pattern match(es) - must be zero
+[PASS   ] AC-10        18 relative link(s) checked; broken: none
+[PASS   ] AC-11        0 unqualified claim(s) that a named competitor lacks a capability - documentation silence cannot establish absence
+[PASS   ] AC-12        pillars: 6; proof obligations: 6; pillars without an obligation: none; NOT YET MEASURED statuses: 6
+[PASS   ] AC-13        risks defined in analysis: 9; referenced by positioning: 9; referenced but undefined: none
+[PASS   ] PLACEHOLDER  0 placeholder marker(s)
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 14}
