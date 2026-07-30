@@ -1,0 +1,25 @@
+==============================================================================
+PHASE 2 COMPREHENSIVE VALIDATION
+==============================================================================
+[PASS   ] Q-1   phase 1 regression           Phase 1 milestone validators re-run against the current tree. M1.1 documents: exit 0 {"PASS": 11}; M1.1 cross-document: exit 0 PASS; M1.2 competitive/positioning: exit 0 {"PASS": 14}; M1.3 requirements: exit 0 {"PASS": 18}
+[PASS   ] Q-2   phase 1 gate at its tree     Phase 1 phase-gate re-evaluated against the Phase 1 tree (526173bd) in a throwaway worktree: exit 0 {"PASS": 14}
+[PASS   ] Q-3   ADR coverage                 canonical §19 ADR topics present: 11/11; missing: none
+[PASS   ] Q-4   ADR status vocabulary        11 ADR status field(s) parsed; accepted: 9; explicitly undecided: 2
+[PASS   ] Q-5   gated ADRs specify spikes    undecided ADRs: ['ADR-001', 'ADR-003']; each must specify hypothesis, candidates, measurements, decision rule and falsification; defects: 0
+[PASS   ] Q-6   gated ADRs take no decision  0 line(s) in an undecided ADR asserting adoption of a named technology - a gated ADR must not smuggle a decision
+[PASS   ] Q-7   spike reproducibility        spike re-executed: exit 0; recorded output reproduces byte-identically (sha256/16 live=4aee19aa6d243aec recorded=4aee19aa6d243aec)
+[PASS   ] Q-8   requirement traceability     150 requirements defined; 108 distinct requirements referenced by Phase 2 artifacts; undefined references: 0
+[PASS   ] Q-9   failure-mode coverage        canonical §21 failure-mode themes present in the failure model: 21/21; missing: none
+[PASS   ] Q-10  sensitivity coverage         product sensitivity classes addressed by the threat model: 9/9; missing: none
+[PASS   ] Q-11  invented metrics             0 invented figure(s) in Phase 2 artifacts
+[PASS   ] Q-12  diagram integrity            12 mermaid diagram(s) across Phase 2 artifacts; structural defects: 0
+[PASS   ] Q-13  links                        45 relative link(s) checked in Phase 2 artifacts; broken: 0
+[PASS   ] Q-14  placeholders                 0 placeholder marker(s)
+[PASS   ] Q-15  secrets                      working tree: 50 files (1 binary skipped), 0 match(es); all blobs all refs: 0 match(es)
+[PASS   ] Q-16  attribution                  governed scope (Phase 2 artifacts, blobs reachable from main and phase/2-architecture, and their commit messages): 0 match(es). Superseded blobs on local-only recovery refs, disclosed: 3 (.gitignore, docs/evidence/M1.1/check_m11.py, docs/evidence/M1.1/security-and-integrity.txt)
+[PASS   ] Q-17  git identity                 authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']
+[PASS   ] Q-18  canonical document           local present=True unchanged=True ignored=True tracked=False absent_from_main=True
+[PASS   ] Q-19  hygiene                      48 tracked file(s); stray artifacts: 0; untracked-and-unignored: 0; clean tree: True
+[PASS   ] Q-20  phase boundary               Phase 3+ artifact classes checked: 5; artifacts Phase 2 must not contain: 0
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 20}

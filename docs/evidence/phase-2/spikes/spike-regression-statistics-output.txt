@@ -1,0 +1,151 @@
+==============================================================================
+SPIKE — REGRESSION COMPARISON METHODS (ADR-007)
+==============================================================================
+seed=20260730  trials/cell=100  bootstrap/permutation resamples=300
+alpha=0.05  naive_threshold=0.02  ci_precision=0.05
+score model: Beta(5.0,3.0) baseline, gaussian noise sd=0.08
+paired design: baseline and candidate scored on the same samples
+
+NULL CALIBRATION (true effect = 0)
+  mean paired difference: -0.00029  (must be ~0; a negative value indicates ceiling-clipping bias)
+  clipping rate: 18/2000 samples
+
+ true effect     n       method  regression  no change  insufficient  improvement
+---------------------------------------------------------------------------------
+        0.00    20        naive          17         83             0            0
+        0.00    20    bootstrap           0          5            94            1
+        0.00    20  permutation           7         93             0            0
+                   mean paired dz      -0.014
+
+        0.00    50        naive           5         95             0            0
+        0.00    50    bootstrap           6         83             6            5
+        0.00    50  permutation           6         94             0            0
+                   mean paired dz       0.004
+
+        0.00   200        naive           0        100             0            0
+        0.00   200    bootstrap           4         92             0            4
+        0.00   200  permutation           8         92             0            0
+                   mean paired dz      -0.008
+
+       -0.01    20        naive          25         75             0            0
+       -0.01    20    bootstrap           1          5            94            0
+       -0.01    20  permutation           9         91             0            0
+                   mean paired dz      -0.088
+
+       -0.01    50        naive          15         85             0            0
+       -0.01    50    bootstrap          10         73            17            0
+       -0.01    50  permutation          16         84             0            0
+                   mean paired dz      -0.116
+
+       -0.01   200        naive           3         97             0            0
+       -0.01   200    bootstrap          41         59             0            0
+       -0.01   200  permutation          58         42             0            0
+                   mean paired dz      -0.127
+
+       -0.05    20        naive          93          7             0            0
+       -0.05    20    bootstrap           6          0            94            0
+       -0.05    20  permutation          75         25             0            0
+                   mean paired dz      -0.645
+
+       -0.05    50        naive         100          0             0            0
+       -0.05    50    bootstrap          91          0             9            0
+       -0.05    50  permutation         100          0             0            0
+                   mean paired dz      -0.652
+
+       -0.05   200        naive         100          0             0            0
+       -0.05   200    bootstrap         100          0             0            0
+       -0.05   200  permutation         100          0             0            0
+                   mean paired dz      -0.629
+
+       -0.15    20        naive         100          0             0            0
+       -0.15    20    bootstrap           8          0            92            0
+       -0.15    20  permutation         100          0             0            0
+                   mean paired dz      -2.070
+
+       -0.15    50        naive         100          0             0            0
+       -0.15    50    bootstrap          93          0             7            0
+       -0.15    50  permutation         100          0             0            0
+                   mean paired dz      -1.903
+
+       -0.15   200        naive         100          0             0            0
+       -0.15   200    bootstrap         100          0             0            0
+       -0.15   200  permutation         100          0             0            0
+                   mean paired dz      -1.884
+
+==============================================================================
+FINDINGS
+==============================================================================
+1. FALSE POSITIVES under a true effect of zero (regressions declared out of
+   100 trials — lower is better):
+            naive: n=20 -> 17, n=50 -> 5, n=200 -> 0
+        bootstrap: n=20 -> 0, n=50 -> 6, n=200 -> 4
+      permutation: n=20 -> 7, n=50 -> 6, n=200 -> 8
+
+2. ABSTENTION. Only the bootstrap method can return 'insufficient':
+     effect=+0.00 n= 20: insufficient in 94/100 trials
+     effect=+0.00 n= 50: insufficient in 6/100 trials
+     effect=-0.01 n= 20: insufficient in 94/100 trials
+     effect=-0.01 n= 50: insufficient in 17/100 trials
+     effect=-0.05 n= 20: insufficient in 94/100 trials
+     effect=-0.05 n= 50: insufficient in 9/100 trials
+     effect=-0.15 n= 20: insufficient in 92/100 trials
+     effect=-0.15 n= 50: insufficient in 7/100 trials
+
+3. DETECTION of a real regression (bootstrap), and the smallest sample size
+   reaching a 80 in 100 detection rate:
+     effect=-0.01 (tiny (noise-scale)): n=20 -> 1/100, n=50 -> 10/100, n=200 -> 41/100   | minimum adequate n: not reached at n<=200
+     effect=-0.05 (moderate): n=20 -> 6/100, n=50 -> 91/100, n=200 -> 100/100   | minimum adequate n: 50
+     effect=-0.15 (large): n=20 -> 8/100, n=50 -> 93/100, n=200 -> 100/100   | minimum adequate n: 50
+
+4. UNCERTAINTY AND EFFECT SIZE. The bootstrap method returns an interval, so
+   it satisfies REQ-F-08-2 directly. Paired Cohen's dz is computable for
+   every comparison and is reported above per cell. The naive method returns
+   a point estimate only and cannot satisfy REQ-F-08-2 at all.
+
+==============================================================================
+CONCLUSION
+==============================================================================
+The decisive finding is not the false-positive rate. At n=200 the naive
+threshold produced the FEWEST false positives of the three methods, because a
+fixed 0.02 threshold becomes very conservative once the sample mean
+concentrates. That is not a virtue: the same fixed threshold makes it fire on
+pure noise in roughly one run in six at n=20, and makes it structurally unable
+to detect any real regression smaller than the threshold at any sample size.
+Its behaviour is governed by an arbitrary constant rather than by the evidence,
+which is precisely the 'arbitrary quality-gate score without uncertainty' that
+canonical section 25 rejects.
+
+The decisive finding is ABSTENTION. At n=20 the bootstrap declines to classify
+in roughly nine trials in ten -- including when the true effect is large --
+because the interval is genuinely too wide to distinguish anything. At the same
+sample size the naive method issues confident regression verdicts on pure
+noise. One method reports that it cannot tell; the other guesses.
+
+Against the requirements:
+  REQ-F-08-2 uncertainty and effect size : bootstrap YES (interval + dz)
+                                           permutation partial (p only)
+                                           naive NO
+  REQ-F-08-4 insufficient-evidence state : bootstrap YES
+                                           permutation NO, naive NO
+  REQ-F-08-1 detects real regressions    : bootstrap YES at adequate n
+  REQ-F-08-3 minimum-sample guidance     : bootstrap YES, derived from the
+                                           detection table above
+
+The paired bootstrap percentile interval is therefore the only candidate that
+satisfies all four requirements. The permutation test is retained as a
+cross-check for a future spike, not as the primary method, because it cannot
+abstain.
+
+A second finding constrains the product directly: a noise-scale effect
+(-0.01) is not reliably detectable even at n=200. Minimum-sample guidance must
+therefore be stated per effect size, and the product must refuse to claim
+detection of effects below what the sample supports rather than reporting a
+small delta as a verdict.
+
+LIMITATIONS. Simulated scores from one distribution family; one noise level;
+independent samples; a single alpha and precision setting; 100 trials per cell,
+so rates carry sampling error of a few counts. This spike supports a
+METHOD-CLASS decision only. Production alpha, per-metric precision thresholds,
+and minimum-sample tables must be set from real evaluation data, and the
+percentile bootstrap's known small-sample undercoverage should be re-examined
+against a bias-corrected variant before those values are fixed.
