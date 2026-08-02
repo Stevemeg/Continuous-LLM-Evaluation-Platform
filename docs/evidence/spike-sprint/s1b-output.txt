@@ -1,0 +1,15 @@
+﻿==============================================================================
+SPIKE S-1b - RESUME LATENCY AS A FUNCTION OF THE DETECTION TIMEOUT
+==============================================================================
+Both engines detect worker loss by timeout. If latency tracks the
+setting, the gap measured in S-1 is configuration, not an engine property.
+
+  timeout  3s   C1 Temporal resume   3.11s   C2 ARQ resume  11.22s
+  timeout  6s   C1 Temporal resume  16.21s   C2 ARQ resume  13.87s
+  timeout 10s   C1 Temporal resume   9.23s   C2 ARQ resume   17.8s
+
+  C1 range 3.11-16.21s across timeouts [3, 6, 10]
+  C2 range 11.22-17.8s across the same settings
+
+  Interpretation is stated in the ADR, not here: this script reports
+  numbers, and whether they track the setting is visible above.

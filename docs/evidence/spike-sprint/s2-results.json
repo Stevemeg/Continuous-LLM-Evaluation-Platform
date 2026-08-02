@@ -1,0 +1,436 @@
+{
+  "usage": [
+    {
+      "approach": "A",
+      "endpoint": "hosted",
+      "retrievable": false,
+      "error": "RateLimitError: litellm.RateLimitError: RateLimitError: OpenAIException - You exceeded your current quota, please check your plan and billing details. For more "
+    },
+    {
+      "approach": "A",
+      "endpoint": "self-hosted",
+      "retrievable": true,
+      "reported": [
+        36,
+        2,
+        38
+      ],
+      "provider_reference_prompt_tokens": 36,
+      "self_consistent": true,
+      "reconciles": true
+    },
+    {
+      "approach": "A",
+      "endpoint": "stub",
+      "retrievable": true,
+      "reported": [
+        7,
+        1,
+        8
+      ],
+      "provider_reference_prompt_tokens": 7,
+      "self_consistent": true,
+      "reconciles": true
+    },
+    {
+      "approach": "B",
+      "endpoint": "hosted",
+      "retrievable": false,
+      "error": "ProviderRateLimited: rate limited"
+    },
+    {
+      "approach": "B",
+      "endpoint": "self-hosted",
+      "retrievable": true,
+      "reported": [
+        36,
+        2,
+        38
+      ],
+      "provider_reference_prompt_tokens": 36,
+      "self_consistent": true,
+      "reconciles": true
+    },
+    {
+      "approach": "B",
+      "endpoint": "stub",
+      "retrievable": true,
+      "reported": [
+        7,
+        1,
+        8
+      ],
+      "provider_reference_prompt_tokens": 7,
+      "self_consistent": true,
+      "reconciles": true
+    },
+    {
+      "approach": "C",
+      "endpoint": "hosted",
+      "retrievable": false,
+      "error": "ProviderRateLimited: rate limited"
+    },
+    {
+      "approach": "C",
+      "endpoint": "self-hosted",
+      "retrievable": true,
+      "reported": [
+        36,
+        2,
+        38
+      ],
+      "provider_reference_prompt_tokens": 36,
+      "self_consistent": true,
+      "reconciles": true
+    },
+    {
+      "approach": "C",
+      "endpoint": "stub",
+      "retrievable": true,
+      "reported": [
+        7,
+        1,
+        8
+      ],
+      "provider_reference_prompt_tokens": 7,
+      "self_consistent": true,
+      "reconciles": true
+    }
+  ],
+  "failures": [
+    {
+      "approach": "A",
+      "mode": "rate limiting",
+      "raw_exception": "RateLimitError",
+      "classified": "ProviderRateLimited",
+      "expected": "ProviderRateLimited",
+      "correct": true,
+      "evidence": "litellm class RateLimitError",
+      "signals": {
+        "class": "RateLimitError",
+        "status_code": 429,
+        "cause": null,
+        "code": "429",
+        "llm_provider": "openai"
+      },
+      "structural": true
+    },
+    {
+      "approach": "A",
+      "mode": "malformed response",
+      "raw_exception": "InternalServerError",
+      "classified": null,
+      "expected": "ProviderMalformedResponse",
+      "correct": false,
+      "evidence": "unmapped InternalServerError",
+      "signals": {
+        "class": "InternalServerError",
+        "status_code": 500,
+        "cause": null,
+        "code": null,
+        "llm_provider": "openai"
+      },
+      "structural": true
+    },
+    {
+      "approach": "A",
+      "mode": "model deprecation",
+      "raw_exception": "NotFoundError",
+      "classified": "ModelUnavailable",
+      "expected": "ModelUnavailable",
+      "correct": true,
+      "evidence": "litellm class NotFoundError",
+      "signals": {
+        "class": "NotFoundError",
+        "status_code": 404,
+        "cause": null,
+        "code": null,
+        "llm_provider": "openai"
+      },
+      "structural": true
+    },
+    {
+      "approach": "A",
+      "mode": "outage",
+      "raw_exception": "InternalServerError",
+      "classified": null,
+      "expected": "ProviderOutage",
+      "correct": false,
+      "evidence": "unmapped InternalServerError",
+      "signals": {
+        "class": "InternalServerError",
+        "status_code": 500,
+        "cause": null,
+        "code": null,
+        "llm_provider": "openai"
+      },
+      "structural": true
+    },
+    {
+      "approach": "B",
+      "mode": "rate limiting",
+      "raw_exception": "ProviderRateLimited",
+      "classified": "ProviderRateLimited",
+      "expected": "ProviderRateLimited",
+      "correct": true,
+      "evidence": "HTTP status 429",
+      "signals": {
+        "class": "ProviderRateLimited",
+        "status_code": null,
+        "cause": null,
+        "code": null,
+        "llm_provider": null
+      },
+      "structural": true
+    },
+    {
+      "approach": "B",
+      "mode": "malformed response",
+      "raw_exception": "ProviderMalformedResponse",
+      "classified": "ProviderMalformedResponse",
+      "expected": "ProviderMalformedResponse",
+      "correct": true,
+      "evidence": "parse/shape error JSONDecodeError",
+      "signals": {
+        "class": "ProviderMalformedResponse",
+        "status_code": null,
+        "cause": null,
+        "code": null,
+        "llm_provider": null
+      },
+      "structural": true
+    },
+    {
+      "approach": "B",
+      "mode": "model deprecation",
+      "raw_exception": "ModelUnavailable",
+      "classified": "ModelUnavailable",
+      "expected": "ModelUnavailable",
+      "correct": true,
+      "evidence": "HTTP status 404, error.code='model_not_found'",
+      "signals": {
+        "class": "ModelUnavailable",
+        "status_code": null,
+        "cause": null,
+        "code": null,
+        "llm_provider": null
+      },
+      "structural": true
+    },
+    {
+      "approach": "B",
+      "mode": "outage",
+      "raw_exception": "ProviderOutage",
+      "classified": "ProviderOutage",
+      "expected": "ProviderOutage",
+      "correct": true,
+      "evidence": "transport error ConnectionRefusedError",
+      "signals": {
+        "class": "ProviderOutage",
+        "status_code": null,
+        "cause": null,
+        "code": null,
+        "llm_provider": null
+      },
+      "structural": true
+    },
+    {
+      "approach": "C",
+      "mode": "rate limiting",
+      "raw_exception": "ProviderRateLimited",
+      "classified": "ProviderRateLimited",
+      "expected": "ProviderRateLimited",
+      "correct": true,
+      "evidence": "litellm class RateLimitError",
+      "signals": {
+        "class": "ProviderRateLimited",
+        "status_code": null,
+        "cause": null,
+        "code": null,
+        "llm_provider": null
+      },
+      "structural": true
+    },
+    {
+      "approach": "C",
+      "mode": "malformed response",
+      "raw_exception": "ProviderMalformedResponse",
+      "classified": "ProviderMalformedResponse",
+      "expected": "ProviderMalformedResponse",
+      "correct": true,
+      "evidence": "unmapped InternalServerError",
+      "signals": {
+        "class": "ProviderMalformedResponse",
+        "status_code": null,
+        "cause": null,
+        "code": null,
+        "llm_provider": null
+      },
+      "structural": true
+    },
+    {
+      "approach": "C",
+      "mode": "model deprecation",
+      "raw_exception": "ModelUnavailable",
+      "classified": "ModelUnavailable",
+      "expected": "ModelUnavailable",
+      "correct": true,
+      "evidence": "litellm class NotFoundError",
+      "signals": {
+        "class": "ModelUnavailable",
+        "status_code": null,
+        "cause": null,
+        "code": null,
+        "llm_provider": null
+      },
+      "structural": true
+    },
+    {
+      "approach": "C",
+      "mode": "outage",
+      "raw_exception": "ProviderMalformedResponse",
+      "classified": "ProviderMalformedResponse",
+      "expected": "ProviderOutage",
+      "correct": false,
+      "evidence": "unmapped InternalServerError",
+      "signals": {
+        "class": "ProviderMalformedResponse",
+        "status_code": null,
+        "cause": null,
+        "code": null,
+        "llm_provider": null
+      },
+      "structural": true
+    }
+  ],
+  "isolation": [
+    {
+      "approach": "A",
+      "succeeded": 3,
+      "failed": 1,
+      "isolated": true,
+      "failures": [
+        {
+          "candidate": "cand-2",
+          "failure": "NotFoundError"
+        }
+      ]
+    },
+    {
+      "approach": "B",
+      "succeeded": 3,
+      "failed": 1,
+      "isolated": true,
+      "failures": [
+        {
+          "candidate": "cand-2",
+          "failure": "ModelUnavailable"
+        }
+      ]
+    },
+    {
+      "approach": "C",
+      "succeeded": 3,
+      "failed": 1,
+      "isolated": true,
+      "failures": [
+        {
+          "candidate": "cand-2",
+          "failure": "ModelUnavailable"
+        }
+      ]
+    }
+  ],
+  "credential": [
+    {
+      "approach": "A",
+      "leaked_in": [],
+      "partial_in": [],
+      "surfaces_checked": [
+        "repr",
+        "stderr",
+        "stdout",
+        "str",
+        "traceback"
+      ]
+    },
+    {
+      "approach": "B",
+      "leaked_in": [],
+      "partial_in": [],
+      "surfaces_checked": [
+        "repr",
+        "stderr",
+        "stdout",
+        "str",
+        "traceback"
+      ]
+    },
+    {
+      "approach": "C",
+      "leaked_in": [],
+      "partial_in": [],
+      "surfaces_checked": [
+        "repr",
+        "stderr",
+        "stdout",
+        "str",
+        "traceback"
+      ]
+    },
+    {
+      "approach": "A",
+      "debug_logging": "APPROACH=A LEAKED=stdout LOGBYTES=16973"
+    },
+    {
+      "approach": "B",
+      "debug_logging": "APPROACH=B LEAKED=none LOGBYTES=4540"
+    },
+    {
+      "approach": "C",
+      "debug_logging": "APPROACH=C LEAKED=stdout LOGBYTES=16973"
+    }
+  ],
+  "cost": [],
+  "real_providers": [
+    {
+      "provider": "OpenAI",
+      "reached": true,
+      "http_status": 429,
+      "error_type": "insufficient_quota",
+      "error_code": "insufficient_quota",
+      "retry_after": null
+    },
+    {
+      "provider": "Perplexity",
+      "reached": true,
+      "http_status": 401,
+      "error_type": "insufficient_quota",
+      "error_code": 401,
+      "retry_after": null
+    }
+  ],
+  "status_code_ambiguity": {
+    "insufficient_quota": [
+      401,
+      429
+    ]
+  },
+  "credential_selftest": {
+    "surfaces": [
+      "repr",
+      "stderr",
+      "stdout",
+      "str",
+      "traceback"
+    ],
+    "detected_on": [
+      "repr",
+      "stderr",
+      "stdout",
+      "str",
+      "traceback"
+    ],
+    "detector_works": true
+  }
+}

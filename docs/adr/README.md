@@ -1,12 +1,12 @@
 # Architecture Decision Records
 
-Phase 2 — Architecture. Canonical §19 fixes the required ADR topics; all eleven are present.
+Canonical §19 fixes the required ADR topics; all eleven are present. Two more were added in Phase 4 for the datastore decisions the schema depends on, and the two spike-gated ADRs were decided in the Technology Spike Sprint.
 
 | ADR | Topic | Status |
 |---|---|---|
-| [ADR-001](ADR-001-durable-execution.md) | Durable execution for long-running evaluations | **Proposed — gated on spike. NOT DECIDED** |
+| [ADR-001](ADR-001-durable-execution.md) | Durable execution for long-running evaluations | Accepted on executed spike evidence |
 | [ADR-002](ADR-002-agent-orchestration.md) | Orchestration of reasoning components | Accepted |
-| [ADR-003](ADR-003-provider-abstraction.md) | Model and provider abstraction | **Proposed — gated on spike. NOT DECIDED** |
+| [ADR-003](ADR-003-provider-abstraction.md) | Model and provider abstraction | Accepted on executed spike evidence |
 | [ADR-004](ADR-004-judge-ensemble.md) | Judge ensemble and consensus strategy | Accepted (strategy); parameters gated |
 | [ADR-005](ADR-005-dataset-immutability.md) | Golden dataset immutability and versioning | Accepted |
 | [ADR-006](ADR-006-evaluator-isolation.md) | Evaluator SDK and plugin isolation | Accepted (model); mechanism deferred to Phase 5 |
@@ -15,22 +15,25 @@ Phase 2 — Architecture. Canonical §19 fixes the required ADR topics; all elev
 | [ADR-009](ADR-009-observability-core.md) | Vendor-neutral observability core with optional adapters | Accepted |
 | [ADR-010](ADR-010-multi-tenancy.md) | Multi-tenancy isolation | Accepted (enforcement location); store mechanism constrained |
 | [ADR-011](ADR-011-artifact-retention.md) | Artifact retention and reproducibility | Accepted |
+| [ADR-012](ADR-012-primary-datastore.md) | Primary datastore | Accepted, under four mandatory conditions |
+| [ADR-013](ADR-013-artifact-store.md) | Artifact store | Accepted |
 
-## The two undecided ADRs
+## The two ADRs that were held open, and are now closed
 
-ADR-001 and ADR-003 are **not decided**, deliberately.
+ADR-001 and ADR-003 were left **undecided** through Phases 2, 3 and 4, because both turn on properties only measurement can establish. Each specified its own spike in full — hypothesis, candidates, method, measurements, decision rule, and falsification condition — and declined to pre-empt it. Neither blocked the intervening phases, because the architecture treats both as container responsibilities behind project-owned ports and names no technology.
 
-Both turn on properties that only measurement can establish — durable-execution replay and exactly-once semantics under induced worker loss, and provider-abstraction error granularity and per-call usage detail under induced failure. Both spikes require infrastructure absent from the current environment: container infrastructure and a message broker for one, provider credentials and at least two endpoint types for the other.
+Both were decided in the [Technology Spike Sprint](../evidence/spike-sprint/), on infrastructure provisioned for the purpose: PostgreSQL, Redis, a durable workflow engine, a real self-hosted inference server, and a fault endpoint. Neither decision went the way the ADR's own framing suggested it would.
 
-The governing execution model is explicit that technology must not be chosen merely to keep a phase moving. Each ADR therefore specifies its own spike in full — hypothesis, candidates, method, measurements, decision rule, and falsification condition — and declines to pre-empt it.
+- **ADR-001** measured both candidates as passing every randomly-timed worker kill, then showed that result to be worthless: a deliberate crash inside the commit-to-completion window made **both** candidates over-bill by exactly one sample. Neither engine provides exactly-once effects, so the engine choice could not turn on them. One of the ADR's own zero-conditions proved stricter than the requirement it operationalised and was reclassified.
+- **ADR-003** rejected the aggregation library on two mechanically-derived findings: it reports an identical exception class, status code and cause for an outage and for a malformed response, and it writes the API key to stdout when debug logging is enabled. Wrapping it in the project's own port fixed neither.
 
-**Neither blocks the rest of Phase 2.** The architecture treats both as container responsibilities behind project-owned ports and names no technology, which is what makes the deferral safe rather than merely convenient. Both block implementation from Phase 5 onward.
-
-## One ADR decided on executed evidence
+## Three ADRs decided on executed evidence
 
 ADR-007 rests on a spike that was **run**, not described: [`../evidence/phase-2/spikes/`](../evidence/phase-2/spikes/), seed `20260730`, standard library only, deterministic.
 
-The spike also found a defect in its own methodology — a ceiling-clipping bias that made the null hypothesis non-null and inflated every method's regression rate — which was fixed and calibration-checked before any result was used. The recorded conclusion contradicts the intuition the spike began with: the naive threshold method's problem is not its false-positive rate, which is the lowest of the three at large samples, but that it cannot express uncertainty or abstain at all.
+That spike found a defect in its own methodology — a ceiling-clipping bias that made the null hypothesis non-null and inflated every method's regression rate — which was fixed and calibration-checked before any result was used. The recorded conclusion contradicts the intuition the spike began with: the naive threshold method's problem is not its false-positive rate, which is the lowest of the three at large samples, but that it cannot express uncertainty or abstain at all.
+
+The spike-sprint runs did the same twice more. ADR-001's decisive experiment was built specifically to falsify the result its first experiment had produced. ADR-003's spike found a live bug in the approach it went on to recommend — an exhausted-quota response classified as retryable, which would have retried forever — and recorded it rather than quietly fixing it.
 
 ## Status vocabulary
 
@@ -38,4 +41,5 @@ The spike also found a defect in its own methodology — a ceiling-clipping bias
 |---|---|
 | Accepted | Decided. Implementation must follow it or raise a change proposal. |
 | Accepted (X); Y gated | The structure is decided; named parameters or mechanisms are not, and are listed in the ADR. |
-| Proposed — gated on spike | **Not a decision.** The spike protocol is specified; no option is selected. |
+| Proposed — gated on spike | **Not a decision.** The spike protocol is specified; no option is selected. No ADR currently holds this status. |
+| Accepted on executed spike evidence | Decided, and the run that decided it is committed and re-runnable. |

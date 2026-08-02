@@ -1,0 +1,99 @@
+﻿==============================================================================
+SPIKE S-2 - MODEL AND PROVIDER ABSTRACTION (ADR-003)
+==============================================================================
+aggregation library : litellm n/a
+hosted endpoint     : https://api.openai.com/v1 model gpt-4.1-nano (real, paid)
+self-hosted endpoint: http://localhost:8100/v1 model /models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+fault endpoint      : http://127.0.0.1:8099/v1 (spike-controlled)
+
+------------------------------------------------------------------------------
+Q1  per-call usage retrievable and reconciling with provider-reported usage
+------------------------------------------------------------------------------
+    A / hosted      CALL FAILED  RateLimitError
+    A / self-hosted usage=36/2  provider=36/2  reconciles=True
+    A / stub        usage=7/1  provider=7/1  reconciles=True
+    B / hosted      CALL FAILED  ProviderRateLimited
+    B / self-hosted usage=36/2  provider=36/2  reconciles=True
+    B / stub        usage=7/1  provider=7/1  reconciles=True
+    C / hosted      CALL FAILED  ProviderRateLimited
+    C / self-hosted usage=36/2  provider=36/2  reconciles=True
+    C / stub        usage=7/1  provider=7/1  reconciles=True
+
+------------------------------------------------------------------------------
+Q2  the four failure modes, induced deliberately, one at a time
+------------------------------------------------------------------------------
+    A / rate limiting       raw=RateLimitError           -> ProviderRateLimited        ok   [litellm class RateLimitError]
+    A / malformed response  raw=InternalServerError      -> UNCLASSIFIED               WRONG   [unmapped InternalServerError]
+    A / model deprecation   raw=NotFoundError            -> ModelUnavailable           ok   [litellm class NotFoundError]
+    A / outage              raw=InternalServerError      -> UNCLASSIFIED               WRONG   [unmapped InternalServerError]
+
+    B / rate limiting       raw=ProviderRateLimited      -> ProviderRateLimited        ok   [HTTP status 429]
+    B / malformed response  raw=ProviderMalformedResponse -> ProviderMalformedResponse  ok   [parse/shape error JSONDecodeError]
+    B / model deprecation   raw=ModelUnavailable         -> ModelUnavailable           ok   [HTTP status 404, error.code='model_not_found']
+    B / outage              raw=ProviderOutage           -> ProviderOutage             ok   [transport error ConnectionRefusedError]
+
+    C / rate limiting       raw=ProviderRateLimited      -> ProviderRateLimited        ok   [litellm class RateLimitError]
+    C / malformed response  raw=ProviderMalformedResponse -> ProviderMalformedResponse  ok   [unmapped InternalServerError]
+    C / model deprecation   raw=ModelUnavailable         -> ModelUnavailable           ok   [litellm class NotFoundError]
+    C / outage              raw=ProviderMalformedResponse -> ProviderMalformedResponse  WRONG   [unmapped InternalServerError]
+
+------------------------------------------------------------------------------
+Q2b real hosted providers: does the taxonomy survive contact with them?
+------------------------------------------------------------------------------
+    OpenAI       HTTP 429  type='insufficient_quota' code='insufficient_quota'  Retry-After=None
+    Perplexity   HTTP 401  type='insufficient_quota' code=401  Retry-After=None
+    -> condition 'insufficient_quota' arrives as HTTP [401, 429] depending on provider
+
+------------------------------------------------------------------------------
+Q3  one failing evaluation candidate must not invalidate its siblings
+------------------------------------------------------------------------------
+    A  3 sibling(s) valid, 1 failed  isolated=True
+    B  3 sibling(s) valid, 1 failed  isolated=True
+    C  3 sibling(s) valid, 1 failed  isolated=True
+
+------------------------------------------------------------------------------
+Q4  credential exposure in logs and serialised errors
+------------------------------------------------------------------------------
+    self-test: planted the canary on 5 surfaces, detector found it on 5 -> PASS
+    A  canary in: none   partial: none   (checked repr, stderr, stdout, str, traceback)
+    B  canary in: none   partial: none   (checked repr, stderr, stdout, str, traceback)
+    C  canary in: none   partial: none   (checked repr, stderr, stdout, str, traceback)
+    with provider debug logging enabled (what an operator does when a run starts failing):
+    A  APPROACH=A LEAKED=stdout LOGBYTES=16973
+    B  APPROACH=B LEAKED=none LOGBYTES=4540
+    C  APPROACH=C LEAKED=stdout LOGBYTES=16973
+
+------------------------------------------------------------------------------
+SUMMARY
+------------------------------------------------------------------------------
+A  aggregation library, used directly
+     per-call usage reconciles                   : True (1 real endpoint(s) reached, 1 unreachable, 1 stub)
+     failure modes correctly distinguished       : 2/4  (structural signal, not message text: 2/4)
+     failing candidate isolated                  : True
+     credential canary, default logging          : no surface
+     credential canary, debug logging on         : LEAKED   <- REQ-N-SEC-5 violation
+     ADR-003 decision rule                       : REJECTED
+
+B  internal adapter behind the port
+     per-call usage reconciles                   : True (1 real endpoint(s) reached, 1 unreachable, 1 stub)
+     failure modes correctly distinguished       : 4/4  (structural signal, not message text: 4/4)
+     failing candidate isolated                  : True
+     credential canary, default logging          : no surface
+     credential canary, debug logging on         : no surface   
+     ADR-003 decision rule                       : SURVIVES
+
+C  aggregation library behind the port
+     per-call usage reconciles                   : True (1 real endpoint(s) reached, 1 unreachable, 1 stub)
+     failure modes correctly distinguished       : 3/4  (structural signal, not message text: 3/4)
+     failing candidate isolated                  : True
+     credential canary, default logging          : no surface
+     credential canary, debug logging on         : LEAKED   <- REQ-N-SEC-5 violation
+     ADR-003 decision rule                       : REJECTED
+
+indistinguishable failure modes (identical structured signals):
+     A: malformed response == outage  (same class, status and cause)
+     B: none - all four modes carry distinct structured signals
+     C: malformed response == outage  (same class, status and cause)
+
+cost of this run (real paid endpoint only):
+     0 calls, 0 prompt tokens, 0 completion tokens

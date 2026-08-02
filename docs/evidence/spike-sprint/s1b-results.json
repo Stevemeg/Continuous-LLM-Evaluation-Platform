@@ -1,0 +1,17 @@
+[
+  {
+    "timeout_s": 3,
+    "C1_temporal_s": 3.11,
+    "C2_arq_s": 11.22
+  },
+  {
+    "timeout_s": 6,
+    "C1_temporal_s": 16.21,
+    "C2_arq_s": 13.87
+  },
+  {
+    "timeout_s": 10,
+    "C1_temporal_s": 9.23,
+    "C2_arq_s": 17.8
+  }
+]

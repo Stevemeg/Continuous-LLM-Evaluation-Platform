@@ -1,0 +1,47 @@
+﻿==============================================================================
+SPIKE S-1 - DURABLE EXECUTION (ADR-001)
+==============================================================================
+samples per run        : 40
+unit of work           : 120 ms, then one result row and one cost row
+regime A trials        : 3 per candidate, randomly timed hard kill
+regime B               : 1 per candidate per ledger mode, crash inside the
+                         window between commit and completion (sample 15)
+zero-conditions        : samples_lost = 0, samples_recomputed = 0, cost_double_counted = 0
+
+------------------------------------------------------------------------------
+REGIME A - randomly timed worker loss (ledger: naive)
+------------------------------------------------------------------------------
+  C1 trial 0: killed after 12 samples  lost=0 recomputed=0 double_cost=0 resume=9.59s  [PASS]
+  C1 trial 1: killed after 11 samples  lost=0 recomputed=0 double_cost=0 resume=9.67s  [PASS]
+  C1 trial 2: killed after 20 samples  lost=0 recomputed=0 double_cost=0 resume=9.68s  [PASS]
+  C2 trial 0: killed after  8 samples  lost=0 recomputed=0 double_cost=0 resume=17.36s  [PASS]
+  C2 trial 1: killed after 11 samples  lost=0 recomputed=0 double_cost=0 resume=16.9s  [PASS]
+  C2 trial 2: killed after 11 samples  lost=0 recomputed=0 double_cost=0 resume=17.37s  [PASS]
+
+------------------------------------------------------------------------------
+REGIME B - crash inside the commit-to-completion window
+------------------------------------------------------------------------------
+  C1 ledger=naive       lost=0 recomputed=1 double_cost=1 cost_units=410 (expected 400)  [FAIL]
+  C1 ledger=idempotent  lost=0 recomputed=1 double_cost=0 cost_units=400 (expected 400)  [FAIL]
+  C2 ledger=naive       lost=0 recomputed=1 double_cost=1 cost_units=410 (expected 400)  [FAIL]
+  C2 ledger=idempotent  lost=0 recomputed=1 double_cost=0 cost_units=400 (expected 400)  [FAIL]
+
+------------------------------------------------------------------------------
+SUMMARY
+------------------------------------------------------------------------------
+C1 Temporal
+   regime A (3 trials)      : 3/3 PASS
+   regime B naive ledger      : FAIL  recomputed=1 double_cost=1
+   regime B idempotent ledger : FAIL  recomputed=1 double_cost=0
+   resume latency             : median 9.67s  range 9.59-9.68s
+   bespoke state-management   : 0 tagged lines
+   duplicate submission       : rejected (WorkflowAlreadyStartedError)
+
+C2 ARQ+Redis
+   regime A (3 trials)      : 3/3 PASS
+   regime B naive ledger      : FAIL  recomputed=1 double_cost=1
+   regime B idempotent ledger : FAIL  recomputed=1 double_cost=0
+   resume latency             : median 17.36s  range 16.90-17.37s
+   bespoke state-management   : 22 tagged lines
+   duplicate submission       : rejected (duplicate job id)
+

@@ -1,0 +1,28 @@
+﻿[PASS   ] S-1a   regime A: 6/6 trials satisfied every zero-condition - the result the spike went on to show establishes nothing
+[PASS   ] S-1b   regime B, naive ledger: 2/2 candidates double-counted cost (410 against an expected 400) - neither engine gives exactly-once effects
+[PASS   ] S-1c   regime B, idempotent ledger: 2/2 candidates recorded cost exactly once - the application key is what satisfies REQ-N-REL-2, not the engine
+[PASS   ] S-1d   regime B: 4/4 candidates recomputed a completed sample - the zero-condition ADR-001 reclassified
+[PASS   ] S-1e   no run lost a sample under any fault, in either regime: 10/10
+[PASS   ] S-1f   bespoke state-management lines, counted from tags in the source and agreeing across every trial: C1=[0] C2=[22]
+[PASS   ] S-1g   duplicate submission of the same work unit rejected in every run (2 distinct rejection reason(s))
+[PASS   ] S-2a   approach B distinguished 4/4 failure modes
+[PASS   ] S-2b   the aggregation library did not: A=2/4 C=3/4
+[PASS   ] S-2c   outage and malformed response carry identical structured signals for A and C (True); approach B has 0 collision(s)
+[PASS   ] S-2d   approach B's four mappings rest on structural signals, not message text: 4/4
+[PASS   ] S-2e   a failing evaluation candidate left its siblings valid in 3/3 approaches
+[PASS   ] S-2f   the credential leak detector was proven able to fail: planted on 5 surfaces, detected on 5
+[PASS   ] S-2g   with debug logging enabled the credential appeared for approaches ['A', 'C'] and not for ['B']
+[PASS   ] S-2h   per-call usage reconciled against provider-reported usage on every endpoint actually reached: 6/6
+[PASS   ] S-2i   a single semantic condition arrived under different HTTP statuses across real providers: {'insufficient_quota': [401, 429]}
+[PASS   ] S-3a   both spike-gated ADRs now record a decision; still undecided: none
+[PASS   ] S-3b   both ADRs carry the accepted-on-evidence status
+[PASS   ] S-3c   the ADR index no longer advertises either ADR as undecided
+[PASS   ] S-3d   13 ADR files, all listed in the index; missing: none
+[PASS   ] S-4a   ADR-001 quotes the measured figures; absent from the prose: none
+[PASS   ] S-4b   ADR-003 quotes the measured figures; absent from the prose: none
+[PASS   ] S-4c   ADR-001's quoted median resume latency matches the recorded trials: [9.59, 9.67, 9.68]
+[PASS   ] S-5a   no credential pattern in any spike artifact (21 files); hits: none
+[PASS   ] S-5b   every spike artifact is committed, so the runs can be re-executed and challenged; absent: none
+[PASS   ] S-5c   the sprint closed decisions without beginning implementation: 0 implementation artifact(s) found []
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 26}
