@@ -1117,9 +1117,9 @@
           "id",
           "projectId",
           "identity",
-          "completeness",
           "reproducibility",
-          "createdAt"
+          "createdAt",
+          "executionState"
         ],
         "properties": {
           "id": {
@@ -1132,7 +1132,18 @@
             "$ref": "#/components/schemas/RunIdentity"
           },
           "completeness": {
-            "$ref": "#/components/schemas/Completeness"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Completeness"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null until `executionState` is `terminal`. A run still executing has not ended in any of the five ways, and reporting it as `partial` would mean the opposite of what it is."
+          },
+          "executionState": {
+            "$ref": "#/components/schemas/ExecutionState"
           },
           "reproducibility": {
             "$ref": "#/components/schemas/Reproducibility"
@@ -1152,6 +1163,17 @@
           },
           "correlationId": {
             "type": "string"
+          },
+          "sampleCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Count of samples by resolution. Present so a caller can see that an incomplete run is incomplete without paging every sample.",
+            "x-requirements": [
+              "REQ-X-2",
+              "REQ-X-8"
+            ]
           }
         }
       },
@@ -1888,6 +1910,19 @@
             ]
           }
         }
+      },
+      "ExecutionState": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "running",
+          "terminal"
+        ],
+        "description": "Where the run is in its lifecycle. Distinct from `completeness`, which says how a run ENDED and is therefore absent until it has.",
+        "x-requirements": [
+          "REQ-F-07-5",
+          "REQ-X-1"
+        ]
       }
     }
   }

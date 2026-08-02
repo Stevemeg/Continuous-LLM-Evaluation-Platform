@@ -10,172 +10,167 @@
 
 Derived from the artifacts themselves. Regenerate with `python docs/evidence/phase-3/generate_traceability.py . --write`.
 
-**131 of 150 requirements traced**; 19 deferred with an owning phase and a reason; 0 untracked.
+**136 of 150 requirements traced**; 14 deferred with an owning phase and a reason; 0 untracked.
 
-Implementation and test columns are absent because neither exists yet. `SC-G7` becomes fully measurable when they do; this generator is the mechanism that will measure it.
+Phase 5 added the implementation and test columns. `SC-G7` is fully measurable from here: until now a requirement could be counted as traced because a document mentioned it.
 
-| Requirement | Status | Architecture | Data model | Schema | API contract |
-|---|---|---|---|---|---|
-| `REQ-X-1` | traced | docs/adr/ADR-011-artifact-retention.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md | docs/data/data-model.md, docs/data/domain-model.md | — | cancelRun, getRun, schemas/Completeness |
-| `REQ-X-2` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | listRunSamples, schemas/SampleResolution |
-| `REQ-X-3` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/failure-model.md | docs/data/domain-model.md | — | schemas/Classification |
-| `REQ-X-4` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | — | createBaseline, schemas/Baseline, schemas/Classification |
-| `REQ-X-5` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | approveDatasetVersion, createPolicyException, listAuditEvents, schemas/AuditEvent |
-| `REQ-X-6` | traced | docs/architecture/system-architecture.md | — | — | — |
-| `REQ-X-7` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-006-evaluator-isolation.md, docs/adr/ADR-008-tool-protocol.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — |
-| `REQ-X-8` | traced | docs/architecture/component-architectures.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md | docs/data/artifact-model.md, docs/data/domain-model.md | — | listRunSamples, schemas/GateDecision |
-| `REQ-X-9` | traced | docs/adr/ADR-001-durable-execution.md, docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | createRun, schemas/Budget |
-| `REQ-X-10` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md | docs/data/domain-model.md | — | evaluateGate, schemas/GateOutcome, schemas/Problem |
-| `REQ-F-01-1` | traced | — | docs/data/domain-model.md | — | — |
-| `REQ-F-01-2` | traced | — | docs/data/domain-model.md | — | createBaseline, schemas/Baseline |
-| `REQ-F-01-3` | traced | — | — | — | evaluateGate |
-| `REQ-F-01-4` | traced | docs/architecture/failure-model.md | — | — | — |
-| `REQ-F-01-5` | traced | — | — | — | listRunSamples |
-| `REQ-F-01-6` | traced | — | docs/data/domain-model.md | — | — |
-| `REQ-F-02-1` | traced | — | — | — | schemas/RunRequest |
-| `REQ-F-02-2` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | schemas/RunIdentity |
-| `REQ-F-02-3` | traced | — | — | — | schemas/CostSummary |
-| `REQ-F-02-4` | traced | docs/adr/ADR-003-provider-abstraction.md | — | — | schemas/RunRequest |
-| `REQ-F-02-5` | traced | — | docs/data/domain-model.md | — | — |
-| `REQ-F-02-6` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | — |
-| `REQ-F-03-1` | deferred → Phase 9 | — | — | — | — |
-| `REQ-F-03-2` | deferred → Phase 9 | — | — | — | — |
-| `REQ-F-03-3` | deferred → Phase 9 | — | — | — | — |
-| `REQ-F-03-4` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | schemas/IntegrationTier |
-| `REQ-F-03-5` | traced | docs/architecture/threat-model.md | — | — | — |
-| `REQ-F-03-6` | deferred → Phase 9 | — | — | — | — |
-| `REQ-F-04-1` | traced | docs/adr/ADR-008-tool-protocol.md | — | — | — |
-| `REQ-F-04-2` | deferred → Phase 9 | — | — | — | — |
-| `REQ-F-04-3` | deferred → Phase 9 | — | — | — | — |
-| `REQ-F-04-4` | deferred → Phase 9 | — | — | — | — |
-| `REQ-F-04-5` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md | — | — | schemas/SampleResolution |
-| `REQ-F-04-6` | traced | docs/adr/ADR-008-tool-protocol.md, docs/architecture/threat-model.md | — | — | — |
-| `REQ-F-05-1` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | — | approveDatasetVersion, listDatasetVersions, schemas/DatasetVersion |
-| `REQ-F-05-2` | traced | — | docs/data/domain-model.md | docs/data/schema/02-golden-dataset.sql | createDatasetVersion, schemas/Lineage |
-| `REQ-F-05-3` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | — | createDatasetVersion |
-| `REQ-F-05-4` | traced | — | docs/data/domain-model.md | — | listDatasetVersions, schemas/DatasetVersion |
-| `REQ-F-05-5` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | — | approveDatasetVersion, schemas/Approval |
-| `REQ-F-05-6` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | docs/data/schema/02-golden-dataset.sql | createDatasetVersion, schemas/DatasetVersion, schemas/QualityFinding |
-| `REQ-F-05-7` | traced | docs/architecture/threat-model.md | — | — | — |
-| `REQ-F-05-8` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/04-artifacts-and-audit.sql | createErasureRequest, schemas/ErasureAcceptance, schemas/Reproducibility |
-| `REQ-F-05-9` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md | docs/data/domain-model.md | — | — |
-| `REQ-F-06-1` | traced | — | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — |
-| `REQ-F-06-2` | traced | — | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — |
-| `REQ-F-06-3` | traced | docs/architecture/component-architectures.md | docs/data/domain-model.md | — | schemas/RunIdentity |
-| `REQ-F-06-4` | traced | docs/adr/ADR-010-multi-tenancy.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — |
-| `REQ-F-06-5` | traced | docs/architecture/system-architecture.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | createBaseline |
-| `REQ-F-07-1` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | — | createRun, schemas/RunIdentity |
-| `REQ-F-07-2` | traced | docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | — | — | listRunSamples |
-| `REQ-F-07-3` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | — |
-| `REQ-F-07-4` | traced | docs/architecture/component-architectures.md | docs/data/domain-model.md | — | schemas/RunSample |
-| `REQ-F-07-5` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | — |
-| `REQ-F-07-6` | traced | docs/adr/ADR-003-provider-abstraction.md | docs/data/data-model.md, docs/data/domain-model.md | — | getRun, schemas/CostSummary |
-| `REQ-F-07-7` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md | — | — | cancelRun |
-| `REQ-F-08-1` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | schemas/ComparisonResult |
-| `REQ-F-08-2` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | schemas/ComparisonResult, schemas/UncertaintyInterval |
-| `REQ-F-08-3` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | schemas/ComparisonResult |
-| `REQ-F-08-4` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | schemas/Classification |
-| `REQ-F-08-5` | traced | — | — | — | schemas/SampleResolution |
-| `REQ-F-08-6` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — |
-| `REQ-F-08-7` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/component-architectures.md | docs/data/domain-model.md | — | evaluateGate, schemas/ComparisonResult |
-| `REQ-F-08-8` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | — |
-| `REQ-F-09-1` | traced | docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | evaluateGate |
-| `REQ-F-09-2` | traced | docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | — | — | evaluateGate, schemas/GateOutcome |
-| `REQ-F-09-3` | traced | — | docs/data/domain-model.md | — | — |
-| `REQ-F-09-4` | traced | docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/data-model.md, docs/data/domain-model.md | — | evaluateGate, getGateDecision, schemas/GateDecision |
-| `REQ-F-09-5` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | evaluateGate, schemas/GateOutcome, schemas/Problem |
-| `REQ-F-09-6` | traced | docs/architecture/component-architectures.md | docs/data/domain-model.md | — | createPolicyException, schemas/PolicyException |
-| `REQ-F-09-7` | traced | docs/architecture/component-architectures.md | — | — | evaluateGate |
-| `REQ-F-09-8` | traced | docs/architecture/component-architectures.md | docs/data/domain-model.md | — | evaluateGate, getGateDecision, schemas/GateDecision |
-| `REQ-F-10-1` | traced | — | docs/data/domain-model.md | — | — |
-| `REQ-F-10-2` | deferred → Phase 10 | — | — | — | — |
-| `REQ-F-10-3` | traced | docs/architecture/system-architecture.md | — | — | — |
-| `REQ-F-10-4` | deferred → Phase 11 | — | — | — | — |
-| `REQ-F-10-5` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | — | — | createRun |
-| `REQ-F-11-1` | traced | — | docs/data/data-model.md | — | — |
-| `REQ-F-11-2` | deferred → Phase 11 | — | — | — | — |
-| `REQ-F-11-3` | traced | — | docs/data/data-model.md | — | — |
-| `REQ-F-11-4` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md | — | — | — |
-| `REQ-F-11-5` | deferred → Phase 11 | — | — | — | — |
-| `REQ-F-11-6` | traced | docs/architecture/observability-strategy.md | — | — | — |
-| `REQ-F-11-7` | traced | — | — | — | schemas/Completeness |
-| `REQ-F-11-8` | deferred → Phase 11 | — | — | — | — |
-| `REQ-F-11-9` | traced | docs/architecture/observability-strategy.md | docs/data/domain-model.md | — | — |
-| `REQ-F-12-1` | traced | docs/adr/ADR-010-multi-tenancy.md | docs/data/domain-model.md | — | — |
-| `REQ-F-12-2` | traced | docs/architecture/threat-model.md | docs/data/domain-model.md | — | — |
-| `REQ-F-12-3` | traced | docs/architecture/threat-model.md | docs/data/domain-model.md | — | — |
-| `REQ-F-12-4` | traced | docs/architecture/threat-model.md | docs/data/domain-model.md | — | createPolicyException, listAuditEvents, schemas/AuditEvent |
-| `REQ-F-12-5` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-012-primary-datastore.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/01-roles-and-conventions.sql | — |
-| `REQ-F-12-6` | traced | docs/adr/ADR-011-artifact-retention.md, docs/architecture/threat-model.md | docs/data/data-model.md, docs/data/domain-model.md | — | — |
-| `REQ-F-12-7` | traced | docs/adr/ADR-010-multi-tenancy.md | docs/data/domain-model.md | docs/data/schema/02-golden-dataset.sql | approveDatasetVersion, schemas/Approval |
-| `REQ-F-12-8` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/architecture/system-architecture.md | — | — | — |
-| `REQ-F-12-9` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/adr/ADR-008-tool-protocol.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | — |
-| `REQ-F-AG-1` | traced | docs/adr/ADR-002-agent-orchestration.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | — |
-| `REQ-F-AG-2` | traced | docs/adr/ADR-002-agent-orchestration.md, docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | schemas/ConsensusResult |
-| `REQ-F-AG-3` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md | docs/data/domain-model.md | — | schemas/ConsensusResult |
-| `REQ-F-AG-4` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | schemas/ConsensusResult |
-| `REQ-F-AG-5` | traced | docs/adr/ADR-002-agent-orchestration.md, docs/architecture/system-architecture.md | — | — | — |
-| `REQ-F-AG-6` | deferred → Phase 8 | — | — | — | — |
-| `REQ-F-AG-7` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — |
-| `REQ-F-AG-8` | traced | docs/adr/ADR-002-agent-orchestration.md | — | — | — |
-| `REQ-F-AG-9` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | — |
-| `REQ-N-OBS-1` | traced | docs/adr/ADR-009-observability-core.md, docs/architecture/observability-strategy.md | docs/data/artifact-model.md, docs/data/domain-model.md | — | parameters/correlationId |
-| `REQ-N-OBS-2` | traced | docs/adr/ADR-009-observability-core.md, docs/architecture/observability-strategy.md | — | — | — |
-| `REQ-N-OBS-3` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/adr/ADR-009-observability-core.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md | — | — | — |
-| `REQ-N-OBS-4` | traced | docs/adr/ADR-009-observability-core.md, docs/architecture/observability-strategy.md | — | — | — |
-| `REQ-N-OPS-1` | traced | docs/adr/ADR-013-artifact-store.md | — | — | — |
-| `REQ-N-OPS-2` | deferred → Phase 5 | — | — | — | — |
-| `REQ-N-OPS-3` | deferred → Phase 5 | — | — | — | — |
-| `REQ-N-REL-1` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | — |
-| `REQ-N-REL-2` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md | docs/data/domain-model.md | — | createRun, parameters/idempotencyKey |
-| `REQ-N-REL-3` | traced | docs/architecture/failure-model.md, docs/architecture/threat-model.md | — | — | — |
-| `REQ-N-REL-4` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md | — | — | — |
-| `REQ-N-REL-5` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/observability-strategy.md | — | — | — |
-| `REQ-N-SEC-1` | traced | docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | createRun |
-| `REQ-N-SEC-2` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-012-primary-datastore.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/data-model.md | — | — |
-| `REQ-N-SEC-3` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — |
-| `REQ-N-SEC-4` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/adr/ADR-008-tool-protocol.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — |
-| `REQ-N-SEC-5` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/domain-model.md | — | — |
-| `REQ-N-SEC-6` | traced | docs/architecture/threat-model.md | — | — | — |
-| `REQ-N-SEC-7` | traced | docs/architecture/threat-model.md | — | — | — |
-| `REQ-N-SEC-8` | traced | docs/architecture/threat-model.md | — | — | — |
-| `REQ-N-SEC-9` | traced | docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — |
-| `REQ-N-USE-1` | traced | docs/architecture/system-architecture.md | — | — | — |
-| `REQ-N-USE-2` | traced | — | docs/data/domain-model.md | — | — |
-| `REQ-N-USE-3` | traced | — | — | — | schemas/Problem |
-| `REQ-N-COMP-1` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md | docs/data/artifact-model.md, docs/data/data-model.md | docs/data/schema/04-artifacts-and-audit.sql | getGateDecision, listAuditEvents, schemas/GateDecision |
-| `REQ-N-COMP-2` | traced | docs/adr/ADR-011-artifact-retention.md | docs/data/domain-model.md | — | getRun, schemas/Reproducibility |
-| `REQ-N-COMP-3` | traced | docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-012-primary-datastore.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/02-golden-dataset.sql, docs/data/schema/04-artifacts-and-audit.sql | createErasureRequest, listAuditEvents |
-| `REQ-N-COMP-4` | deferred → Phase 15 | — | — | — | — |
-| `REQ-N-COST-1` | traced | docs/adr/ADR-012-primary-datastore.md, docs/architecture/observability-strategy.md | docs/data/data-model.md | — | schemas/CostSummary |
-| `REQ-N-COST-2` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md | — | — | schemas/Budget |
-| `REQ-N-COST-3` | traced | docs/architecture/failure-model.md, docs/architecture/threat-model.md | — | — | — |
-| `REQ-N-PERF-1` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/observability-strategy.md | — | — | — |
-| `REQ-N-PERF-2` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md | — | — | — |
-| `REQ-N-PERF-3` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/data-model.md | — | — |
-| `REQ-N-PERF-4` | traced | — | docs/data/data-model.md | — | schemas/CostSummary |
-| `REQ-N-PRIV-1` | traced | docs/architecture/component-architectures.md | — | — | — |
-| `REQ-N-PRIV-2` | traced | docs/architecture/observability-strategy.md | — | — | — |
-| `REQ-N-PRIV-3` | traced | docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/dataset-lifecycle.md | docs/data/schema/02-golden-dataset.sql, docs/data/schema/04-artifacts-and-audit.sql | createErasureRequest |
-| `REQ-N-PRIV-4` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/04-artifacts-and-audit.sql | createErasureRequest, schemas/ErasureAcceptance |
-| `REQ-N-MAINT-1` | traced | docs/adr/ADR-002-agent-orchestration.md | — | — | — |
-| `REQ-N-MAINT-2` | deferred → Phase 5 | — | — | — | — |
-| `REQ-N-MAINT-3` | traced | docs/adr/ADR-006-evaluator-isolation.md | — | — | — |
-| `REQ-N-MAINT-4` | deferred → Phase 5 | — | — | — | — |
-| `REQ-N-MAINT-5` | deferred → Phase 5 | — | — | — | — |
-| `REQ-N-SCALE-1` | traced | docs/adr/ADR-013-artifact-store.md | docs/data/data-model.md | — | — |
-| `REQ-N-SCALE-2` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-012-primary-datastore.md, docs/architecture/threat-model.md | — | — | — |
-| `REQ-N-SCALE-3` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-012-primary-datastore.md | — | — | — |
+| Requirement | Status | Architecture | Data model | Schema | API contract | Implementation | Tests |
+|---|---|---|---|---|---|---|---|
+| `REQ-X-1` | traced | docs/adr/ADR-011-artifact-retention.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md | docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/05-run-and-execution.sql | cancelRun, getRun, schemas/Completeness, schemas/ExecutionState | src/clep/orchestration/runner.py | — |
+| `REQ-X-2` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | listRunSamples, schemas/Run, schemas/SampleResolution | — | — |
+| `REQ-X-3` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/failure-model.md | docs/data/domain-model.md | — | schemas/Classification | — | — |
+| `REQ-X-4` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | — | createBaseline, schemas/Baseline, schemas/Classification | — | — |
+| `REQ-X-5` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | approveDatasetVersion, createPolicyException, listAuditEvents, schemas/AuditEvent | — | — |
+| `REQ-X-6` | traced | docs/architecture/system-architecture.md | — | — | — | — | — |
+| `REQ-X-7` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-006-evaluator-isolation.md, docs/adr/ADR-008-tool-protocol.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-X-8` | traced | docs/architecture/component-architectures.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md | docs/data/artifact-model.md, docs/data/domain-model.md | — | listRunSamples, schemas/GateDecision, schemas/Run | src/clep/evaluators/builtin.py, src/clep/evaluators/sdk.py, src/clep/orchestration/runner.py | tests/test_evaluators.py, tests/test_orchestration.py |
+| `REQ-X-9` | traced | docs/adr/ADR-001-durable-execution.md, docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | createRun, schemas/Budget | — | — |
+| `REQ-X-10` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md | docs/data/domain-model.md | — | evaluateGate, schemas/GateOutcome, schemas/Problem | — | — |
+| `REQ-F-01-1` | traced | — | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-01-2` | traced | — | docs/data/domain-model.md | — | createBaseline, schemas/Baseline | — | — |
+| `REQ-F-01-3` | traced | — | — | — | evaluateGate | — | — |
+| `REQ-F-01-4` | traced | docs/architecture/failure-model.md | — | — | — | — | — |
+| `REQ-F-01-5` | traced | — | — | — | listRunSamples | — | — |
+| `REQ-F-01-6` | traced | — | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-02-1` | traced | — | — | — | schemas/RunRequest | — | — |
+| `REQ-F-02-2` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | schemas/RunIdentity | src/clep/providers/port.py | — |
+| `REQ-F-02-3` | traced | — | — | — | schemas/CostSummary | — | — |
+| `REQ-F-02-4` | traced | docs/adr/ADR-003-provider-abstraction.md | — | docs/data/schema/05-run-and-execution.sql | schemas/RunRequest | src/clep/config.py, src/clep/providers/openai_compatible.py | tests/test_providers.py |
+| `REQ-F-02-5` | traced | — | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-02-6` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | docs/data/schema/05-run-and-execution.sql | — | src/clep/orchestration/runner.py, src/clep/providers/gateway.py | tests/test_providers.py |
+| `REQ-F-03-1` | deferred → Phase 9 | — | — | — | — | — | — |
+| `REQ-F-03-2` | deferred → Phase 9 | — | — | — | — | — | — |
+| `REQ-F-03-3` | deferred → Phase 9 | — | — | — | — | — | — |
+| `REQ-F-03-4` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | docs/data/schema/05-run-and-execution.sql | schemas/IntegrationTier | src/clep/evaluators/builtin.py, src/clep/evaluators/sdk.py | tests/test_evaluators.py |
+| `REQ-F-03-5` | traced | docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-F-03-6` | deferred → Phase 9 | — | — | — | — | — | — |
+| `REQ-F-04-1` | traced | docs/adr/ADR-008-tool-protocol.md | — | — | — | — | — |
+| `REQ-F-04-2` | deferred → Phase 9 | — | — | — | — | — | — |
+| `REQ-F-04-3` | deferred → Phase 9 | — | — | — | — | — | — |
+| `REQ-F-04-4` | deferred → Phase 9 | — | — | — | — | — | — |
+| `REQ-F-04-5` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md | — | — | schemas/SampleResolution | — | — |
+| `REQ-F-04-6` | traced | docs/adr/ADR-008-tool-protocol.md, docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-F-05-1` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | — | approveDatasetVersion, listDatasetVersions, schemas/DatasetVersion | — | — |
+| `REQ-F-05-2` | traced | — | docs/data/domain-model.md | docs/data/schema/02-golden-dataset.sql | createDatasetVersion, schemas/Lineage | — | — |
+| `REQ-F-05-3` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | — | createDatasetVersion | — | — |
+| `REQ-F-05-4` | traced | — | docs/data/domain-model.md | — | listDatasetVersions, schemas/DatasetVersion | — | — |
+| `REQ-F-05-5` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | — | approveDatasetVersion, schemas/Approval | — | — |
+| `REQ-F-05-6` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | docs/data/schema/02-golden-dataset.sql | createDatasetVersion, schemas/DatasetVersion, schemas/QualityFinding | — | — |
+| `REQ-F-05-7` | traced | docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-F-05-8` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/04-artifacts-and-audit.sql | createErasureRequest, schemas/ErasureAcceptance, schemas/Reproducibility | — | — |
+| `REQ-F-05-9` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-06-1` | traced | — | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — | — | — |
+| `REQ-F-06-2` | traced | — | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — | — | — |
+| `REQ-F-06-3` | traced | docs/architecture/component-architectures.md | docs/data/domain-model.md | — | schemas/RunIdentity | — | — |
+| `REQ-F-06-4` | traced | docs/adr/ADR-010-multi-tenancy.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — | — | — |
+| `REQ-F-06-5` | traced | docs/architecture/system-architecture.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | createBaseline | — | — |
+| `REQ-F-07-1` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | — | createRun, schemas/RunIdentity | src/clep/api/service.py | tests/test_service_end_to_end.py |
+| `REQ-F-07-2` | traced | docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | — | — | listRunSamples | — | — |
+| `REQ-F-07-3` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | — | — | — |
+| `REQ-F-07-4` | traced | docs/architecture/component-architectures.md | docs/data/domain-model.md | — | schemas/RunSample | — | — |
+| `REQ-F-07-5` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | schemas/ExecutionState | — | — |
+| `REQ-F-07-6` | traced | docs/adr/ADR-003-provider-abstraction.md | docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/05-run-and-execution.sql | getRun, schemas/CostSummary | src/clep/providers/gateway.py, src/clep/providers/openai_compatible.py, src/clep/providers/port.py | — |
+| `REQ-F-07-7` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md | — | — | cancelRun | src/clep/api/service.py | tests/test_orchestration.py |
+| `REQ-F-08-1` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | schemas/ComparisonResult | — | — |
+| `REQ-F-08-2` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | schemas/ComparisonResult, schemas/UncertaintyInterval | — | — |
+| `REQ-F-08-3` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | schemas/ComparisonResult | — | — |
+| `REQ-F-08-4` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | schemas/Classification | — | — |
+| `REQ-F-08-5` | traced | — | — | — | schemas/SampleResolution | — | — |
+| `REQ-F-08-6` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — | — | — |
+| `REQ-F-08-7` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/component-architectures.md | docs/data/domain-model.md | — | evaluateGate, schemas/ComparisonResult | — | — |
+| `REQ-F-08-8` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-09-1` | traced | docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | evaluateGate | — | — |
+| `REQ-F-09-2` | traced | docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | — | — | evaluateGate, schemas/GateOutcome | — | — |
+| `REQ-F-09-3` | traced | — | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-09-4` | traced | docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/data-model.md, docs/data/domain-model.md | — | evaluateGate, getGateDecision, schemas/GateDecision | — | — |
+| `REQ-F-09-5` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | evaluateGate, schemas/GateOutcome, schemas/Problem | — | — |
+| `REQ-F-09-6` | traced | docs/architecture/component-architectures.md | docs/data/domain-model.md | — | createPolicyException, schemas/PolicyException | — | — |
+| `REQ-F-09-7` | traced | docs/architecture/component-architectures.md | — | — | evaluateGate | — | — |
+| `REQ-F-09-8` | traced | docs/architecture/component-architectures.md | docs/data/domain-model.md | — | evaluateGate, getGateDecision, schemas/GateDecision | — | — |
+| `REQ-F-10-1` | traced | — | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-10-2` | deferred → Phase 10 | — | — | — | — | — | — |
+| `REQ-F-10-3` | traced | docs/architecture/system-architecture.md | — | — | — | — | — |
+| `REQ-F-10-4` | deferred → Phase 11 | — | — | — | — | — | — |
+| `REQ-F-10-5` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | — | — | createRun | — | — |
+| `REQ-F-11-1` | traced | — | docs/data/data-model.md | — | — | — | — |
+| `REQ-F-11-2` | deferred → Phase 11 | — | — | — | — | — | — |
+| `REQ-F-11-3` | traced | — | docs/data/data-model.md | — | — | — | — |
+| `REQ-F-11-4` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md | — | — | — | — | — |
+| `REQ-F-11-5` | deferred → Phase 11 | — | — | — | — | — | — |
+| `REQ-F-11-6` | traced | docs/architecture/observability-strategy.md | — | — | — | — | — |
+| `REQ-F-11-7` | traced | — | — | — | schemas/Completeness | — | — |
+| `REQ-F-11-8` | deferred → Phase 11 | — | — | — | — | — | — |
+| `REQ-F-11-9` | traced | docs/architecture/observability-strategy.md | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-12-1` | traced | docs/adr/ADR-010-multi-tenancy.md | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-12-2` | traced | docs/architecture/threat-model.md | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-12-3` | traced | docs/architecture/threat-model.md | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-12-4` | traced | docs/architecture/threat-model.md | docs/data/domain-model.md | — | createPolicyException, listAuditEvents, schemas/AuditEvent | — | — |
+| `REQ-F-12-5` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-012-primary-datastore.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/01-roles-and-conventions.sql | — | — | — |
+| `REQ-F-12-6` | traced | docs/adr/ADR-011-artifact-retention.md, docs/architecture/threat-model.md | docs/data/data-model.md, docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-12-7` | traced | docs/adr/ADR-010-multi-tenancy.md | docs/data/domain-model.md | docs/data/schema/02-golden-dataset.sql | approveDatasetVersion, schemas/Approval | — | — |
+| `REQ-F-12-8` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/architecture/system-architecture.md | — | — | — | — | — |
+| `REQ-F-12-9` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/adr/ADR-008-tool-protocol.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-AG-1` | traced | docs/adr/ADR-002-agent-orchestration.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | — | — | — |
+| `REQ-F-AG-2` | traced | docs/adr/ADR-002-agent-orchestration.md, docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | schemas/ConsensusResult | — | — |
+| `REQ-F-AG-3` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md | docs/data/domain-model.md | — | schemas/ConsensusResult | — | — |
+| `REQ-F-AG-4` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | — | schemas/ConsensusResult | — | — |
+| `REQ-F-AG-5` | traced | docs/adr/ADR-002-agent-orchestration.md, docs/architecture/system-architecture.md | — | — | — | — | — |
+| `REQ-F-AG-6` | deferred → Phase 8 | — | — | — | — | — | — |
+| `REQ-F-AG-7` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — | — | — |
+| `REQ-F-AG-8` | traced | docs/adr/ADR-002-agent-orchestration.md | — | — | — | — | — |
+| `REQ-F-AG-9` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | — | — | — |
+| `REQ-N-OBS-1` | traced | docs/adr/ADR-009-observability-core.md, docs/architecture/observability-strategy.md | docs/data/artifact-model.md, docs/data/domain-model.md | — | parameters/correlationId | — | — |
+| `REQ-N-OBS-2` | traced | docs/adr/ADR-009-observability-core.md, docs/architecture/observability-strategy.md | — | — | — | — | — |
+| `REQ-N-OBS-3` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/adr/ADR-009-observability-core.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md | — | — | — | — | — |
+| `REQ-N-OBS-4` | traced | docs/adr/ADR-009-observability-core.md, docs/architecture/observability-strategy.md | — | — | — | — | — |
+| `REQ-N-OPS-1` | traced | docs/adr/ADR-013-artifact-store.md | — | — | — | — | tests/conftest.py |
+| `REQ-N-OPS-2` | traced | — | — | — | — | src/clep/config.py | — |
+| `REQ-N-OPS-3` | traced | — | — | — | — | src/clep/db/migrations.py | — |
+| `REQ-N-REL-1` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | — | — | — | — |
+| `REQ-N-REL-2` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md | docs/data/domain-model.md | docs/data/schema/05-run-and-execution.sql | createRun, parameters/idempotencyKey | src/clep/api/app.py, src/clep/orchestration/repository.py, src/clep/orchestration/runner.py | tests/test_orchestration.py |
+| `REQ-N-REL-3` | traced | docs/architecture/failure-model.md, docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-N-REL-4` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md | — | — | — | src/clep/providers/port.py | — |
+| `REQ-N-REL-5` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/observability-strategy.md | — | — | — | — | — |
+| `REQ-N-SEC-1` | traced | docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | createRun | — | — |
+| `REQ-N-SEC-2` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-012-primary-datastore.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/data-model.md | — | — | — | — |
+| `REQ-N-SEC-3` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-N-SEC-4` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/adr/ADR-008-tool-protocol.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-N-SEC-5` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/domain-model.md | — | — | docs/dependencies.md, src/clep/config.py, src/clep/evaluators/sdk.py | tests/test_config.py, tests/test_providers.py |
+| `REQ-N-SEC-6` | traced | docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-N-SEC-7` | traced | docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-N-SEC-8` | traced | docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-N-SEC-9` | traced | docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-N-USE-1` | traced | docs/architecture/system-architecture.md | — | — | — | — | — |
+| `REQ-N-USE-2` | traced | — | docs/data/domain-model.md | — | — | — | — |
+| `REQ-N-USE-3` | traced | — | — | — | schemas/Problem | — | — |
+| `REQ-N-COMP-1` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md | docs/data/artifact-model.md, docs/data/data-model.md | docs/data/schema/04-artifacts-and-audit.sql | getGateDecision, listAuditEvents, schemas/GateDecision | — | — |
+| `REQ-N-COMP-2` | traced | docs/adr/ADR-011-artifact-retention.md | docs/data/domain-model.md | — | getRun, schemas/Reproducibility | — | — |
+| `REQ-N-COMP-3` | traced | docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-012-primary-datastore.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/02-golden-dataset.sql, docs/data/schema/04-artifacts-and-audit.sql | createErasureRequest, listAuditEvents | — | — |
+| `REQ-N-COMP-4` | deferred → Phase 15 | — | — | — | — | — | — |
+| `REQ-N-COST-1` | traced | docs/adr/ADR-012-primary-datastore.md, docs/architecture/observability-strategy.md | docs/data/data-model.md | — | schemas/CostSummary | — | — |
+| `REQ-N-COST-2` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md | — | — | schemas/Budget | — | — |
+| `REQ-N-COST-3` | traced | docs/architecture/failure-model.md, docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-N-PERF-1` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/observability-strategy.md | — | — | — | — | — |
+| `REQ-N-PERF-2` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md | — | — | — | — | — |
+| `REQ-N-PERF-3` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/data-model.md | — | — | — | — |
+| `REQ-N-PERF-4` | traced | — | docs/data/data-model.md | — | schemas/CostSummary | — | — |
+| `REQ-N-PRIV-1` | traced | docs/architecture/component-architectures.md | — | — | — | — | — |
+| `REQ-N-PRIV-2` | traced | docs/architecture/observability-strategy.md | — | — | — | — | — |
+| `REQ-N-PRIV-3` | traced | docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/dataset-lifecycle.md | docs/data/schema/02-golden-dataset.sql, docs/data/schema/04-artifacts-and-audit.sql | createErasureRequest | — | — |
+| `REQ-N-PRIV-4` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/04-artifacts-and-audit.sql | createErasureRequest, schemas/ErasureAcceptance | — | — |
+| `REQ-N-MAINT-1` | traced | docs/adr/ADR-002-agent-orchestration.md | — | — | — | — | — |
+| `REQ-N-MAINT-2` | traced | — | — | — | — | src/clep/evaluators/builtin.py | tests/test_evaluators.py |
+| `REQ-N-MAINT-3` | traced | docs/adr/ADR-006-evaluator-isolation.md | — | — | — | — | — |
+| `REQ-N-MAINT-4` | traced | — | — | — | — | docs/dependencies.md | — |
+| `REQ-N-MAINT-5` | traced | — | — | — | — | docs/dependencies.md | — |
+| `REQ-N-SCALE-1` | traced | docs/adr/ADR-013-artifact-store.md | docs/data/data-model.md | — | — | — | — |
+| `REQ-N-SCALE-2` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-012-primary-datastore.md, docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-N-SCALE-3` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-012-primary-datastore.md | — | — | — | — | — |
 
 ## Deferred requirements
 
 | Requirement | Owning phase | Reason |
 |---|---|---|
-| `REQ-N-MAINT-2` | Phase 5 | Deterministic fixtures require code to fixture |
-| `REQ-N-MAINT-4` | Phase 5 | Coverage gates require a build to gate |
-| `REQ-N-MAINT-5` | Phase 5 | Dependency justification requires a dependency manifest, which Phase 3 deliberately does not create |
-| `REQ-N-OPS-2` | Phase 5 | Environment configuration requires a running service |
-| `REQ-N-OPS-3` | Phase 5 | Migrations are executable artifacts requiring an implementation phase. Phase 3 specified the model and Phase 4 the schema; neither creates a migration chain |
 | `REQ-F-AG-6` | Phase 8 | Historical evaluation memory arrives with the agentic evaluation layer |
 | `REQ-F-03-1` | Phase 9 | RAG evaluator inputs are evaluator-catalogue content; the contract exposes integration tiers, not individual evaluators |
 | `REQ-F-03-2` | Phase 9 | Specific RAG evaluators are suite content delivered with the RAG evaluation suite |

@@ -72,6 +72,12 @@ CREATE TABLE clep.artifact (
     erased_at              timestamptz,
     erasure_audit_id       uuid REFERENCES clep.audit_event (id),
     created_at             timestamptz NOT NULL DEFAULT now(),
+    -- Referenced by composite foreign keys that carry organization_id (P-5).
+    -- PostgreSQL requires a matching unique constraint on the referenced side,
+    -- and without it the DDL does not execute at all. Phase 4 verified the
+    -- referencing side statically and could not see this; applying the schema
+    -- to a real database in Phase 5 did.
+    CONSTRAINT uq_artifact__org_id UNIQUE (organization_id, id),
     CONSTRAINT ck_artifact__class
         CHECK (artifact_class IN ('input_snapshot', 'candidate_output',
                                   'retrieved_context', 'trajectory',

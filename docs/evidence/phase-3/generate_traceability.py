@@ -56,11 +56,6 @@ DEFERRED = {
     "REQ-F-11-8": (11, "Executive scorecards are a reporting surface"),
     "REQ-F-AG-6": (8, "Historical evaluation memory arrives with the agentic evaluation layer"),
     "REQ-N-COMP-4": (15, "Per-capability methodology documentation is a release-documentation obligation"),
-    "REQ-N-MAINT-2": (5, "Deterministic fixtures require code to fixture"),
-    "REQ-N-MAINT-4": (5, "Coverage gates require a build to gate"),
-    "REQ-N-MAINT-5": (5, "Dependency justification requires a dependency manifest, which Phase 3 deliberately does not create"),
-    "REQ-N-OPS-2": (5, "Environment configuration requires a running service"),
-    "REQ-N-OPS-3": (5, "Migrations are executable artifacts requiring an implementation phase. Phase 3 specified the model and Phase 4 the schema; neither creates a migration chain"),
 }
 
 LAYERS = [
@@ -69,6 +64,11 @@ LAYERS = [
     # Phase 4 added the schema specification, which realises requirements
     # directly through constraints and policies rather than describing them.
     ("schema", ["docs/data/schema/*.sql"]),
+    # Phase 5 added implementation and tests. `SC-G7` becomes fully measurable
+    # here: until now the last two columns were empty by definition, and a
+    # requirement could be "traced" to a document that merely mentioned it.
+    ("implementation", ["src/clep/*.py", "src/clep/**/*.py", "docs/dependencies.md"]),
+    ("tests", ["tests/*.py"]),
 ]
 
 
@@ -160,9 +160,9 @@ def main():
     print(f"  data model layer        : {len(layer_hits['data'])}")
     print(f"  schema layer            : {len(layer_hits['schema'])}")
     print(f"  API contract layer      : {len(layer_hits['api'])}")
+    print(f"  implementation layer    : {len(layer_hits['implementation'])}")
+    print(f"  test layer              : {len(layer_hits['tests'])}")
     print(f"deferred with an owner    : {len(DEFERRED)}")
-    print(f"implementation layer      : 0 (no implementation exists yet)")
-    print(f"test layer                : 0 (no tests exist yet)")
     print()
     print(f"[{'FAIL' if untracked else 'PASS'}] untracked requirements   : {len(untracked)}")
     for r in untracked:
@@ -185,12 +185,14 @@ def main():
             data = ", ".join(sorted(layer_hits["data"].get(r, [])))
             schema = ", ".join(sorted(layer_hits["schema"].get(r, [])))
             api = ", ".join(sorted(layer_hits["api"].get(r, [])))
+            impl = ", ".join(sorted(layer_hits["implementation"].get(r, [])))
+            tests = ", ".join(sorted(layer_hits["tests"].get(r, [])))
             if r in DEFERRED:
                 phase, reason = DEFERRED[r]
                 status = f"deferred → Phase {phase}"
             else:
                 status = "traced"
-            rows.append((r, status, arch, data, schema, api))
+            rows.append((r, status, arch, data, schema, api, impl, tests))
 
         lines = [
             "# Requirement Traceability Matrix",
@@ -209,16 +211,18 @@ def main():
             f"**{len(traced)} of {len(valid)} requirements traced**; {len(DEFERRED)} deferred with an "
             "owning phase and a reason; 0 untracked.",
             "",
-            "Implementation and test columns are absent because neither exists yet. "
-            "`SC-G7` becomes fully measurable when they do; this generator is the mechanism "
-            "that will measure it.",
+            "Phase 5 added the implementation and test columns. `SC-G7` is fully "
+            "measurable from here: until now a requirement could be counted as traced "
+            "because a document mentioned it.",
             "",
-            "| Requirement | Status | Architecture | Data model | Schema | API contract |",
-            "|---|---|---|---|---|---|",
+            "| Requirement | Status | Architecture | Data model | Schema | API contract "
+            "| Implementation | Tests |",
+            "|---|---|---|---|---|---|---|---|",
         ]
-        for r, status, arch, data, schema, api in rows:
+        for r, status, arch, data, schema, api, impl, tests in rows:
             lines.append(f"| `{r}` | {status} | {arch or '—'} | {data or '—'} | "
-                         f"{schema or '—'} | {api or '—'} |")
+                         f"{schema or '—'} | {api or '—'} | {impl or '—'} | "
+                         f"{tests or '—'} |")
 
         lines += ["", "## Deferred requirements", "",
                   "| Requirement | Owning phase | Reason |", "|---|---|---|"]

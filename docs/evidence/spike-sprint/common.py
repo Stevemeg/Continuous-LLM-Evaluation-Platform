@@ -19,7 +19,10 @@ import time
 
 import psycopg
 
-DSN = os.environ.get("SPIKE_PG_DSN", "postgresql://postgres:spikepw@localhost:5439/spike")
+# No password in the default. The spike's PostgreSQL runs with local trust
+# authentication, so there is no credential here to leak; a real one is supplied
+# through the environment.
+DSN = os.environ.get("SPIKE_PG_DSN", "postgresql://postgres@localhost:5439/spike")
 N_SAMPLES = int(os.environ.get("SPIKE_N", "40"))
 SCORE_MS = int(os.environ.get("SPIKE_SCORE_MS", "120"))
 

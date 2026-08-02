@@ -1,0 +1,25 @@
+﻿[PASS   ] P-1    test suite: exit 0; 146 passed; coverage 94.63% against a 85.0% gate
+[PASS   ] P-2    schema conformance: exit 0; 28 tables including the Phase 5 execution tables
+[PASS   ] P-3    traceability: exit 0. traced to an artifact: 136; implementation layer: 17; test layer: 10; deferred with an owner: 14
+[PASS   ] P-4    the committed traceability matrix regenerates identically
+[PASS   ] P-5    Technology Spike Sprint gate re-evaluated against its own history (ccc4bdd0), in an isolated clone pruned to 8 reachable commit(s): exit 0 {"PASS": 26}
+[PASS   ] P-6    Phase 4 gate re-evaluated against its own history (82d02608), in an isolated clone pruned to 7 reachable commit(s): exit 0 {"PASS": 19}
+[PASS   ] P-7    Phase 1 milestone validators re-run. M1.1 documents: exit 0 {"PASS": 11}; M1.2 competitive: exit 0 {"PASS": 14}; M1.3 requirements: exit 0 {"PASS": 18}
+[PASS   ] P-8    contract declares 13 operations and is read, never written, by the implementation
+[PASS   ] P-9    vocabularies compared across schema, contract and code: 5; disagreements: 0
+[PASS   ] P-10   11 declared dependencies, each with a recorded reason and a rejected alternative; unjustified: none
+[PASS   ] P-11   13 ADRs; undecided: none
+[PASS   ] P-12   every externally visible effect carries a unique idempotency key (3 tables) - the ADR-001 spike's binding output; missing: none
+[PASS   ] P-13   27 tenant-scoped tables, each with ENABLE and FORCE
+[PASS   ] P-14   11 composite foreign-key targets, each with a matching unique constraint - the defect executing the DDL exposed; missing: none
+[PASS   ] P-15   migrations are applied from docs/data/schema/ with no second copy of the DDL; copies found: none
+[PASS   ] P-16   working tree: 140 files (2 binary skipped), 0 match(es); all blobs all refs: 0 undisclosed match(es), 2 disclosed and unremovable from published history
+           - docs/evidence/spike-sprint/common.py: spike common.py: local throwaway DSN password, container destroyed
+           - docs/evidence/spike-sprint/spike_provider_abstraction.py: spike provider script: planted leak-detector canary, never a credential
+[PASS   ] P-17   governed scope: 0 file match(es), 0 history match(es)
+[PASS   ] P-18   authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']
+[PASS   ] P-19   canonical document local=True tracked=False ignored=True absent_from_main=True
+[PASS   ] P-20   133 tracked file(s); stray: 0; clean tree: True
+[PASS   ] P-21   Phase 6+ artifact classes checked: 4; artifacts Phase 5 must not contain: 0
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 21}

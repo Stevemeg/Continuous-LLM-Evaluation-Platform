@@ -1,4 +1,4 @@
-﻿"""Spike S-2 - model and provider abstraction (ADR-003).
+"""Spike S-2 - model and provider abstraction (ADR-003).
 
 ADR-003 asked four questions and refused to answer any of them from
 documentation:
@@ -299,16 +299,16 @@ def q3_isolation(approach):
 
 # ---------------------------------------------------------------------- Q4
 def q4_credentials(approach):
-    """Drive a failure with a real-shaped secret and inspect everything a caller
+    """Drive a failure with a real-shaped canary and inspect everything a caller
     or an operator could plausibly see: stdout, stderr, str(), repr() and the
     formatted traceback."""
-    secret = "sk-proj-SPIKECANARY" + "0" * 40
+    canary = "sk-proj-SPIKECANARY" + "0" * 40
     buf_out, buf_err = io.StringIO(), io.StringIO()
     surfaces = {}
     try:
         with redirect_stdout(buf_out), redirect_stderr(buf_err):
             try:
-                call(approach, STUB_BASE, secret, "deprecated", PROMPT, "openai/")
+                call(approach, STUB_BASE, canary, "deprecated", PROMPT, "openai/")
             except Exception as e:
                 surfaces["str"] = str(e)
                 surfaces["repr"] = repr(e)
@@ -318,9 +318,9 @@ def q4_credentials(approach):
         surfaces["stdout"] = buf_out.getvalue()
         surfaces["stderr"] = buf_err.getvalue()
 
-    leaked = sorted(k for k, v in surfaces.items() if secret in v)
+    leaked = sorted(k for k, v in surfaces.items() if canary in v)
     partial = sorted(k for k, v in surfaces.items()
-                     if secret not in v and secret[8:24] in v)
+                     if canary not in v and canary[8:24] in v)
     report["credential"].append({"approach": approach, "leaked_in": leaked,
                                  "partial_in": partial,
                                  "surfaces_checked": sorted(surfaces)})
@@ -335,14 +335,14 @@ def q4_selftest():
     This plants the canary on every surface the real check inspects and requires
     the detector to find it on all of them. If this fails, every 'no leak' result
     above is worthless and the spike says so rather than reporting a clean run."""
-    secret = "sk-proj-SPIKECANARY" + "0" * 40
+    canary = "sk-proj-SPIKECANARY" + "0" * 40
     buf_out, buf_err = io.StringIO(), io.StringIO()
     surfaces = {}
     with redirect_stdout(buf_out), redirect_stderr(buf_err):
         try:
-            print(f"leaking to stdout: {secret}")
-            print(f"leaking to stderr: {secret}", file=sys.stderr)
-            raise RuntimeError(f"auth failed for {secret}")
+            print(f"leaking to stdout: {canary}")
+            print(f"leaking to stderr: {canary}", file=sys.stderr)
+            raise RuntimeError(f"auth failed for {canary}")
         except Exception as e:
             surfaces["str"] = str(e)
             surfaces["repr"] = repr(e)
@@ -350,7 +350,7 @@ def q4_selftest():
                 traceback.format_exception(type(e), e, e.__traceback__))
     surfaces["stdout"] = buf_out.getvalue()
     surfaces["stderr"] = buf_err.getvalue()
-    found = sorted(k for k, v in surfaces.items() if secret in v)
+    found = sorted(k for k, v in surfaces.items() if canary in v)
     ok = found == sorted(surfaces)
     report["credential_selftest"] = {"surfaces": sorted(surfaces), "detected_on": found,
                                      "detector_works": ok}
@@ -535,5 +535,6 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
 
 

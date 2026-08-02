@@ -1,0 +1,31 @@
+# Local development against real backing services — REQ-N-OPS-1.
+#
+# Not against fakes. A fake PostgreSQL cannot enforce row-level security, and
+# tenant isolation that is only tested against a fake is not tested at all.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      # Local only, and bound to localhost. Trust authentication means there is
+      # no local password — so there is no local password to end up in a config
+      # file, a test fixture or this repository. Real environments supply
+      # credentials through CLEP_MIGRATION_DSN and CLEP_RUNTIME_DSN.
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: ${POSTGRES_DB:-clep}
+    ports:
+      - "${POSTGRES_PORT:-5439}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6399}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
