@@ -399,13 +399,52 @@ add("P-18", "PASS" if len(authors) == 1 and len(committers) == 1 else "FAIL",
     f"authors: {authors}; committers: {committers}")
 
 # ================================================== P-19 canonical document
+# The requirement is that the canonical specification never leaves this machine
+# through git. Until Phase 5 finalization this check asked `ls-tree main`, which
+# reads only main's CURRENT tree — it would have passed a document that was
+# committed to main and deleted a commit later, and it never looked at the other
+# seven local branches at all. Reachability is the property that matters, so
+# reachability is what is measured.
+#
+# One local branch does carry it. `milestone/M1.1-product-definition` is a
+# superseded chain of `wip(M1.1)` commits, squashed into the grandfathered
+# 6adfbab before anything was published; origin holds `main` and nothing else,
+# so the document is absent from published history. It is disclosed here by ref
+# AND blob hash, the same way the two unremovable spike blobs are, so that the
+# exception cannot silently widen: a second copy, a different blob, or the same
+# blob on any other ref fails this check.
+DISCLOSED_LOCAL = {
+    ("refs/heads/milestone/M1.1-product-definition",
+     "af23db348a2aa115f95253a79a116e48b0798b40"):
+        "superseded pre-publication WIP branch; never pushed, origin has main only",
+}
 docx = list(ROOT.glob("*.docx"))
 tracked = [d for d in docx if git("ls-files", d.name).strip()]
 ignored = all(git("check-ignore", d.name).strip() for d in docx) if docx else False
-in_main = bool(git("ls-tree", "-r", "--name-only", "main").count(".docx"))
-add("P-19", "PASS" if docx and not tracked and ignored and not in_main else "FAIL",
+
+refs = [r for r in git("for-each-ref", "--format=%(refname)",
+                       "refs/heads", "refs/remotes").split() if r]
+published, undisclosed, disclosed = [], [], []
+for ref in refs:
+    for line in git("rev-list", "--objects", ref).splitlines():
+        sha, _, path = line.partition(" ")
+        if not re.search(r"\.docx?$", path, re.I):
+            continue
+        where = f"{ref}: {path} ({sha[:7]})"
+        if ref.startswith("refs/remotes/"):
+            published.append(where)          # published: never permissible
+        elif (ref, sha) in DISCLOSED_LOCAL:
+            disclosed.append(f"{where} - {DISCLOSED_LOCAL[(ref, sha)]}")
+        else:
+            undisclosed.append(where)
+ok = bool(docx) and not tracked and ignored and not published and not undisclosed
+add("P-19", "PASS" if ok else "FAIL",
     f"canonical document local={bool(docx)} tracked={bool(tracked)} "
-    f"ignored={ignored} absent_from_main={not in_main}")
+    f"ignored={ignored} refs_scanned={len(refs)} "
+    f"reachable_from_published={len(published)} "
+    f"reachable_from_local_undisclosed={len(undisclosed)} "
+    f"disclosed_local_only={len(disclosed)}",
+    published + undisclosed + disclosed)
 
 # ============================================================ P-20 hygiene
 tracked_files = [f for f in git("ls-files").splitlines() if f]

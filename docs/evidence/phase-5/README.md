@@ -103,6 +103,38 @@ that the earlier gates skipped every dotfile, so a credential in the committed
 Local development uses trust authentication and password-free connection strings,
 so there is no longer a local credential anywhere to commit.
 
+## The canonical specification, and a check that was not checking it
+
+Finalization re-ran `P-19` and found the check itself too narrow. It asked
+`git ls-tree main` — the *current tree* of one branch. That passes a document
+committed to `main` and deleted one commit later, and it never looked at the
+other seven local branches at all. The property that matters is reachability, so
+reachability is now what is measured, across every ref.
+
+Measuring it turned something up. The canonical `.docx` is reachable from
+`refs/heads/milestone/M1.1-product-definition` at `405424f` — a superseded chain
+of `wip(M1.1)` commits that was squashed into the grandfathered `6adfbab` before
+anything was pushed.
+
+The reviewer's requirement holds: `origin` carries `main` and nothing else, and
+the document is **absent from published history**. But `git push --all` would
+publish the canonical specification, and nothing in the repository said so.
+
+| | |
+|---|---|
+| Reachable from a published ref | 0 — the condition that is never permissible |
+| Reachable from a local ref, undisclosed | 0 |
+| Disclosed, local-only | 1 (`milestone/M1.1-product-definition`, blob `af23db3`) |
+
+Disclosed by **ref and blob hash together**, so the exception cannot widen: the
+same blob on any other ref fails, and a published ref fails before the disclosure
+list is consulted at all. Both were verified by planting them.
+
+The branch is left in place. It is unpublished history and removing it is the
+repository owner's decision, not this phase's; `git branch -D
+milestone/M1.1-product-definition` closes the exposure whenever that decision is
+made. Until then the hazard is named, gated, and cannot grow.
+
 ## Traceability
 
 | | |

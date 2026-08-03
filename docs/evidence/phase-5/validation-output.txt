@@ -1,4 +1,4 @@
-﻿[PASS   ] P-1    test suite: exit 0; 146 passed; coverage 94.63% against a 85.0% gate
+[PASS   ] P-1    test suite: exit 0; 146 passed; coverage 94.63% against a 85.0% gate
 [PASS   ] P-2    schema conformance: exit 0; 28 tables including the Phase 5 execution tables
 [PASS   ] P-3    traceability: exit 0. traced to an artifact: 136; implementation layer: 17; test layer: 10; deferred with an owner: 14
 [PASS   ] P-4    the committed traceability matrix regenerates identically
@@ -18,7 +18,8 @@
            - docs/evidence/spike-sprint/spike_provider_abstraction.py: spike provider script: planted leak-detector canary, never a credential
 [PASS   ] P-17   governed scope: 0 file match(es), 0 history match(es)
 [PASS   ] P-18   authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']
-[PASS   ] P-19   canonical document local=True tracked=False ignored=True absent_from_main=True
+[PASS   ] P-19   canonical document local=True tracked=False ignored=True refs_scanned=10 reachable_from_published=0 reachable_from_local_undisclosed=0 disclosed_local_only=1
+           - refs/heads/milestone/M1.1-product-definition: Continuous LLM Evaluation Platform - Canonical Master Prompt v3.docx (af23db3) - superseded pre-publication WIP branch; never pushed, origin has main only
 [PASS   ] P-20   133 tracked file(s); stray: 0; clean tree: True
 [PASS   ] P-21   Phase 6+ artifact classes checked: 4; artifacts Phase 5 must not contain: 0
 ------------------------------------------------------------------------------
