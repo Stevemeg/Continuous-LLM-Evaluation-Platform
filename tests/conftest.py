@@ -107,8 +107,9 @@ def seeded(migrated_database, organization):
     from clep.identity import new_ulid, ulid_to_uuid
     ids = {k: new_ulid() for k in
            ("project", "dataset", "dataset_version", "suite", "suite_version",
-            "example", "model_configuration", "evaluator_definition",
-            "evaluator_version")}
+            "example", "provider", "model", "model_configuration",
+            "evaluator_definition", "evaluator_version", "prompt",
+            "prompt_version")}
     org = organization
     with psycopg.connect(MIGRATION_DSN, autocommit=True) as conn:
         u = ulid_to_uuid
@@ -126,6 +127,13 @@ def seeded(migrated_database, organization):
         conn.execute("INSERT INTO clep.example (id, organization_id,"
                      " dataset_version_id, ordinal, split) VALUES (%s,%s,%s,0,'test')",
                      (u(ids["example"]), org, u(ids["dataset_version"])))
+        # Content, not just the record. An example with no content row cannot be
+        # re-evaluated, so a fixture without one makes every reproduction report
+        # a gap that is an artefact of the fixture rather than of the data.
+        conn.execute("INSERT INTO clep.example_content (id, organization_id,"
+                     " example_id, content_digest, payload_ref, byte_size)"
+                     " VALUES (%s,%s,%s,%s,'s3://bucket/example-0',128)",
+                     (uuid.uuid4(), org, u(ids["example"]), "sha256:" + "b" * 64))
         conn.execute("INSERT INTO clep.benchmark_suite (id, organization_id, project_id,"
                      " slug, display_name, owner_actor_id) VALUES (%s,%s,%s,%s,%s,%s)",
                      (u(ids["suite"]), org, u(ids["project"]), "suite", "Suite",
@@ -149,5 +157,37 @@ def seeded(migrated_database, organization):
                      "'schema://in/v1','schema://out/v1','none',true,'free')",
                      (u(ids["evaluator_version"]), u(ids["evaluator_definition"]),
                       "sha256:" + "c" * 64))
+        # The suite's evaluators are part of run identity (REQ-F-07-1) and are
+        # read from the suite rather than from the request, so the fixture has to
+        # attach one or every captured identity would be missing that component.
+        conn.execute("INSERT INTO clep.suite_evaluator (id, organization_id,"
+                     " suite_version_id, evaluator_version_id) VALUES (%s,%s,%s,%s)",
+                     (uuid.uuid4(), org, u(ids["suite_version"]),
+                      u(ids["evaluator_version"])))
+        # Phase 6 gives run_candidate real foreign keys, so a run can no longer
+        # name a model configuration that does not exist. The registry rows are
+        # seeded here for the same reason the dataset is: they belong to a
+        # capability under test, not to the test.
+        conn.execute("INSERT INTO clep.provider (id, organization_id, slug,"
+                     " display_name, endpoint_kind)"
+                     " VALUES (%s,%s,'stub','Stub Provider','hosted')",
+                     (u(ids["provider"]), org))
+        conn.execute("INSERT INTO clep.model (id, organization_id, provider_id,"
+                     " model_identifier, display_name) VALUES (%s,%s,%s,'m','Model')",
+                     (u(ids["model"]), org, u(ids["provider"])))
+        conn.execute("INSERT INTO clep.model_configuration (id, organization_id,"
+                     " model_id, version_number, output_affecting_parameters,"
+                     " content_digest, seed, is_deterministic, created_by)"
+                     " VALUES (%s,%s,%s,1,'{\"temperature\": 0}',%s,7,true,%s)",
+                     (u(ids["model_configuration"]), org, u(ids["model"]),
+                      "sha256:" + "e" * 64, uuid.uuid4()))
+        conn.execute("INSERT INTO clep.prompt (id, organization_id, project_id,"
+                     " slug, display_name) VALUES (%s,%s,%s,'p','Prompt')",
+                     (u(ids["prompt"]), org, u(ids["project"])))
+        conn.execute("INSERT INTO clep.prompt_version (id, organization_id,"
+                     " prompt_id, version_number, content_digest, body, created_by)"
+                     " VALUES (%s,%s,%s,1,%s,'Answer briefly.',%s)",
+                     (u(ids["prompt_version"]), org, u(ids["prompt"]),
+                      "sha256:" + "f" * 64, uuid.uuid4()))
     ids["organization"] = org
     return ids

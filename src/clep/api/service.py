@@ -15,17 +15,17 @@ import hashlib
 from decimal import Decimal
 
 from clep.db.session import tenant_session
+from clep.experiments.capture import build_run_identity
+from clep.experiments.identity import IDENTITY_KINDS
+from clep.experiments.repository import IdentityRepository
 from clep.identity import new_ulid
 from clep.orchestration.repository import RunRepository
 
 
 def identity_digest(*parts: str) -> str:
-    """`REQ-F-07-1`: run identity is frozen before execution and never updated.
-
-    Derived from the inputs that determine what the run measures, so two runs
-    with the same identity measured the same thing — which is the property
-    reproducibility claims depend on.
-    """
+    """Digest over ordered parts. Retained for callers that already hold the
+    material; `build_run_identity` is what a run should use, because it reads the
+    stored content digests rather than trusting identifiers."""
     material = "\x1f".join(str(p) for p in parts)
     return "sha256:" + hashlib.sha256(material.encode("utf-8")).hexdigest()
 
@@ -43,17 +43,25 @@ class RunService:
                    integration_tier: str, budget, idempotency_key: str) -> dict:
         dataset_version_id = self._resolve_dataset_version(organization_id,
                                                            suite_version_id)
-        digest = identity_digest(project_id, suite_version_id, dataset_version_id,
-                                 integration_tier,
-                                 *(c["modelConfigurationId"] for c in candidates))
         limit, currency = (budget if budget else (None, None))
         with tenant_session(self._dsn, organization_id) as conn:
+            # Built before the run exists. An identity assembled afterwards could
+            # not stop a run from being created against a component that is not
+            # there, and REQ-F-07-1 requires the identity to be frozen *before*
+            # execution rather than reconstructed once it is too late to refuse.
+            identity = build_run_identity(
+                conn, organization_id, suite_version_id=suite_version_id,
+                dataset_version_id=dataset_version_id,
+                integration_tier=integration_tier, candidates=candidates)
+            digest = identity.digest()
+
             repo = RunRepository(conn, organization_id)
             run_id = repo.create_run(
                 project_id=project_id, suite_version_id=suite_version_id,
                 dataset_version_id=dataset_version_id, identity_digest=digest,
                 integration_tier=integration_tier, idempotency_key=idempotency_key,
                 budget_limit=limit, budget_currency=currency)
+            IdentityRepository(conn, organization_id).capture(run_id, identity)
             # `add_candidate` is idempotent on (run, label), so a resubmitted
             # request converges on the same candidates rather than needing the
             # caller to distinguish "already done" from "went wrong".
@@ -63,7 +71,8 @@ class RunService:
                     model_configuration_id=spec["modelConfigurationId"],
                     prompt_version_id=spec.get("promptVersionId"),
                     endpoint_kind=spec.get("endpointKind", "hosted"))
-            return self._present(repo.get_run(run_id), repo)
+            return self._present(repo.get_run(run_id), repo,
+                                 IdentityRepository(conn, organization_id))
 
     def cancel_run(self, organization_id: str, run_id: str) -> dict | None:
         with tenant_session(self._dsn, organization_id) as conn:
@@ -77,14 +86,16 @@ class RunService:
                 repo.finish_run(run_id, "cancelled",
                                 "cancelled by request; samples already recorded "
                                 "remain valid and no further work was started")
-            return self._present(repo.get_run(run_id), repo)
+            return self._present(repo.get_run(run_id), repo,
+                                 IdentityRepository(conn, organization_id))
 
     # ------------------------------------------------------------------- read
     def get_run(self, organization_id: str, run_id: str) -> dict | None:
         with tenant_session(self._dsn, organization_id) as conn:
             repo = RunRepository(conn, organization_id)
             run = repo.get_run(run_id)
-            return self._present(run, repo) if run else None
+            identity_repo = IdentityRepository(conn, organization_id)
+            return self._present(run, repo, identity_repo) if run else None
 
     def list_samples(self, organization_id: str, run_id: str, limit: int,
                      offset: int) -> dict | None:
@@ -95,15 +106,35 @@ class RunService:
             items = repo.list_samples(run_id, limit, offset)
             return {"items": items, "limit": limit, "offset": offset}
 
+    def run_identity(self, organization_id: str, run_id: str) -> dict | None:
+        """The captured identity, component by component (REQ-F-07-1).
+
+        The summary on the run answers "are these two comparable". This answers
+        "what exactly did it measure", which is what a reproduction needs and
+        what a digest cannot provide.
+        """
+        with tenant_session(self._dsn, organization_id) as conn:
+            if RunRepository(conn, organization_id).get_run(run_id) is None:
+                return None
+            identity = IdentityRepository(conn, organization_id).components_of(run_id)
+            return {
+                "runId": run_id,
+                "digest": identity.digest(),
+                "components": [
+                    {"kind": c.kind, "ref": c.ref, "digest": c.digest,
+                     "inDigest": c.kind in IDENTITY_KINDS}
+                    for c in identity.components],
+            }
+
     # ------------------------------------------------------------ presentation
     @staticmethod
-    def _present(run, repo) -> dict:
+    def _present(run, repo, identity_repo=None) -> dict:
         total, currency = repo.cost_total(run.id)
         counts = repo.sample_counts(run.id)
         body = {
             "id": run.id,
             "projectId": run.project_id,
-            "identity": {"digest": run.identity_digest},
+            "identity": RunService._identity_summary(run, identity_repo),
             # Null until terminal. A run still executing has not ended in any of
             # the five ways `completeness` enumerates, and calling it `partial`
             # would report the opposite of what it is.
@@ -121,3 +152,49 @@ class RunService:
             body["cost"] = {"total": str(Decimal(total)),
                             "currency": currency or run.budget_currency or "USD"}
         return body
+
+    @staticmethod
+    def _identity_summary(run, identity_repo) -> dict:
+        """Every field the contract's `RunIdentity` requires.
+
+        Phase 5 emitted `digest` alone, which did not satisfy the schema the
+        contract had already declared — the contract was right and the
+        implementation was short. The plural fields come from the captured
+        components rather than from the request, so what is reported is what was
+        recorded rather than what was asked for.
+        """
+        by_kind: dict[str, list[str]] = {}
+        if identity_repo is not None:
+            for component in identity_repo.components_of(run.id).components:
+                by_kind.setdefault(component.kind, []).append(component.ref)
+        return {
+            "digest": run.identity_digest,
+            "datasetVersionId": run.dataset_version_id,
+            "suiteVersionId": run.suite_version_id,
+            "promptVersionIds": sorted(by_kind.get("prompt_version", [])),
+            "modelConfigurationIds": sorted(by_kind.get("model_configuration", [])),
+            "evaluatorVersionIds": sorted(by_kind.get("evaluator_version", [])),
+            # Judges arrive with the agentic evaluation layer in Phase 8. An
+            # empty list is the honest answer for a run that used none; omitting
+            # a required field, or inventing one, would not be.
+            "judgeVersionIds": [],
+            "seed": _single_seed(by_kind.get("seed", [])),
+            "frozenAt": run.frozen_at.isoformat() if run.frozen_at else None,
+        }
+
+
+def _single_seed(seeds: list[str]) -> int | None:
+    """The contract's `seed` is one nullable integer.
+
+    Candidates may carry different seeds, and reporting one of several as *the*
+    seed would be a claim the run does not support. Null is reported unless every
+    candidate agreed; the per-candidate values are all present in the
+    component-by-component identity.
+    """
+    distinct = set(seeds)
+    if len(distinct) != 1:
+        return None
+    try:
+        return int(distinct.pop())
+    except ValueError:
+        return None

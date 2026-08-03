@@ -1,0 +1,9 @@
+[CAUGHT] P-17   run_candidate loses its model configuration foreign key
+[CAUGHT] P-18   the immutability trigger goes back to enumerating columns
+[CAUGHT] P-20   the cache loses its determinism precondition
+[CAUGHT] P-21   the provider table acquires an endpoint column
+[CAUGHT] P-19   environment becomes identity-bearing, contradicting ADR-014
+[CAUGHT] P-10   the identity module accepts a kind the schema rejects
+[CAUGHT] P-20b  an output-affecting field stops varying the key
+
+self-test: 7/7 planted violations caught

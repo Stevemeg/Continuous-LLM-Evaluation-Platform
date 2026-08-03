@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Canonical §19 fixes the required ADR topics; all eleven are present. Two more were added in Phase 4 for the datastore decisions the schema depends on, and the two spike-gated ADRs were decided in the Technology Spike Sprint.
+Canonical §19 fixes the required ADR topics; all eleven are present. Two more were added in Phase 4 for the datastore decisions the schema depends on, the two spike-gated ADRs were decided in the Technology Spike Sprint, and two more were added in Phase 6 for decisions the reproducible experiment model turns on.
 
 | ADR | Topic | Status |
 |---|---|---|
@@ -17,6 +17,8 @@ Canonical §19 fixes the required ADR topics; all eleven are present. Two more w
 | [ADR-011](ADR-011-artifact-retention.md) | Artifact retention and reproducibility | Accepted |
 | [ADR-012](ADR-012-primary-datastore.md) | Primary datastore | Accepted, under four mandatory conditions |
 | [ADR-013](ADR-013-artifact-store.md) | Artifact store | Accepted |
+| [ADR-014](ADR-014-run-identity-scope.md) | What a run identity captures, and what enters its digest | Accepted |
+| [ADR-015](ADR-015-cache-correctness.md) | Result caching that cannot change an outcome | Accepted |
 
 ## The two ADRs that were held open, and are now closed
 

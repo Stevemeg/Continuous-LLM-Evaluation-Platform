@@ -36,7 +36,8 @@ def auth(seeded):
 
 def create(client, auth, seeded, key="e2e-1", **extra):
     body = {"suiteVersionId": seeded["suite_version"],
-            "candidates": [{"label": "a", "modelConfigurationId": new_ulid()}]}
+            "candidates": [{"label": "a",
+                            "modelConfigurationId": seeded["model_configuration"]}]}
     body.update(extra)
     return client.post(f"/projects/{seeded['project']}/runs",
                        headers={**auth, "Idempotency-Key": key}, json=body)

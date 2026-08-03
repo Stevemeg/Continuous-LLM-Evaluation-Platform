@@ -51,6 +51,9 @@ class RunRow:
     budget_currency: str | None
     created_at: object
     correlation_id: str | None
+    dataset_version_id: str
+    suite_version_id: str
+    frozen_at: object
 
 
 class RunRepository:
@@ -156,13 +159,15 @@ class RunRepository:
             """
             SELECT id, project_id, execution_state, completeness, incomplete_reason,
                    reproducibility, identity_digest, integration_tier,
-                   budget_limit, budget_currency, created_at, correlation_id
+                   budget_limit, budget_currency, created_at, correlation_id,
+                   dataset_version_id, suite_version_id, frozen_at
             FROM clep.run WHERE organization_id = %s AND id = %s
             """, (self._org, ulid_to_uuid(run_id))).fetchone()
         if not row:
             return None
         return RunRow(uuid_to_ulid(row[0]), uuid_to_ulid(row[1]), row[2], row[3],
-                      row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11])
+                      row[4], row[5], row[6], row[7], row[8], row[9], row[10],
+                      row[11], uuid_to_ulid(row[12]), uuid_to_ulid(row[13]), row[14])
 
     # ---------------------------------------------------------------- samples
     def record_sample(self, *, run_id: str, candidate_id: str, candidate_label: str,

@@ -46,6 +46,14 @@
     {
       "name": "governance",
       "description": "Audit, erasure, approvals"
+    },
+    {
+      "name": "registry",
+      "description": "Versioned prompts, models and systems. A run identity is only meaningful if every element it names is immutable."
+    },
+    {
+      "name": "experiments",
+      "description": "Reproducible experiment tracking, and reproduction of a past run from its captured identity."
     }
   ],
   "paths": {
@@ -727,6 +735,325 @@
           }
         }
       }
+    },
+    "/projects/{projectId}/prompts": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "createPrompt",
+        "summary": "Register a prompt",
+        "tags": [
+          "registry"
+        ],
+        "x-requirements": [
+          "REQ-F-01-1"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The registered prompt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Prompt"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/prompts/{promptId}/versions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/promptId"
+        }
+      ],
+      "post": {
+        "operationId": "addPromptVersion",
+        "summary": "Add a version to a prompt",
+        "tags": [
+          "registry"
+        ],
+        "x-requirements": [
+          "REQ-F-01-1",
+          "REQ-F-01-6"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptVersionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new version, in draft.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptVersion"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/prompt-versions/{promptVersionId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/promptVersionId"
+        }
+      ],
+      "get": {
+        "operationId": "getPromptVersion",
+        "summary": "Retrieve a prompt version",
+        "tags": [
+          "registry"
+        ],
+        "x-requirements": [
+          "REQ-F-01-1"
+        ],
+        "responses": {
+          "200": {
+            "description": "The version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptVersion"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/prompt-versions/{promptVersionId}/publish": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/promptVersionId"
+        }
+      ],
+      "post": {
+        "operationId": "publishPromptVersion",
+        "summary": "Publish a prompt version, making it immutable",
+        "tags": [
+          "registry"
+        ],
+        "x-requirements": [
+          "REQ-F-01-1"
+        ],
+        "responses": {
+          "200": {
+            "description": "The published version. Publishing an already-published version is not an error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptVersion"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/experiments": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "createExperiment",
+        "summary": "Create an experiment",
+        "tags": [
+          "experiments"
+        ],
+        "x-requirements": [
+          "REQ-F-07-1"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExperimentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The experiment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Experiment"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/runs/{runId}/identity": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ],
+      "get": {
+        "operationId": "getRunIdentity",
+        "summary": "Retrieve the captured identity of a run, component by component",
+        "tags": [
+          "experiments"
+        ],
+        "x-requirements": [
+          "REQ-F-07-1",
+          "REQ-F-02-2"
+        ],
+        "responses": {
+          "200": {
+            "description": "The captured identity.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunIdentityDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/runs/{runId}/reproductions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ],
+      "post": {
+        "operationId": "reproduceRun",
+        "summary": "Assess whether a run can be reproduced from its captured identity, naming every element that cannot",
+        "tags": [
+          "experiments"
+        ],
+        "x-requirements": [
+          "REQ-F-07-3"
+        ],
+        "responses": {
+          "201": {
+            "description": "The recorded reproduction attempt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReproductionAttempt"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -822,6 +1149,22 @@
         "x-requirements": [
           "REQ-N-OBS-1"
         ]
+      },
+      "promptId": {
+        "name": "promptId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "promptVersionId": {
+        "name": "promptVersionId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
       }
     },
     "responses": {
@@ -970,7 +1313,7 @@
       },
       "RunIdentity": {
         "type": "object",
-        "description": "Frozen before execution begins and never updated.",
+        "description": "Frozen before execution begins and never updated. The component-by-component form is at `GET /runs/{runId}/identity`; this is the summary carried on the run itself.",
         "x-requirements": [
           "REQ-F-07-1",
           "REQ-F-02-2",
@@ -980,7 +1323,7 @@
           "digest",
           "datasetVersionId",
           "suiteVersionId",
-          "modelConfigurationId",
+          "modelConfigurationIds",
           "evaluatorVersionIds",
           "judgeVersionIds",
           "frozenAt"
@@ -992,14 +1335,23 @@
           "datasetVersionId": {
             "$ref": "#/components/schemas/Ulid"
           },
-          "promptVersionId": {
-            "$ref": "#/components/schemas/Ulid"
+          "promptVersionIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "description": "One per candidate that names a prompt version. Empty when no candidate does."
           },
           "suiteVersionId": {
             "$ref": "#/components/schemas/Ulid"
           },
-          "modelConfigurationId": {
-            "$ref": "#/components/schemas/Ulid"
+          "modelConfigurationIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "minItems": 1,
+            "description": "One per candidate. A run compares two or more candidates, so a single identifier could only ever describe one of them."
           },
           "evaluatorVersionIds": {
             "type": "array",
@@ -1923,6 +2275,314 @@
           "REQ-F-07-5",
           "REQ-X-1"
         ]
+      },
+      "VersionState": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "published"
+        ],
+        "description": "A draft is mutable. A published version cannot be modified or deleted in any column, and a version referenced by a completed run is frozen whatever its state (REQ-F-01-1)."
+      },
+      "PromptRequest": {
+        "type": "object",
+        "required": [
+          "slug",
+          "displayName"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "Prompt": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "slug",
+          "displayName"
+        ],
+        "x-requirements": [
+          "REQ-F-01-1"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        }
+      },
+      "PromptVersionRequest": {
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The prompt text. Its digest is derived here and never supplied by the caller: a caller-supplied digest is an assertion, and the identity model needs a fact."
+          }
+        }
+      },
+      "PromptVersion": {
+        "type": "object",
+        "required": [
+          "id",
+          "promptId",
+          "versionNumber",
+          "contentDigest",
+          "state",
+          "createdAt"
+        ],
+        "x-requirements": [
+          "REQ-F-01-1",
+          "REQ-F-01-6"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "promptId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "versionNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "contentDigest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "state": {
+            "$ref": "#/components/schemas/VersionState"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/Instant"
+          },
+          "publishedAt": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Instant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "IdentityComponentKind": {
+        "type": "string",
+        "enum": [
+          "dataset_version",
+          "prompt_version",
+          "model_configuration",
+          "system_version",
+          "evaluator_version",
+          "suite_version",
+          "integration_tier",
+          "seed",
+          "environment"
+        ],
+        "description": "Every kind is captured under REQ-F-07-1. `environment` is captured and deliberately excluded from the identity digest (ADR-014): two runs of the same measurement on different hosts are the same measurement."
+      },
+      "IdentityComponent": {
+        "type": "object",
+        "required": [
+          "kind",
+          "ref",
+          "digest"
+        ],
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/IdentityComponentKind"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "inDigest": {
+            "type": "boolean",
+            "description": "Whether this component contributes to the identity digest."
+          }
+        }
+      },
+      "RunIdentityDetail": {
+        "type": "object",
+        "required": [
+          "runId",
+          "digest",
+          "components"
+        ],
+        "x-requirements": [
+          "REQ-F-07-1",
+          "REQ-F-07-3"
+        ],
+        "description": "The captured identity as its components, not only as a hash. A digest can show that two runs measured the same thing; it cannot say what they measured, and REQ-F-07-3 requires naming the elements that could not be reconstructed.",
+        "properties": {
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IdentityComponent"
+            }
+          }
+        }
+      },
+      "ReproductionReason": {
+        "type": "string",
+        "enum": [
+          "component_absent",
+          "content_erased",
+          "digest_mismatch",
+          "environment_changed"
+        ]
+      },
+      "ReproductionGap": {
+        "type": "object",
+        "required": [
+          "componentKind",
+          "componentRef",
+          "reason"
+        ],
+        "properties": {
+          "componentKind": {
+            "$ref": "#/components/schemas/IdentityComponentKind"
+          },
+          "componentRef": {
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/ReproductionReason"
+          }
+        }
+      },
+      "ReproductionOutcome": {
+        "type": "string",
+        "enum": [
+          "reproducible",
+          "partially_reproducible",
+          "not_reproducible"
+        ],
+        "description": "`partially_reproducible` is never reported as `reproducible`. A reproduction that silently substituted the current version of a missing element would produce a number that looks like a reproduction and is not one."
+      },
+      "ReproductionAttempt": {
+        "type": "object",
+        "required": [
+          "id",
+          "originalRunId",
+          "outcome",
+          "gaps"
+        ],
+        "x-requirements": [
+          "REQ-F-07-3"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "originalRunId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "replayRunId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ReproductionOutcome"
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReproductionGap"
+            }
+          }
+        }
+      },
+      "ExperimentRequest": {
+        "type": "object",
+        "required": [
+          "slug",
+          "displayName"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hypothesis": {
+            "type": "string"
+          }
+        }
+      },
+      "Experiment": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "slug",
+          "displayName"
+        ],
+        "x-requirements": [
+          "REQ-F-07-1"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "hypothesis": {
+            "type": "string"
+          }
+        }
       }
     }
   }

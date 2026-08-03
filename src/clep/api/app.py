@@ -105,7 +105,22 @@ def principal_from_authorization(
     return TenantPrincipal(organization_id=org, subject=subject or "unknown")
 
 
-def create_app(run_service) -> FastAPI:
+class PromptIn(BaseModel):
+    slug: str = Field(min_length=1, max_length=64)
+    displayName: str = Field(min_length=1)
+
+
+class PromptVersionIn(BaseModel):
+    body: str = Field(min_length=1)
+
+
+class ExperimentIn(BaseModel):
+    slug: str = Field(min_length=1, max_length=64)
+    displayName: str = Field(min_length=1)
+    hypothesis: str | None = None
+
+
+def create_app(run_service, registry_service=None) -> FastAPI:
     """`run_service` supplies persistence and execution.
 
     Injected rather than imported so the contract tests can drive every path
@@ -120,7 +135,14 @@ def create_app(run_service) -> FastAPI:
     for method, path in (("POST", "/projects/{projectId}/runs"),
                          ("GET", "/runs/{runId}"),
                          ("POST", "/runs/{runId}/cancel"),
-                         ("GET", "/runs/{runId}/samples")):
+                         ("GET", "/runs/{runId}/samples"),
+                         ("GET", "/runs/{runId}/identity"),
+                         ("POST", "/runs/{runId}/reproductions"),
+                         ("POST", "/projects/{projectId}/prompts"),
+                         ("POST", "/prompts/{promptId}/versions"),
+                         ("GET", "/prompt-versions/{promptVersionId}"),
+                         ("POST", "/prompt-versions/{promptVersionId}/publish"),
+                         ("POST", "/projects/{projectId}/experiments")):
         contract.operation_for(method, path)
 
     @app.exception_handler(HTTPException)
@@ -187,6 +209,83 @@ def create_app(run_service) -> FastAPI:
         if page is None:
             raise HTTPException(status_code=404, detail="no such run")
         return page
+
+    @app.get("/runs/{runId}/identity")
+    def get_run_identity(runId: str = Path(...),
+                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(runId, "runId")
+        identity = run_service.run_identity(principal.organization_id, runId)
+        if identity is None:
+            raise HTTPException(status_code=404, detail="no such run")
+        return identity
+
+    # ---- registry and experiments -------------------------------------------
+    # Registered only when the service is supplied. A route that exists and
+    # cannot work is worse than one that does not exist: the first is a 500 a
+    # client discovers in production, the second is a 404 it discovers at once.
+    if registry_service is None:
+        return app
+
+    @app.post("/projects/{projectId}/prompts", status_code=201)
+    def create_prompt(body: PromptIn, projectId: str = Path(...),
+                      principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        return registry_service.create_prompt(
+            organization_id=principal.organization_id, project_id=projectId,
+            slug=body.slug, display_name=body.displayName,
+            actor_id=principal.subject)
+
+    @app.post("/prompts/{promptId}/versions", status_code=201)
+    def add_prompt_version(body: PromptVersionIn, promptId: str = Path(...),
+                           principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(promptId, "promptId")
+        version = registry_service.add_prompt_version(
+            organization_id=principal.organization_id, prompt_id=promptId,
+            body=body.body, actor_id=principal.subject)
+        if version is None:
+            raise HTTPException(status_code=404, detail="no such prompt")
+        return version
+
+    @app.get("/prompt-versions/{promptVersionId}")
+    def get_prompt_version(promptVersionId: str = Path(...),
+                           principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(promptVersionId, "promptVersionId")
+        version = registry_service.get_prompt_version(principal.organization_id,
+                                                      promptVersionId)
+        if version is None:
+            raise HTTPException(status_code=404, detail="no such prompt version")
+        return version
+
+    @app.post("/prompt-versions/{promptVersionId}/publish")
+    def publish_prompt_version(promptVersionId: str = Path(...),
+                               principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(promptVersionId, "promptVersionId")
+        version = registry_service.publish_prompt_version(
+            organization_id=principal.organization_id,
+            version_id=promptVersionId, actor_id=principal.subject)
+        if version is None:
+            raise HTTPException(status_code=404, detail="no such prompt version")
+        return version
+
+    @app.post("/projects/{projectId}/experiments", status_code=201)
+    def create_experiment(body: ExperimentIn, projectId: str = Path(...),
+                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        return registry_service.create_experiment(
+            organization_id=principal.organization_id, project_id=projectId,
+            slug=body.slug, display_name=body.displayName,
+            hypothesis=body.hypothesis, actor_id=principal.subject)
+
+    @app.post("/runs/{runId}/reproductions", status_code=201)
+    def reproduce_run(runId: str = Path(...),
+                      principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(runId, "runId")
+        attempt = registry_service.reproduce_run(
+            organization_id=principal.organization_id, run_id=runId,
+            actor_id=principal.subject)
+        if attempt is None:
+            raise HTTPException(status_code=404, detail="no such run")
+        return attempt
 
     return app
 

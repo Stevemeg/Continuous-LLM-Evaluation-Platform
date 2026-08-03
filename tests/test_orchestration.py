@@ -89,7 +89,8 @@ def make_run(dsn, seeded, key="run-1", budget=None):
             budget_limit=budget[0] if budget else None,
             budget_currency=budget[1] if budget else None)
         candidate_id = repo.add_candidate(
-            run_id, label="a", model_configuration_id=new_ulid(),
+            run_id, label="a",
+            model_configuration_id=seeded["model_configuration"],
             endpoint_kind="hosted")
     return run_id, Candidate(id=candidate_id, label="a", model="m", endpoint_name="e")
 

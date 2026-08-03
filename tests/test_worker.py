@@ -75,7 +75,7 @@ def _prepare(dsn, seeded, n=4):
             identity_digest="sha256:" + "0" * 64, integration_tier="output_only",
             idempotency_key="worker-1")
         candidate_id = repo.add_candidate(run_id, label="a",
-                                          model_configuration_id=new_ulid(),
+                                          model_configuration_id=seeded["model_configuration"],
                                           endpoint_kind="hosted")
     return run_id, examples, [{"id": candidate_id, "label": "a", "model": "m",
                                "endpoint_name": "e"}]

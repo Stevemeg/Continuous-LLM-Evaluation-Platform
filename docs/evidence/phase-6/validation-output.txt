@@ -1,0 +1,32 @@
+[PASS   ] P-1    test suite: exit 0; 234 passed; coverage 94.43% against a 85.0% gate
+[PASS   ] P-2    schema conformance: exit 0; 40 tables including the Phase 6 registry and experiment tables
+[PASS   ] P-3    traceability: exit 0. traced to an artifact: 136; implementation layer: 21; test layer: 15; deferred with an owner: 14
+[PASS   ] P-4    the committed traceability matrix regenerates identically
+[PASS   ] P-5    Technology Spike Sprint gate re-evaluated against its own history (ccc4bdd0), in an isolated clone pruned to 8 reachable commit(s): exit 0 {"PASS": 26}
+[PASS   ] P-6    Phase 4 gate re-evaluated against its own history (82d02608), in an isolated clone pruned to 7 reachable commit(s): exit 0 {"PASS": 19}
+[PASS   ] P-7    Phase 5 gate re-evaluated against its own history (27da6ddc), in an isolated clone pruned to 10 reachable commit(s): exit 0 {"PASS": 21}
+[PASS   ] P-8    Phase 1 milestone validators re-run. M1.1 documents: exit 0 {"PASS": 11}; M1.2 competitive: exit 0 {"PASS": 14}; M1.3 requirements: exit 0 {"PASS": 18}
+[PASS   ] P-9    contract declares 20 operations and is read, never written, by the implementation
+[PASS   ] P-10   vocabularies compared across schema, contract and code: 10; disagreements: 0
+[PASS   ] P-11   11 declared dependencies, each with a recorded reason and a rejected alternative; unjustified: none. Phase 6 added none.
+[PASS   ] P-12   15 ADRs; undecided: none
+[PASS   ] P-13   every externally visible effect carries a unique idempotency key (3 tables); missing: none
+[PASS   ] P-14   39 tenant-scoped tables, each with ENABLE and FORCE
+[PASS   ] P-15   20 composite foreign-key targets, each with a matching unique constraint; missing: none
+[PASS   ] P-16   migrations are applied from docs/data/schema/ with no second copy of the DDL; copies found: none
+[PASS   ] P-17   run and run_candidate registry references resolved to real foreign keys: 4 checked; dangling: none
+[PASS   ] P-18   version immutability enforced by the store: 2 triggers, 6 tables checked for a DELETE grant; defects: 0
+[PASS   ] P-19   ADR-014 enforced mechanically: environment captured, excluded from the digest, and the digest still content-sensitive; defects: 0
+[PASS   ] P-20   REQ-F-07-4: 4 key fields each proven to change the key, determinism enforced by trigger, cache service recorded; defects: 0
+[PASS   ] P-21   7 registry tables carry no endpoint or credential column; found: none
+[PASS   ] P-22   working tree: 162 files (2 binary skipped), 0 match(es); all blobs all refs: 0 undisclosed match(es), 2 disclosed and unremovable from published history
+           - docs/evidence/spike-sprint/common.py: spike common.py: local throwaway DSN password, container destroyed
+           - docs/evidence/spike-sprint/spike_provider_abstraction.py: spike provider script: planted leak-detector canary, never a credential
+[PASS   ] P-23   governed scope: 0 file match(es), 0 history match(es)
+[PASS   ] P-24   authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']
+[PASS   ] P-25   canonical document local=True tracked=False ignored=True refs_scanned=10 reachable_from_published=0 reachable_from_local_undisclosed=0 disclosed_local_only=1
+           - refs/heads/milestone/M1.1-product-definition: Continuous LLM Evaluation Platform - Canonical Master Prompt v3.docx (af23db3) - superseded pre-publication WIP branch; never pushed, origin has main only
+[PASS   ] P-26   155 tracked file(s); stray: 0; clean tree: True
+[PASS   ] P-27   Phase 7+ artifact classes checked: 5; artifacts Phase 6 must not contain: 0
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 27}

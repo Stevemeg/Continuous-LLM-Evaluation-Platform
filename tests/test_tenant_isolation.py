@@ -30,6 +30,13 @@ TENANT_SCOPED = [
     "suite_evaluator", "threshold", "artifact", "artifact_reference",
     "audit_event", "erasure_request", "run", "run_candidate", "run_sample",
     "sample_cost", "run_checkpoint", "evaluator_outcome",
+    # Phase 6. The registry is where a self-hosted endpoint and a proprietary
+    # prompt live, so it is the last place isolation may be assumed rather than
+    # tested.
+    "prompt", "prompt_version", "provider", "model", "model_configuration",
+    "system_definition", "system_version", "experiment",
+    "run_identity_component", "reproduction_attempt", "reproduction_gap",
+    "result_cache",
 ]
 
 

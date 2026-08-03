@@ -73,12 +73,16 @@ def test_every_implemented_route_is_declared_in_the_contract(client):
     assert not undeclared, f"routes absent from the contract: {undeclared}"
 
 
-def test_the_phase_implements_the_run_operations_and_says_so_by_omission():
-    """Nine operations belong to phases that have not run. They are absent, not
-    stubbed: a 501 is still a route a client can find and build against."""
+def test_the_phase_implements_its_operations_and_says_so_by_omission():
+    """Phase 6 adds the registry and experiment operations to Phase 5's four.
+    The rest belong to phases that have not run and are absent, not stubbed: a
+    501 is still a route a client can find and build against."""
     ids = {contract.operation_id(m, p) for m, p in contract.operations()}
-    assert {"createRun", "getRun", "cancelRun", "listRunSamples"} <= ids
-    assert len(ids) == 13
+    assert {"createRun", "getRun", "cancelRun", "listRunSamples",
+            "createPrompt", "addPromptVersion", "getPromptVersion",
+            "publishPromptVersion", "createExperiment", "getRunIdentity",
+            "reproduceRun"} <= ids
+    assert len(ids) == 20
 
 
 def test_asking_for_an_operation_the_contract_lacks_is_an_error():
