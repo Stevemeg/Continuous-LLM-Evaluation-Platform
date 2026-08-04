@@ -454,14 +454,69 @@ try:
             "distinction at the point where it costs something")
     if "pass" in ddl_enum("ck_gate_criterion__on_insufficient_evidence"):
         composition_defects.append("the schema permits mapping an abstention to a pass")
-    engine_src = (ROOT / "src/clep/regression/engine.py").read_text(encoding="utf-8")
-    floor = engine_src.index("absolute_floor")
-    tolerance = engine_src.index("relative_tolerance", floor)
-    classification = engine_src.index("INSUFFICIENT_EVIDENCE", floor)
-    if not floor < classification < tolerance:
+    # The order is checked by exercising it, not by reading the source. An
+    # earlier version of this check compared the positions of three strings in
+    # the file, and the self-test walked straight through it: reversing the order
+    # while leaving a later mention of `relative_tolerance` in place satisfied
+    # every position comparison. Source order is not behaviour.
+    import types
+
+    from decimal import Decimal as _D
+
+    from clep.regression.engine import _apply_thresholds
+    from clep.regression.statistics import (INSUFFICIENT_EVIDENCE, NO_CHANGE,
+                                            REGRESSION, Comparison, Interval)
+
+    def criterion(**over):
+        base = dict(metric_key="m", direction="higher_is_better",
+                    absolute_floor=None, relative_tolerance=None,
+                    precision_threshold=_D("0.05"), minimum_sample_size=None,
+                    on_regression="hard_fail", on_insufficient_evidence="warning",
+                    on_not_comparable="hard_fail")
+        base.update(over)
+        return types.SimpleNamespace(**base)
+
+    regressed = Comparison(classification=REGRESSION, sample_size=40,
+                           method_version="x/1", mean_difference=_D("-0.50"),
+                           interval=Interval(_D("-0.55"), _D("-0.45"), _D("0.95")))
+    # Floor breached AND a tolerance wide enough to forgive anything. Correct
+    # order fails on the floor; reversed order forgives and passes.
+    verdict, rule, _ = _apply_thresholds(
+        criterion(absolute_floor=_D("0.60"), relative_tolerance=_D("10")),
+        regressed, _D("0.30"), _D("0.80"))
+    if (verdict, rule) != ("hard_fail", "absolute_floor"):
         composition_defects.append(
-            "the threshold order is not floor, then classification, then "
-            "tolerance; ADR-016 makes the order a correctness property")
+            f"the absolute floor does not outrank the relative tolerance "
+            f"(got {verdict}/{rule}); a baseline below the floor would let a "
+            f"candidate sit there indefinitely")
+    # A tolerance can forgive a detected regression...
+    verdict, rule, _ = _apply_thresholds(
+        criterion(relative_tolerance=_D("10")), regressed, _D("0.30"), _D("0.80"))
+    if (verdict, rule) != ("pass", "relative_tolerance"):
+        composition_defects.append(
+            f"a regression within the configured tolerance was not forgiven "
+            f"(got {verdict}/{rule})")
+    # ...and cannot manufacture one from a difference the interval could not
+    # distinguish from zero.
+    unchanged = Comparison(classification=NO_CHANGE, sample_size=40,
+                           method_version="x/1", mean_difference=_D("-0.01"),
+                           interval=Interval(_D("-0.02"), _D("0.01"), _D("0.95")))
+    verdict, rule, _ = _apply_thresholds(
+        criterion(relative_tolerance=_D("0")), unchanged, _D("0.79"), _D("0.80"))
+    if verdict != "pass":
+        composition_defects.append(
+            f"a zero tolerance turned 'no change' into {verdict}; the "
+            f"fixed-threshold method ADR-007 rejected, reintroduced by policy")
+    # An abstention takes the criterion's configured action, never a pass.
+    abstained = Comparison(classification=INSUFFICIENT_EVIDENCE, sample_size=3,
+                           method_version="x/1", abstention_reason="too few")
+    verdict, _, _ = _apply_thresholds(
+        criterion(on_insufficient_evidence="hard_fail"), abstained, None, None)
+    if verdict != "hard_fail":
+        composition_defects.append(
+            f"an abstention did not take the configured action (got {verdict})")
+
+    engine_src = (ROOT / "src/clep/regression/engine.py").read_text(encoding="utf-8")
     if "SEVERITY" not in engine_src:
         composition_defects.append("the decision outcome is not derived from severity")
     from clep.regression.engine import SEVERITY
@@ -482,14 +537,18 @@ add("P-20", "PASS" if not composition_defects else "FAIL",
 zero_defects = []
 try:
     engine_src = (ROOT / "src/clep/regression/engine.py").read_text(encoding="utf-8")
-    scored_guards = len(re.findall(r"resolution\s*=\s*'scored'", engine_src))
-    if scored_guards < 2:
-        zero_defects.append(
-            f"the evaluator pairing guards resolution on {scored_guards} side(s); "
-            f"both are needed or an example the candidate failed enters the "
-            f"comparison")
-    for suspicious in (r"or\s+0\b", r"COALESCE\([^)]*,\s*0\s*\)", r"fillna",
-                       r"score\s*or\s*Decimal\(0\)"):
+    # Both sides, named by their aliases. An earlier version counted occurrences
+    # of `resolution = 'scored'` and required two — and the docstring three lines
+    # above the query contains the phrase, so removing the baseline guard still
+    # left two matches. A check a comment can satisfy is not a check.
+    for alias, side in (("bo", "baseline"), ("co", "candidate")):
+        if f"{alias}.resolution = 'scored'" not in engine_src:
+            zero_defects.append(
+                f"the evaluator pairing does not require the {side} sample to "
+                f"have been scored; an example that failed would enter the "
+                f"comparison")
+    for suspicious in (r"COALESCE\([^)]*,\s*0\s*\)", r"fillna",
+                       r"score\s*or\s*Decimal\(0\)", r"score\s+or\s+0\b"):
         if re.search(suspicious, engine_src):
             zero_defects.append(f"a zero substitution appears in the engine: {suspicious}")
     if not re.search(r"ck_run_sample__score_only_when_scored", sql):
@@ -507,12 +566,36 @@ try:
         separation_defects.append(
             "a comparison does not record whether it came from a deterministic "
             "evaluator or a judge, so a report cannot keep them apart")
-    report_src = (ROOT / "src/clep/regression/report.py").read_text(encoding="utf-8")
-    if "deterministic_evaluator" not in report_src or \
-            "probabilistic_judge" not in report_src:
-        separation_defects.append("the human report does not separate the two kinds")
-    if report_src.count("## ") < 2:
-        separation_defects.append("the human report renders one undivided table")
+    # Rendered, not read. An earlier version looked for the two kind names in the
+    # report source and for two markdown headings, and the self-test walked
+    # through it: merging the two groups into one table left both names in the
+    # list comprehensions above and both headings elsewhere in the file.
+    from clep.regression import report as _report
+
+    def comparison_of(kind, metric):
+        return {"metric": metric, "resultKind": kind, "classification": "no_change",
+                "sampleSize": 4, "baselineMean": None, "candidateMean": None,
+                "meanDifference": None, "intervalLower": None, "intervalUpper": None,
+                "confidenceLevel": None, "effectSize": None,
+                "minimumSampleSize": None, "abstentionReason": None,
+                "notComparableReason": None, "statisticalMethodVersion": "x/1",
+                "evaluatorVersionId": None, "id": metric}
+
+    rendered = _report.human_readable(
+        {"id": "d", "projectId": "p", "candidateRunId": "r", "baselineId": "b",
+         "gatePolicyVersionId": "v", "statisticalMethodVersion": "x/1",
+         "gateEvidenceDigest": "sha256:" + "0" * 64, "evaluatedOutcome": "pass",
+         "decidedAt": "now"},
+        [comparison_of("deterministic_evaluator", "exact_match_metric"),
+         comparison_of("probabilistic_judge", "helpfulness_metric")], [], None)
+    sections = re.split(r"^## ", rendered, flags=re.M)
+    mixed = [s.splitlines()[0] for s in sections
+             if "exact_match_metric" in s and "helpfulness_metric" in s]
+    if mixed:
+        separation_defects.append(
+            f"the human report shows a deterministic evaluator and a judge in one "
+            f"section ({mixed[0]!r}); a reader who scans a column of numbers will "
+            f"compare them")
     if "is_deterministic" not in sql:
         separation_defects.append("nothing declares whether an evaluator is deterministic")
 except Exception as e:
