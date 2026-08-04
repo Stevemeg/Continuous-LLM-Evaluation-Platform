@@ -7,7 +7,10 @@ Milestones: M7.1 through M7.7
 
 | File | What it is |
 |---|---|
-| `check_phase7.py` | Phase validator, 29 checks. `python docs/evidence/phase-7/check_phase7.py .` |
+| `check_phase7.py` | Phase validator, 30 checks. `python docs/evidence/phase-7/check_phase7.py .` |
+| `selftest_phase7.py` | Plants eleven violations and proves each is caught. Refuses to run on a dirty tree |
+| `probe_gate_schema.py` | Twenty constraint probes as the runtime role, nine trigger probes as a superuser |
+| `probe-output.txt` | Verbatim output of the probes |
 | `validation-output.txt` | Verbatim output of the validator |
 | `test-output.txt` | Verbatim output of the test suite with coverage |
 | `selftest-output.txt` | Verbatim output of the validator's own self-test |
@@ -98,6 +101,20 @@ reading source text where the requirement is about behaviour.
 
 A check a comment can satisfy is not a check.
 
+## The regression chain, derived
+
+`P-30` exists because writing this README required tracing the chain by hand.
+Phase 7 re-runs the Spike Sprint, Phase 4, Phase 5 and Phase 6 gates and the
+three Phase 1 milestone validators; Phases 1, 2 and 3 are covered *through*
+Phase 4, which re-runs Phase 3, which re-runs Phase 2, which re-runs Phase 1.
+
+That closure is what makes "regression across every earlier phase" true, and a
+hand-traced closure is a claim that stops being true without anyone noticing — a
+validator added for a new phase and never wired in, an edge dropped from an old
+one. `P-30` derives it from the invocation paths each gate contains and requires
+every validator in the repository to be reachable: **13 of 13**. The self-test
+plants the obvious break, Phase 4 no longer re-running Phase 3, and it is caught.
+
 ## Probing the schema
 
 Twenty probes against a real database, then nine more as a **superuser**. The
@@ -129,8 +146,8 @@ anyone else.
 
 | | |
 |---|---|
-| Validator | **29 checks, all PASS**, exit 0 |
-| Self-test | **10 planted violations, 10 caught** (after three checks were strengthened) |
+| Validator | **30 checks, all PASS**, exit 0 |
+| Self-test | **11 planted violations, 11 caught** (after three checks were strengthened) |
 | Schema probes | 20 constraint and trigger probes, plus 9 trigger-only probes as superuser |
 | Tests | **310 passed**, coverage **93.7%** against an 85% gate |
 | Schema | 48 tables, 47 tenant-scoped with ENABLE and FORCE |

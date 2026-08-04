@@ -7,6 +7,7 @@
 [CAUGHT ] P-21   the pairing stops requiring a scored baseline sample (reported FAIL)
 [CAUGHT ] P-22   the human report stops separating judges from evaluators (reported FAIL)
 [CAUGHT ] P-23   a gate table acquires a credential column (reported FAIL)
+[CAUGHT ] P-30   an earlier gate stops re-running the one before it (reported FAIL)
 [CAUGHT ] P-10   an operation disappears from the contract (reported FAIL)
 
-self-test: 10/10 planted violations caught
+self-test: 11/11 planted violations caught
