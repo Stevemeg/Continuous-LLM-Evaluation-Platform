@@ -74,15 +74,18 @@ def test_every_implemented_route_is_declared_in_the_contract(client):
 
 
 def test_the_phase_implements_its_operations_and_says_so_by_omission():
-    """Phase 6 adds the registry and experiment operations to Phase 5's four.
+    """Phase 7 adds the baseline and gate operations to what came before.
     The rest belong to phases that have not run and are absent, not stubbed: a
     501 is still a route a client can find and build against."""
     ids = {contract.operation_id(m, p) for m, p in contract.operations()}
     assert {"createRun", "getRun", "cancelRun", "listRunSamples",
             "createPrompt", "addPromptVersion", "getPromptVersion",
             "publishPromptVersion", "createExperiment", "getRunIdentity",
-            "reproduceRun"} <= ids
-    assert len(ids) == 20
+            "reproduceRun", "createBaseline", "approveBaseline",
+            "createGatePolicy", "addGatePolicyVersion",
+            "publishGatePolicyVersion", "evaluateGate", "getGateDecision",
+            "createPolicyException"} <= ids
+    assert len(ids) == 24
 
 
 def test_asking_for_an_operation_the_contract_lacks_is_an_error():

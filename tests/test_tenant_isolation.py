@@ -37,6 +37,11 @@ TENANT_SCOPED = [
     "system_definition", "system_version", "experiment",
     "run_identity_component", "reproduction_attempt", "reproduction_gap",
     "result_cache",
+    # Phase 7. A gate decision is the record of why a release shipped, and a
+    # policy is one tenant's statement of what it will accept; neither may be
+    # visible to, or writable by, anyone else.
+    "baseline", "gate_policy", "gate_policy_version", "gate_criterion",
+    "gate_decision", "comparison", "gate_criterion_result", "policy_exception",
 ]
 
 

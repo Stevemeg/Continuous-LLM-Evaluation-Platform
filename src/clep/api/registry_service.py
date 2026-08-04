@@ -12,10 +12,11 @@ from __future__ import annotations
 
 import uuid
 
+from clep.api import audit
 from clep.db.session import tenant_session
 from clep.experiments import reproduction
 from clep.experiments.identity import IdentityBuilder
-from clep.identity import ulid_to_uuid
+from clep.identity import actor_uuid, ulid_to_uuid
 from clep.registry.repository import RegistryRepository
 
 
@@ -117,25 +118,15 @@ class RegistryService:
 #: Namespace for deriving a stable actor identifier from a credential subject.
 #: Token issuance and a real principal directory are Phase 12; until then a
 #: subject that is not already a UUID is mapped deterministically, so the same
-#: caller produces the same actor_id every time and the history of a prompt is
-#: still attributable. A random identifier per request would satisfy the column
-#: and destroy the requirement.
-ACTOR_NAMESPACE = uuid.UUID("6f9619ff-8b86-d011-b42d-00c04fc964ff")
-
-
-def actor_uuid(subject: str) -> uuid.UUID:
-    try:
-        return uuid.UUID(str(subject))
-    except (ValueError, AttributeError, TypeError):
-        return uuid.uuid5(ACTOR_NAMESPACE, str(subject))
+#: Re-exported so existing callers and tests keep one import site. The
+#: derivation itself moved to `clep.identity`, and the audit insert to
+#: `clep.api.audit`, when the gate service needed both and a second copy of the
+#: insert named columns that do not exist.
+actor_uuid = actor_uuid
 
 
 def _audit(conn, organization_id: str, actor_id: str, action: str,
            target_type: str, target_id: str) -> None:
     """REQ-F-01-6, and I-33: the runtime role has INSERT and no DELETE, so an
     actor cannot remove the record of their own change."""
-    conn.execute(
-        "INSERT INTO clep.audit_event (id, organization_id, actor_id, action, "
-        "target_type, target_id) VALUES (%s, %s, %s, %s, %s, %s)",
-        (uuid.uuid4(), str(organization_id), actor_uuid(actor_id), action,
-         target_type, ulid_to_uuid(target_id)))
+    audit.record(conn, organization_id, actor_id, action, target_type, target_id)

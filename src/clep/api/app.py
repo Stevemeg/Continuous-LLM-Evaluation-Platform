@@ -1,11 +1,11 @@
-"""HTTP surface for the run operations the core harness owns.
+"""HTTP surface for the operations the phases so far own.
 
-Phase 5 implements four of the contract's thirteen operations: the four that
-belong to the evaluation harness. The other nine belong to phases that have not
-run — gate evaluation to Phase 7, dataset and baseline management to Phase 6,
-erasure and audit surfaces to Phase 12 — and are deliberately absent rather than
-stubbed. A stub that returns 501 is still a route a client can find; a route that
-does not exist is an honest 404.
+Runs and their identity (Phase 5, 6), the prompt registry and experiments
+(Phase 6), and baselines, gate policies and gate decisions (Phase 7). The rest of
+the contract belongs to phases that have not run — dataset management, erasure
+and the audit surfaces — and is deliberately absent rather than stubbed. A stub
+that returns 501 is still a route a client can find; a route that does not exist
+is an honest 404.
 
 Two rules the contract states and this module enforces:
 
@@ -19,14 +19,16 @@ Two rules the contract states and this module enforces:
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from decimal import Decimal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from clep.api import contract
 from clep.identity import is_ulid, new_ulid
+from clep.regression.repository import PolicyNotPublished
 
 PROBLEM_TYPE = "https://clep.invalid/problems/"
 
@@ -120,7 +122,49 @@ class ExperimentIn(BaseModel):
     hypothesis: str | None = None
 
 
-def create_app(run_service, registry_service=None) -> FastAPI:
+class BaselineIn(BaseModel):
+    runId: str
+    label: str | None = None
+
+
+class GatePolicyIn(BaseModel):
+    slug: str = Field(min_length=1, max_length=64)
+    displayName: str = Field(min_length=1)
+
+
+class GateCriterionIn(BaseModel):
+    metricKey: str = Field(min_length=1)
+    dimension: str
+    source: str
+    direction: str
+    onRegression: str
+    onInsufficientEvidence: str
+    onNotComparable: str
+    precisionThreshold: str | None = None
+    minimumSampleSize: int | None = Field(default=None, ge=1)
+    absoluteFloor: str | None = None
+    relativeTolerance: str | None = None
+
+
+class GatePolicyVersionIn(BaseModel):
+    confidenceLevel: float = Field(gt=0, lt=1)
+    resampleCount: int = Field(ge=1)
+    bootstrapSeed: int
+    criteria: list[GateCriterionIn] = Field(min_length=1)
+
+
+class GateEvaluationIn(BaseModel):
+    candidateRunId: str
+    baselineId: str | None = None
+    gatePolicyVersionId: str
+
+
+class PolicyExceptionIn(BaseModel):
+    justification: str = Field(min_length=20)
+    expiresAt: datetime
+
+
+def create_app(run_service, registry_service=None, gate_service=None) -> FastAPI:
     """`run_service` supplies persistence and execution.
 
     Injected rather than imported so the contract tests can drive every path
@@ -142,7 +186,15 @@ def create_app(run_service, registry_service=None) -> FastAPI:
                          ("POST", "/prompts/{promptId}/versions"),
                          ("GET", "/prompt-versions/{promptVersionId}"),
                          ("POST", "/prompt-versions/{promptVersionId}/publish"),
-                         ("POST", "/projects/{projectId}/experiments")):
+                         ("POST", "/projects/{projectId}/experiments"),
+                         ("POST", "/projects/{projectId}/baselines"),
+                         ("POST", "/baselines/{baselineId}/approval"),
+                         ("POST", "/projects/{projectId}/gate-policies"),
+                         ("POST", "/gate-policies/{gatePolicyId}/versions"),
+                         ("POST", "/gate-policy-versions/{gatePolicyVersionId}/publish"),
+                         ("POST", "/projects/{projectId}/gate-evaluations"),
+                         ("GET", "/gate-decisions/{gateDecisionId}"),
+                         ("POST", "/gate-decisions/{gateDecisionId}/exceptions")):
         contract.operation_for(method, path)
 
     @app.exception_handler(HTTPException)
@@ -287,7 +339,156 @@ def create_app(run_service, registry_service=None) -> FastAPI:
             raise HTTPException(status_code=404, detail="no such run")
         return attempt
 
+    # ---- baselines and quality gates ----------------------------------------
+    # Registered on the same rule as the registry routes above.
+    if gate_service is None:
+        return app
+
+    @app.post("/projects/{projectId}/baselines", status_code=201)
+    def create_baseline(body: BaselineIn, projectId: str = Path(...),
+                        principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        _require_ulid(body.runId, "runId")
+        baseline = gate_service.create_baseline(
+            organization_id=principal.organization_id, project_id=projectId,
+            run_id=body.runId, label=body.label, actor_id=principal.subject)
+        if baseline is None:
+            # The run does not exist, or has not finished. Both are the caller
+            # naming something that cannot be a baseline, and neither is a
+            # platform failure.
+            raise HTTPException(
+                status_code=422,
+                detail="the run does not exist or has not completed")
+        return baseline
+
+    @app.post("/baselines/{baselineId}/approval")
+    def approve_baseline(baselineId: str = Path(...),
+                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(baselineId, "baselineId")
+        baseline = gate_service.approve_baseline(
+            organization_id=principal.organization_id, baseline_id=baselineId,
+            actor_id=principal.subject)
+        if baseline is None:
+            raise HTTPException(status_code=404, detail="no such baseline")
+        return baseline
+
+    @app.post("/projects/{projectId}/gate-policies", status_code=201)
+    def create_gate_policy(body: GatePolicyIn, projectId: str = Path(...),
+                           principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        return gate_service.create_gate_policy(
+            organization_id=principal.organization_id, project_id=projectId,
+            slug=body.slug, display_name=body.displayName,
+            actor_id=principal.subject)
+
+    @app.post("/gate-policies/{gatePolicyId}/versions", status_code=201)
+    def add_gate_policy_version(body: GatePolicyVersionIn,
+                                gatePolicyId: str = Path(...),
+                                principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(gatePolicyId, "gatePolicyId")
+        for criterion in body.criteria:
+            _require_enum(criterion.dimension, "CriterionDimension", "dimension")
+            _require_enum(criterion.source, "CriterionSource", "source")
+            _require_enum(criterion.direction, "MetricDirection", "direction")
+            for field, value in (("onRegression", criterion.onRegression),
+                                 ("onInsufficientEvidence",
+                                  criterion.onInsufficientEvidence),
+                                 ("onNotComparable", criterion.onNotComparable)):
+                _require_enum(value, "CriterionAction", field)
+        version = gate_service.add_policy_version(
+            organization_id=principal.organization_id, policy_id=gatePolicyId,
+            confidence_level=Decimal(str(body.confidenceLevel)),
+            resample_count=body.resampleCount, bootstrap_seed=body.bootstrapSeed,
+            criteria=[c.model_dump() for c in body.criteria],
+            actor_id=principal.subject)
+        if version is None:
+            raise HTTPException(status_code=404, detail="no such gate policy")
+        return version
+
+    @app.post("/gate-policy-versions/{gatePolicyVersionId}/publish")
+    def publish_gate_policy_version(gatePolicyVersionId: str = Path(...),
+                                    principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(gatePolicyVersionId, "gatePolicyVersionId")
+        version = gate_service.publish_policy_version(
+            organization_id=principal.organization_id,
+            version_id=gatePolicyVersionId, actor_id=principal.subject)
+        if version is None:
+            raise HTTPException(status_code=404,
+                                detail="no such gate policy version")
+        return version
+
+    @app.post("/projects/{projectId}/gate-evaluations")
+    def evaluate_gate(body: GateEvaluationIn, projectId: str = Path(...),
+                      principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        _require_ulid(body.candidateRunId, "candidateRunId")
+        _require_ulid(body.gatePolicyVersionId, "gatePolicyVersionId")
+        if body.baselineId:
+            _require_ulid(body.baselineId, "baselineId")
+        try:
+            decision = gate_service.evaluate_gate(
+                organization_id=principal.organization_id, project_id=projectId,
+                candidate_run_id=body.candidateRunId,
+                policy_version_id=body.gatePolicyVersionId,
+                baseline_id=body.baselineId, actor_id=principal.subject)
+        except PolicyNotPublished as exc:
+            # The caller named a version that exists and is not fit to be cited.
+            # A client error, never a platform failure (REQ-F-09-5).
+            raise HTTPException(status_code=422, detail=str(exc))
+        if decision is None:
+            raise HTTPException(status_code=404,
+                                detail="no such run or gate policy version")
+        return decision
+
+    @app.get("/gate-decisions/{gateDecisionId}")
+    def get_gate_decision(gateDecisionId: str = Path(...),
+                          accept: str = Header(default="application/json"),
+                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+        """One decision, two representations (`REQ-F-09-4`).
+
+        Negotiated rather than split across two operations: two operations would
+        be two things to keep in step, and the requirement's point is that both
+        describe the same decision with the same evidence.
+        """
+        _require_ulid(gateDecisionId, "gateDecisionId")
+        if "text/markdown" in accept:
+            body = gate_service.decision_report(principal.organization_id,
+                                                gateDecisionId)
+            if body is None:
+                raise HTTPException(status_code=404, detail="no such gate decision")
+            return PlainTextResponse(body, media_type="text/markdown")
+        decision = gate_service.get_decision(principal.organization_id,
+                                             gateDecisionId)
+        if decision is None:
+            raise HTTPException(status_code=404, detail="no such gate decision")
+        return decision
+
+    @app.post("/gate-decisions/{gateDecisionId}/exceptions", status_code=201)
+    def create_policy_exception(body: PolicyExceptionIn,
+                                gateDecisionId: str = Path(...),
+                                principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(gateDecisionId, "gateDecisionId")
+        exception = gate_service.create_exception(
+            organization_id=principal.organization_id,
+            decision_id=gateDecisionId, justification=body.justification,
+            expires_at=body.expiresAt, actor_id=principal.subject)
+        if exception is None:
+            raise HTTPException(status_code=404, detail="no such gate decision")
+        return exception
+
     return app
+
+
+def _require_enum(value: str, schema_name: str, field: str) -> None:
+    """Validate against the contract's vocabulary, never a copy of it.
+
+    A list restated here would be a second source of truth, and the first symptom
+    of drift would be an accepted request the store then rejects.
+    """
+    permitted = contract.enum_of(schema_name)
+    if value not in permitted:
+        raise HTTPException(status_code=400,
+                            detail=f"{field} must be one of {permitted}")
 
 
 def _require_ulid(value: str, field: str) -> None:

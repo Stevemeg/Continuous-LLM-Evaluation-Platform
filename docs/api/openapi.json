@@ -362,6 +362,12 @@
                 "schema": {
                   "$ref": "#/components/schemas/GateDecision"
                 }
+              },
+              "text/markdown": {
+                "schema": {
+                  "type": "string",
+                  "description": "The same decision as prose, carrying the same evidence: every criterion, the rule that fired, the interval and the sample size."
+                }
               }
             }
           },
@@ -1036,6 +1042,223 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReproductionAttempt"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/gate-policies": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "createGatePolicy",
+        "summary": "Register a quality-gate policy",
+        "tags": [
+          "gates"
+        ],
+        "x-requirements": [
+          "REQ-F-09-3"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GatePolicyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The registered policy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatePolicy"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/gate-policies/{gatePolicyId}/versions": {
+      "parameters": [
+        {
+          "name": "gatePolicyId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "addGatePolicyVersion",
+        "summary": "Add a version of a gate policy, with its criteria",
+        "description": "Criteria are part of the version rather than editable beneath it: freezing the version and leaving its criteria mutable would freeze the wrapper and not the contents.",
+        "tags": [
+          "gates"
+        ],
+        "x-requirements": [
+          "REQ-F-08-1",
+          "REQ-F-09-3",
+          "REQ-F-09-8"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GatePolicyVersionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The draft version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatePolicyVersion"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/gate-policy-versions/{gatePolicyVersionId}/publish": {
+      "parameters": [
+        {
+          "name": "gatePolicyVersionId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "publishGatePolicyVersion",
+        "summary": "Publish a gate policy version, freezing it",
+        "description": "A published version cannot be modified, and neither can its criteria. A version with no criteria cannot be published: a gate that governs nothing reports `pass` for every release, which is worse than no gate because it carries the appearance of one.",
+        "tags": [
+          "gates"
+        ],
+        "x-requirements": [
+          "REQ-F-09-8"
+        ],
+        "responses": {
+          "200": {
+            "description": "The published version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatePolicyVersion"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/baselines/{baselineId}/approval": {
+      "parameters": [
+        {
+          "name": "baselineId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "approveBaseline",
+        "summary": "Approve a baseline, superseding the one it replaces",
+        "description": "One approved baseline exists per project and suite version, so REQ-F-09-7 can resolve 'the approved baseline' without the caller restating it. Approving supersedes the previous holder in the same transaction: between two transactions there would be a moment with none.",
+        "tags": [
+          "baselines",
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-01-2",
+          "REQ-F-09-7",
+          "REQ-X-4"
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The approved baseline.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Baseline"
                 }
               }
             }
@@ -1744,12 +1967,15 @@
           "REQ-F-08-1",
           "REQ-F-08-2",
           "REQ-F-08-3",
+          "REQ-F-08-4",
+          "REQ-F-08-6",
           "REQ-F-08-7"
         ],
         "required": [
           "metric",
           "classification",
-          "statisticalMethodVersion"
+          "statisticalMethodVersion",
+          "resultKind"
         ],
         "properties": {
           "metric": {
@@ -1792,6 +2018,36 @@
               "null"
             ],
             "description": "Names the pinned version that differs."
+          },
+          "resultKind": {
+            "$ref": "#/components/schemas/ComparisonResultKind"
+          },
+          "baselineMean": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "candidateMean": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "abstentionReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Present exactly when the classification is `insufficient_evidence`. An abstention that does not say what was missing is indistinguishable from a verdict that was never computed."
           }
         }
       },
@@ -1849,8 +2105,10 @@
         "required": [
           "id",
           "outcome",
+          "evaluatedOutcome",
           "comparisons",
           "gatePolicyVersionId",
+          "statisticalMethodVersion",
           "decidedAt"
         ],
         "properties": {
@@ -1886,6 +2144,22 @@
           },
           "decidedAt": {
             "$ref": "#/components/schemas/Instant"
+          },
+          "evaluatedOutcome": {
+            "$ref": "#/components/schemas/GateOutcome",
+            "description": "What the evidence produced. Immutable. `outcome` may differ from it only by `exception_applied`, and only while an exception is in force — an exception never edits a decision (ADR-016)."
+          },
+          "criterionResults": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GateCriterionResult"
+            }
+          },
+          "statisticalMethodVersion": {
+            "type": "string"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/Ulid"
           }
         }
       },
@@ -1898,7 +2172,8 @@
         "properties": {
           "justification": {
             "type": "string",
-            "minLength": 20
+            "minLength": 20,
+            "description": "At least 20 characters, enforced by the store as well as here. 'ok' is not a justification."
           },
           "expiresAt": {
             "$ref": "#/components/schemas/Instant"
@@ -2127,15 +2402,13 @@
         ],
         "required": [
           "id",
-          "identity",
-          "state"
+          "state",
+          "runId",
+          "identityDigest"
         ],
         "properties": {
           "id": {
             "$ref": "#/components/schemas/Ulid"
-          },
-          "identity": {
-            "$ref": "#/components/schemas/RunIdentity"
           },
           "state": {
             "type": "string",
@@ -2147,6 +2420,27 @@
           },
           "approval": {
             "$ref": "#/components/schemas/Approval"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "suiteVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "datasetVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "identityDigest": {
+            "$ref": "#/components/schemas/Digest"
           }
         }
       },
@@ -2583,6 +2877,404 @@
             "type": "string"
           }
         }
+      },
+      "CriterionDimension": {
+        "type": "string",
+        "enum": [
+          "quality",
+          "cost",
+          "latency",
+          "safety",
+          "judge_agreement",
+          "task_specific"
+        ],
+        "description": "What the criterion is about (REQ-F-09-3).",
+        "x-requirements": [
+          "REQ-F-09-3"
+        ]
+      },
+      "CriterionSource": {
+        "type": "string",
+        "enum": [
+          "evaluator",
+          "cost",
+          "latency",
+          "judge_agreement"
+        ],
+        "description": "Where the paired values come from. Separate from dimension because a quality and a cost criterion are both paired per example, and conflating the two would make cost a special case.",
+        "x-requirements": [
+          "REQ-F-09-3"
+        ]
+      },
+      "MetricDirection": {
+        "type": "string",
+        "enum": [
+          "higher_is_better",
+          "lower_is_better"
+        ],
+        "description": "Which way is good. ADR-007 speaks of an interval entirely below zero as a regression, which holds only where higher is better; latency and cost run the other way."
+      },
+      "CriterionAction": {
+        "type": "string",
+        "enum": [
+          "hard_fail",
+          "warning",
+          "approval_required"
+        ],
+        "description": "`pass` is deliberately absent. A policy that could map an abstention to a pass would erase the REQ-F-08-4 distinction at the point where it costs something; a team that does not care about a metric removes the criterion instead (ADR-016).",
+        "x-requirements": [
+          "REQ-F-08-4",
+          "REQ-F-09-2"
+        ]
+      },
+      "ComparisonResultKind": {
+        "type": "string",
+        "enum": [
+          "deterministic_evaluator",
+          "probabilistic_judge",
+          "operational"
+        ],
+        "description": "REQ-F-08-6 in the report: a reader who groups by this cannot average a rubric score into an exact-match rate.",
+        "x-requirements": [
+          "REQ-F-08-6"
+        ]
+      },
+      "RuleFired": {
+        "type": "string",
+        "enum": [
+          "interval",
+          "absolute_floor",
+          "relative_tolerance",
+          "minimum_sample",
+          "precision_unset",
+          "comparability",
+          "no_signal"
+        ],
+        "description": "Which rule produced the criterion's verdict. A report that says 'failed' without saying which rule failed is not the evidence REQ-F-09-4 asks for.",
+        "x-requirements": [
+          "REQ-F-09-4"
+        ]
+      },
+      "GateCriterionRequest": {
+        "type": "object",
+        "required": [
+          "metricKey",
+          "dimension",
+          "source",
+          "direction",
+          "onRegression",
+          "onInsufficientEvidence",
+          "onNotComparable"
+        ],
+        "properties": {
+          "metricKey": {
+            "type": "string",
+            "description": "For an evaluator source, the evaluator slug."
+          },
+          "dimension": {
+            "$ref": "#/components/schemas/CriterionDimension"
+          },
+          "source": {
+            "$ref": "#/components/schemas/CriterionSource"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/MetricDirection"
+          },
+          "precisionThreshold": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Interval width above which the comparison abstains. ADR-007 refused to set it from simulated data; a criterion without one abstains rather than guessing."
+          },
+          "minimumSampleSize": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "absoluteFloor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relativeTolerance": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "onRegression": {
+            "$ref": "#/components/schemas/CriterionAction"
+          },
+          "onInsufficientEvidence": {
+            "$ref": "#/components/schemas/CriterionAction"
+          },
+          "onNotComparable": {
+            "$ref": "#/components/schemas/CriterionAction"
+          }
+        },
+        "x-requirements": [
+          "REQ-F-08-1",
+          "REQ-F-08-3",
+          "REQ-F-09-3"
+        ]
+      },
+      "GateCriterion": {
+        "type": "object",
+        "required": [
+          "id",
+          "metricKey",
+          "dimension",
+          "source",
+          "direction"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "metricKey": {
+            "type": "string",
+            "description": "For an evaluator source, the evaluator slug."
+          },
+          "dimension": {
+            "$ref": "#/components/schemas/CriterionDimension"
+          },
+          "source": {
+            "$ref": "#/components/schemas/CriterionSource"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/MetricDirection"
+          },
+          "precisionThreshold": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Interval width above which the comparison abstains. ADR-007 refused to set it from simulated data; a criterion without one abstains rather than guessing."
+          },
+          "minimumSampleSize": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "absoluteFloor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relativeTolerance": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "onRegression": {
+            "$ref": "#/components/schemas/CriterionAction"
+          },
+          "onInsufficientEvidence": {
+            "$ref": "#/components/schemas/CriterionAction"
+          },
+          "onNotComparable": {
+            "$ref": "#/components/schemas/CriterionAction"
+          }
+        }
+      },
+      "GatePolicyRequest": {
+        "type": "object",
+        "required": [
+          "slug",
+          "displayName"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "GatePolicy": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "slug",
+          "displayName"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          }
+        },
+        "x-requirements": [
+          "REQ-F-09-3"
+        ]
+      },
+      "GatePolicyVersionRequest": {
+        "type": "object",
+        "required": [
+          "confidenceLevel",
+          "resampleCount",
+          "bootstrapSeed",
+          "criteria"
+        ],
+        "description": "The statistical parameters ADR-007 deliberately left unset are supplied here, by a person, and versioned with the policy so a decision made under them can be re-derived exactly.",
+        "properties": {
+          "confidenceLevel": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "exclusiveMaximum": 1
+          },
+          "resampleCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "bootstrapSeed": {
+            "type": "integer"
+          },
+          "criteria": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/GateCriterionRequest"
+            }
+          }
+        },
+        "x-requirements": [
+          "REQ-F-08-7",
+          "REQ-F-09-8"
+        ]
+      },
+      "GatePolicyVersion": {
+        "type": "object",
+        "required": [
+          "id",
+          "gatePolicyId",
+          "versionNumber",
+          "state",
+          "confidenceLevel",
+          "resampleCount",
+          "bootstrapSeed",
+          "criteria"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "gatePolicyId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "versionNumber": {
+            "type": "integer"
+          },
+          "state": {
+            "$ref": "#/components/schemas/VersionState"
+          },
+          "contentDigest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "confidenceLevel": {
+            "type": "number"
+          },
+          "resampleCount": {
+            "type": "integer"
+          },
+          "bootstrapSeed": {
+            "type": "integer"
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GateCriterion"
+            }
+          },
+          "publishedAt": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Instant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "x-requirements": [
+          "REQ-F-09-8"
+        ]
+      },
+      "GateCriterionResult": {
+        "type": "object",
+        "required": [
+          "metric",
+          "verdict",
+          "ruleFired",
+          "detail"
+        ],
+        "description": "The exact evidence behind one criterion of the decision.",
+        "properties": {
+          "metric": {
+            "type": "string"
+          },
+          "dimension": {
+            "$ref": "#/components/schemas/CriterionDimension"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/GateOutcome"
+          },
+          "ruleFired": {
+            "$ref": "#/components/schemas/RuleFired"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "x-requirements": [
+          "REQ-F-09-4"
+        ]
       }
     }
   }

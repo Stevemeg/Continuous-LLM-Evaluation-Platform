@@ -77,3 +77,23 @@ def is_ulid(value: str) -> bool:
         return True
     except (ValueError, TypeError):
         return False
+
+
+#: Namespace for deriving a stable actor identifier from a non-UUID subject.
+#: Until Phase 12 issues real principals, an actor arrives as whatever the
+#: ingress presents. A stable derivation keeps the audit trail joinable; a random
+#: identifier per request would satisfy the column and destroy the requirement.
+ACTOR_NAMESPACE = uuid.UUID("6f9619ff-8b86-d011-b42d-00c04fc964ff")
+
+
+def actor_uuid(subject: str) -> uuid.UUID:
+    """Lives here rather than in a service because two services need it.
+
+    It was defined in the registry service and copied into the regression
+    repository, which is how the two would have drifted into recording the same
+    person under two identifiers.
+    """
+    try:
+        return uuid.UUID(str(subject))
+    except (ValueError, AttributeError, TypeError):
+        return uuid.uuid5(ACTOR_NAMESPACE, str(subject))
