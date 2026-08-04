@@ -13,6 +13,25 @@ Milestones: M6.1 through M6.7
 | `test-output.txt` | Verbatim output of the test suite with coverage |
 | `selftest-output.txt` | Verbatim output of the validator's own self-test |
 
+## Running these checks
+
+The validator runs the test suite and the earlier phase gates with the
+interpreter that invoked it, or with `CLEP_TEST_PYTHON` if that is set. It has to
+be an environment where this package and its dev extras are installed:
+
+```
+python -m pip install -e ".[dev]"
+docker compose up -d
+python docs/evidence/phase-6/check_phase6.py .
+```
+
+Run it with an interpreter that merely *has* `pytest`, and `P-1` reports
+`exit 4; ? passed` — pytest rejecting `--cov` as an unrecognised argument. That is
+the gate working: an environment that cannot measure coverage cannot be allowed
+to report a coverage figure. It is recorded here because the failure names the
+argument rather than the missing package, which costs a few minutes to read
+correctly.
+
 ## What Phase 6 is for
 
 `REQ-F-07-1` requires an immutable run identity naming the dataset version,
