@@ -1,0 +1,35 @@
+seeded
+[OK  ] a published policy version cannot be updated: a published gate policy version is immutable; e42fcef7-bbf7-4bbf-80d8-ee3203e70250 may not be modified or deleted
+[OK  ] a published policy version cannot be deleted: permission denied for table gate_policy_version
+[OK  ] a criterion of a published version cannot be updated: permission denied for table gate_criterion
+[OK  ] a criterion of a published version cannot be deleted: permission denied for table gate_criterion
+[OK  ] a gate decision cannot be updated: permission denied for table gate_decision
+[OK  ] a gate decision cannot be deleted: permission denied for table gate_decision
+[OK  ] a comparison cannot be updated: permission denied for table comparison
+[OK  ] a comparison cannot be deleted: permission denied for table comparison
+[OK  ] a draft policy version already cited by a decision is frozen: REQ-F-09-8: gate policy version 0eca4df1-6009-4ab2-9f6a-a27ec22aa842 governs decision 4f9c843e-793f-41f2-9a35-395e34a597
+[OK  ] a second approved baseline for one scope is refused: duplicate key value violates unique constraint "uq_baseline__one_approved_per_scope"
+[OK  ] an approved baseline with no approver is refused: new row for relation "baseline" violates check constraint "ck_baseline__approval_recorded"
+[OK  ] an abstention with no reason is refused: new row for relation "comparison" violates check constraint "ck_comparison__abstention_reason_present"
+[OK  ] half an interval is refused: new row for relation "comparison" violates check constraint "ck_comparison__interval_complete"
+[OK  ] an evaluator comparison naming no version is refused: new row for relation "comparison" violates check constraint "ck_comparison__evaluator_version_matches_kind"
+[OK  ] a quality verdict with no baseline is refused: new row for relation "gate_decision" violates check constraint "ck_gate_decision__baseline_required_unless_not_comparabl
+[OK  ] a two-character justification is refused: new row for relation "policy_exception" violates check constraint "ck_policy_exception__justification_substantive"
+[OK  ] an exception that expired before it existed is refused: new row for relation "policy_exception" violates check constraint "ck_policy_exception__expires_after_creation"
+[OK  ] a classified comparison carrying an abstention reason is refused: new row for relation "comparison" violates check constraint "ck_comparison__abstention_reason_present"
+[OK  ] a well-formed exception is accepted: accepted
+[OK  ] a not-comparable decision needs no baseline: accepted
+
+probes: 20/20 behaved as required
+
+[OK  ] gate_decision UPDATE, as superuser: REQ-N-COMP-1: gate_decision is audit-class; row 2bfa7ec9-bad2-439e-b47b-32fe7e9b896d may not be modified or de
+[OK  ] gate_decision DELETE, as superuser: REQ-N-COMP-1: gate_decision is audit-class; row 2bfa7ec9-bad2-439e-b47b-32fe7e9b896d may not be modified or de
+[OK  ] comparison UPDATE, as superuser: REQ-N-COMP-1: comparison is audit-class; row 39d7b2b9-497d-4df5-a001-5ec6e6755bce may not be modified or delet
+[OK  ] comparison DELETE, as superuser: REQ-N-COMP-1: comparison is audit-class; row 39d7b2b9-497d-4df5-a001-5ec6e6755bce may not be modified or delet
+[OK  ] policy_exception UPDATE, as superuser: REQ-N-COMP-1: policy_exception is audit-class; row b5c16628-99a6-4e55-af08-c1409d6c9cf1 may not be modified or
+[OK  ] policy_exception DELETE, as superuser: REQ-N-COMP-1: policy_exception is audit-class; row b5c16628-99a6-4e55-af08-c1409d6c9cf1 may not be modified or
+[OK  ] gate_criterion UPDATE on a published version, as superuser: criterion 123d01a8-1a9e-4682-ab8a-935e5ff92405 belongs to a frozen gate policy version and is immutable
+[OK  ] gate_criterion DELETE on a published version, as superuser: criterion 123d01a8-1a9e-4682-ab8a-935e5ff92405 belongs to a frozen gate policy version and is immutable
+[OK  ] gate_policy_version DELETE when published, as superuser: REQ-F-09-8: gate policy version e42fcef7-bbf7-4bbf-80d8-ee3203e70250 governs decision 2bfa7ec9-bad2-439e-b47b-
+
+trigger probes: 9/9 refused by the store, with no grant in the way

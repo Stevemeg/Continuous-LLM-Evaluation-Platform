@@ -1,0 +1,12 @@
+[CAUGHT ] P-18   the gate decision loses its immutability trigger (reported FAIL)
+[CAUGHT ] P-18   the runtime role is granted UPDATE on a decision (reported FAIL)
+[CAUGHT ] P-19   a statistical parameter acquires a default (reported FAIL)
+[CAUGHT ] P-19   the width rule stops being applied first (reported FAIL)
+[CAUGHT ] P-19   direction stops being applied (reported FAIL)
+[CAUGHT ] P-20   the threshold order is reversed (reported FAIL)
+[CAUGHT ] P-21   the pairing stops requiring a scored baseline sample (reported FAIL)
+[CAUGHT ] P-22   the human report stops separating judges from evaluators (reported FAIL)
+[CAUGHT ] P-23   a gate table acquires a credential column (reported FAIL)
+[CAUGHT ] P-10   an operation disappears from the contract (reported FAIL)
+
+self-test: 10/10 planted violations caught
