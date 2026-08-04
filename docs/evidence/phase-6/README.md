@@ -8,6 +8,7 @@ Milestones: M6.1 through M6.7
 | File | What it is |
 |---|---|
 | `check_phase6.py` | Phase validator, 27 checks. `python docs/evidence/phase-6/check_phase6.py .` |
+| `selftest_p25.py` | Proves P-25 by planting the violation it exists to catch. Seconds, no database |
 | `validation-output.txt` | Verbatim output of the validator |
 | `test-output.txt` | Verbatim output of the test suite with coverage |
 | `selftest-output.txt` | Verbatim output of the validator's own self-test |
@@ -117,6 +118,35 @@ assumed.
 
 `P-21` additionally checks that no registry table carries an endpoint, key or
 credential column. A registry row is a thing many people can read.
+
+## The canonical document, at finalization
+
+Phase 5 finalization found the canonical `.docx` reachable from one local branch,
+`milestone/M1.1-product-definition`, and disclosed it rather than acting on it.
+That was the right answer for a phase whose job was to measure; it was not a
+resolution. A disclosed hazard is still a hazard, and this one was a single
+`git push --all` away from publishing the specification the whole project is
+derived from.
+
+The branch was deleted at Phase 6 finalization, after establishing that it had
+never been published and that nothing on it was needed:
+
+| Question | Evidence |
+|---|---|
+| Was it ever pushed? | `git ls-remote --refs origin` lists `refs/heads/main` alone; `.git/logs/refs/remotes/origin/` has only `HEAD` and `main`, so no remote-tracking ref for it ever existed |
+| Is the document on published history? | 0 `.docx` blobs reachable from `refs/remotes/origin/main` |
+| Would anything be lost? | Its 7 `wip(M1.1)` commits were squashed into `6adfbab` before the first push; the branch tip differed from `6adfbab` only by the document itself and superseded evidence text whose final form is on `main` |
+| Is the document itself untouched? | Present, unmodified — SHA-256 `53329e77…33580f` — ignored by `.gitignore:119`, 0 tracked |
+
+**No ref in the repository can now reach a `.docx`.**
+
+Deleting the branch emptied P-25's allowlist, which is the moment a governance
+check quietly stops meaning anything: it would keep passing whether or not it
+still worked. `selftest_p25.py` runs the shipped P-25 source against three
+repositories differing only in what a ref can reach — clean, document on a local
+branch, document on a published ref — and gets PASS, FAIL, FAIL. The allowlist
+stays in the source with nothing in it, so re-disclosing anything has to be a
+deliberate act.
 
 ## Results
 

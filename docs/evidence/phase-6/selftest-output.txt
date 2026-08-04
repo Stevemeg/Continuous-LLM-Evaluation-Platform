@@ -7,3 +7,21 @@
 [CAUGHT] P-20b  an output-affecting field stops varying the key
 
 self-test: 7/7 planted violations caught
+
+--- P-25, re-proved at Phase 6 finalization ----------------------------------
+Deleting the disclosed branch emptied P-25's allowlist. A check that passes
+because nothing is left to look at is indistinguishable, from the outside, from
+a check that passes for a reason. `selftest_p25.py` runs the shipped P-25 source
+against three purpose-built repositories that differ only in what a ref can
+reach.
+
+[CAUGHT ] clean: document local, ignored, on no ref
+           expected PASS, got PASS: canonical document local=True tracked=False ignored=True refs_scanned=1 reachable_from_published=0 reachable_from_local_undisclosed=0 disclosed_local_only=0
+[CAUGHT ] planted: document reachable from a local branch
+           expected FAIL, got FAIL: canonical document local=True tracked=False ignored=True refs_scanned=2 reachable_from_published=0 reachable_from_local_undisclosed=1 disclosed_local_only=0
+           - refs/heads/wip: canonical.docx (5247192)
+[CAUGHT ] planted: document reachable from a published ref
+           expected FAIL, got FAIL: canonical document local=True tracked=False ignored=True refs_scanned=2 reachable_from_published=1 reachable_from_local_undisclosed=0 disclosed_local_only=0
+           - refs/remotes/origin/main: canonical.docx (5247192)
+
+P-25 self-test: 3/3 cases behaved as required

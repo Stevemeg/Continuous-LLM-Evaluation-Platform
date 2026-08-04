@@ -531,11 +531,22 @@ add("P-24", "PASS" if len(authors) == 1 and len(committers) == 1 else "FAIL",
 # earlier form of this check too narrow: `ls-tree main` would pass a document
 # committed to main and deleted one commit later, and never looked at the other
 # local branches at all.
-DISCLOSED_LOCAL = {
-    ("refs/heads/milestone/M1.1-product-definition",
-     "af23db348a2aa115f95253a79a116e48b0798b40"):
-        "superseded pre-publication WIP branch; never pushed, origin has main only",
-}
+#
+# The allowlist is empty and is meant to stay that way. It held one entry:
+# `refs/heads/milestone/M1.1-product-definition` at blob af23db3, a superseded
+# pre-publication WIP branch whose seven commits were squashed into 6adfbab
+# before anything was pushed. Disclosing it was the right answer while it
+# existed; deleting it is a better one, because a disclosed hazard is still a
+# hazard — a single `git push --all` would have published the canonical
+# specification. The branch was deleted at Phase 6 finalization after verifying
+# origin carried `main` alone and no remote-tracking ref for it had ever
+# existed. Nothing was lost: every commit on it was superseded on `main`, and
+# the document itself is a local file that Git has never tracked.
+#
+# Keeping the mechanism with nothing in it is deliberate. Re-disclosing
+# something has to be an explicit act, and until one is made every `.docx`
+# reachable from any ref fails this check.
+DISCLOSED_LOCAL: dict[tuple[str, str], str] = {}
 docx = list(ROOT.glob("*.docx"))
 tracked = [d for d in docx if git("ls-files", d.name).strip()]
 ignored = all(git("check-ignore", d.name).strip() for d in docx) if docx else False
