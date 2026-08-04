@@ -30,6 +30,7 @@ ENGINE = ROOT / "src/clep/regression/engine.py"
 STATS = ROOT / "src/clep/regression/statistics.py"
 REPORT = ROOT / "src/clep/regression/report.py"
 CONTRACT = ROOT / "docs/api/openapi.json"
+PHASE4 = ROOT / "docs/evidence/phase-4/check_phase4.py"
 
 
 def rebuild_fast():
@@ -41,7 +42,8 @@ def rebuild_fast():
 
 def restore():
     subprocess.run(["git", "checkout", "--", "docs/data/schema", "src/clep",
-                    "docs/api/openapi.json"], cwd=str(ROOT), capture_output=True)
+                    "docs/api/openapi.json", "docs/evidence"],
+                   cwd=str(ROOT), capture_output=True)
 
 
 def status_of(check_id: str) -> str:
@@ -104,6 +106,11 @@ case("P-22", "the human report stops separating judges from evaluators",
 case("P-23", "a gate table acquires a credential column",
      lambda: plant(SCHEMA, "    label               text,",
                    "    label               text,\n    webhook_token       text,"))
+
+case("P-30", "an earlier gate stops re-running the one before it",
+     lambda: plant(ROOT / "docs/evidence/phase-4/check_phase4.py",
+                   "docs/evidence/phase-3/check_phase3.py",
+                   "docs/evidence/phase-3/check_phase3_skipped.py"))
 
 case("P-10", "an operation disappears from the contract",
      lambda: plant(CONTRACT, '"operationId": "createGatePolicy"',

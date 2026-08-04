@@ -750,6 +750,43 @@ add("P-29", "PASS" if not later_phase else "FAIL",
     f"Phase 8+ artifact classes checked: 6; artifacts Phase 7 must not contain: "
     f"{len(later_phase)}", later_phase)
 
+# ============ P-30 every earlier gate is reachable from this one, by derivation
+#
+# Phase 7 re-runs the Spike Sprint, Phase 4, Phase 5 and Phase 6 gates and the
+# three Phase 1 milestone validators. Phases 1, 2 and 3 are covered *through*
+# Phase 4, which re-runs Phase 3, which re-runs Phase 2, which re-runs Phase 1.
+# That closure is what makes "regression across every earlier phase" true.
+#
+# It was traced by hand once, which is exactly the kind of claim that stops being
+# true without anyone noticing — a validator added for a new phase, or an edge
+# quietly dropped from an old one, and the chain has a hole in it that every
+# summary still describes as complete. So it is derived here instead: the edges
+# are the invocation paths each gate actually contains, and every validator in
+# the repository must be reachable from this one.
+edges = {}
+all_validators = sorted(
+    p.relative_to(ROOT).as_posix()
+    for p in ROOT.glob("docs/evidence/**/check_*.py"))
+for path in all_validators:
+    body = (ROOT / path).read_text(encoding="utf-8")
+    edges[path] = {m for m in re.findall(r"docs/evidence/[\w.\-]+/check_\w+\.py", body)
+                   if m != path}
+root = "docs/evidence/phase-7/check_phase7.py"
+reachable, frontier = {root}, [root]
+while frontier:
+    current = frontier.pop()
+    for target in edges.get(current, ()):
+        if target not in reachable:
+            reachable.add(target)
+            frontier.append(target)
+unreachable = sorted(set(all_validators) - reachable)
+missing_files = sorted({t for targets in edges.values() for t in targets}
+                       - set(all_validators))
+add("P-30", "PASS" if not unreachable and not missing_files else "FAIL",
+    f"{len(all_validators)} validators in the repository, {len(reachable)} "
+    f"reachable from this gate; orphaned: {unreachable or 'none'}",
+    unreachable + [f"invoked but absent: {m}" for m in missing_files])
+
 # ------------------------------------------------------------------ summary
 print("-" * 78)
 counts = {}
