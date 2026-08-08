@@ -1,0 +1,34 @@
+[PASS   ] P-1    test suite: exit 0; 310 passed; coverage 93.92% against a 85.0% gate
+[PASS   ] P-2    schema conformance: exit 0; 48 tables including the Phase 7 baseline, policy and decision tables
+[PASS   ] P-3    traceability: exit 0. traced to an artifact: 136; implementation layer: 32; test layer: 21; deferred with an owner: 14
+[PASS   ] P-4    the committed traceability matrix regenerates identically
+[PASS   ] P-5    Technology Spike Sprint gate re-evaluated against its own history (ccc4bdd0), in an isolated clone pruned to 8 reachable commit(s): exit 0 {"PASS": 26}
+[PASS   ] P-6    Phase 4 gate re-evaluated against its own history (82d02608), in an isolated clone pruned to 7 reachable commit(s): exit 0 {"PASS": 19}
+[PASS   ] P-7    Phase 5 gate re-evaluated against its own history (27da6ddc), in an isolated clone pruned to 10 reachable commit(s): exit 0 {"PASS": 21}
+[PASS   ] P-8    Phase 6 gate re-evaluated against its own history (7e88bf66), in an isolated clone pruned to 13 reachable commit(s): exit 0 {"PASS": 27}
+[PASS   ] P-9    Phase 1 milestone validators re-run. M1.1 documents: exit 0 {"PASS": 11}; M1.2 competitive: exit 0 {"PASS": 14}; M1.3 requirements: exit 0 {"PASS": 18}
+[PASS   ] P-10   contract declares 24 operations, is read and never written, and every identifier it accepts can be created through it
+[PASS   ] P-11   vocabularies compared across schema, contract and code: 18; disagreements: 0
+[PASS   ] P-12   11 declared dependencies, each with a recorded reason and a rejected alternative; unjustified: none. Phase 7 added none — the bootstrap is the standard library.
+[PASS   ] P-13   16 ADRs; undecided: none
+[PASS   ] P-14   every externally visible effect carries a unique idempotency key (3 tables); missing: none
+[PASS   ] P-15   47 tenant-scoped tables, each with ENABLE and FORCE
+[PASS   ] P-16   26 composite foreign-key targets, each with a matching unique constraint; missing: none
+[PASS   ] P-17   migrations are applied from docs/data/schema/ with no second copy of the DDL; copies found: none
+[PASS   ] P-18   audit-class immutability enforced by the store: 4 tables plus the policy version and its criteria; defects: 0
+[PASS   ] P-19   ADR-007 enforced mechanically: no defaulted parameters, width rule first, direction applied, no verdict without a precision threshold, and reproducible from the seed; defects: 0
+[PASS   ] P-20   ADR-016 enforced mechanically: abstention cannot map to pass, thresholds apply in order, severity governs the outcome, and an exception never edits a decision; defects: 0
+[PASS   ] P-21   REQ-F-08-5: unscored samples are excluded rather than zeroed, in the engine and in the store; defects: 0
+[PASS   ] P-22   REQ-F-08-6: evaluator and judge results separated in the store and in both reports; defects: 0
+[PASS   ] P-23   8 gate tables carry no endpoint or credential column; found: none
+[PASS   ] P-24   working tree: 184 files (2 binary skipped), 0 match(es); all blobs all refs: 0 undisclosed match(es), 2 disclosed and unremovable from published history
+           - docs/evidence/spike-sprint/common.py: spike common.py: local throwaway DSN password, container destroyed
+           - docs/evidence/spike-sprint/spike_provider_abstraction.py: spike provider script: planted leak-detector canary, never a credential
+[PASS   ] P-25   governed scope: 0 file match(es), 0 history match(es)
+[PASS   ] P-26   authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']
+[PASS   ] P-27   canonical document local=True tracked=False ignored=True refs_scanned=11 reachable_from_published=0 reachable_from_local_undisclosed=0 disclosed_local_only=0
+[PASS   ] P-28   177 tracked file(s); stray: 0; clean tree: True
+[PASS   ] P-29   Phase 8+ artifact classes checked: 6; artifacts Phase 7 must not contain: 0
+[PASS   ] P-30   13 validators in the repository, 13 reachable from this gate; orphaned: none
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 30}

@@ -149,9 +149,26 @@ anyone else.
 | Validator | **30 checks, all PASS**, exit 0 |
 | Self-test | **11 planted violations, 11 caught** (after three checks were strengthened) |
 | Schema probes | 20 constraint and trigger probes, plus 9 trigger-only probes as superuser |
-| Tests | **310 passed**, coverage **93.7%** against an 85% gate |
+| Tests | **310 passed**, coverage **93.92%** against an 85% gate |
 | Schema | 48 tables, 47 tenant-scoped with ENABLE and FORCE |
 | Contract | 24 operations, 68 schemas |
 | Regression | Spike Sprint 26/26; Phase 4 19/19; Phase 5 21/21; Phase 6 27/27; Phase 1 11/14/18 |
 | ADRs | 16 recorded, 0 undecided |
 | Dependencies added | **none** — the bootstrap is the standard library |
+
+## At finalization
+
+Everything above was re-run against the accepted tree before Phase 8 began:
+[`finalization-output.txt`](finalization-output.txt), 30 checks, exit 0; the
+self-test again caught 11 of 11; the probes again returned 20/20 and 9/9.
+
+One line differs from [`validation-output.txt`](validation-output.txt), and it is
+worth stating rather than normalising away:
+
+| Check | Then | Now | Why |
+|---|---|---|---|
+| `P-27` | `refs_scanned=10` | `refs_scanned=11` | The `phase/7-regression-gates` branch was created at the phase tip after the recorded run. The counts that matter — `reachable_from_published`, `reachable_from_local_undisclosed`, `disclosed_local_only` — are all still zero, across one more ref than before |
+
+The probe output differs only in the truncated UUIDs of rows each run creates
+afresh. The point of recording the earlier run is that a later one can be held
+against it; a difference that survives is either explained here or is a defect.
