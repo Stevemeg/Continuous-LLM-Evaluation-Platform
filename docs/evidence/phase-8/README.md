@@ -166,3 +166,18 @@ carry a tenant-carrying foreign key into tenant data.
 | Regression | Spike Sprint; Phases 4, 5, 6, 7; Phase 1 milestones |
 | ADRs | 17 recorded, 0 undecided |
 | Dependencies added | **none** — ADR-002 declined the agent framework, and the orchestration is project code |
+
+## At finalization
+
+Everything above was re-run against the accepted tree before Phase 9 began:
+[`finalization-output.txt`](finalization-output.txt), 34 checks, exit 0.
+
+One line differs from [`validation-output.txt`](validation-output.txt), and it
+is the same difference Phase 7 recorded for the same reason:
+
+| Check | Then | Now | Why |
+|---|---|---|---|
+| `P-31` | `refs_scanned=11` | `refs_scanned=12` | The `phase/8-agentic-layer` branch was created at the phase tip afterwards. The counts that matter — `reachable_from_published`, `reachable_from_local_undisclosed`, `disclosed_local_only` — are all still zero, across one more ref than before |
+
+The point of recording the earlier run is that a later one can be held against
+it; a difference that survives is either explained here or is a defect.
