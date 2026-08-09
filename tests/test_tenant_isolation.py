@@ -54,6 +54,11 @@ TENANT_SCOPED = [
     "judge_ensemble_member", "judge_run", "judge_vote", "consensus_result",
     "escalation", "evaluation_plan", "plan_step", "plan_amendment",
     "reasoning_trace", "reasoning_attempt",
+    # Phase 9. A retrieved passage and a tool result are one tenant's data
+    # arriving from one tenant's systems, and a hallucination finding is the
+    # evidence behind a score.
+    "required_context", "retrieved_context", "sample_citation",
+    "trajectory_step", "hallucination_finding", "stage_attribution",
 ]
 
 

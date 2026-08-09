@@ -66,6 +66,10 @@
     {
       "name": "memory",
       "description": "Historical evaluation memory and escalation review."
+    },
+    {
+      "name": "analysis",
+      "description": "Retrieval, trajectory and hallucination analysis for one evaluated sample."
     }
   ],
   "paths": {
@@ -1889,6 +1893,51 @@
           }
         }
       }
+    },
+    "/run-samples/{runSampleId}/analysis": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/runSampleId"
+        }
+      ],
+      "get": {
+        "operationId": "getSampleAnalysis",
+        "summary": "Retrieval, trajectory and hallucination analysis for a sample",
+        "tags": [
+          "analysis"
+        ],
+        "x-requirements": [
+          "REQ-F-03-1",
+          "REQ-F-03-3",
+          "REQ-F-03-6",
+          "REQ-F-04-1",
+          "REQ-F-11-6"
+        ],
+        "responses": {
+          "200": {
+            "description": "The sample's retrieval, trajectory and analysis.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleAnalysis"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2042,6 +2091,15 @@
         "in": "path",
         "required": true,
         "description": "A judgement awaiting human review.",
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "runSampleId": {
+        "name": "runSampleId",
+        "in": "path",
+        "required": true,
+        "description": "One evaluated sample.",
         "schema": {
           "$ref": "#/components/schemas/Ulid"
         }
@@ -2516,6 +2574,13 @@
           },
           "consensus": {
             "$ref": "#/components/schemas/ConsensusResult"
+          },
+          "trajectoryTruncated": {
+            "type": "boolean",
+            "description": "REQ-F-04-5. A truncated trajectory is never evaluated as complete, and a consumer must be able to see which it holds.",
+            "x-requirements": [
+              "REQ-F-04-5"
+            ]
           }
         }
       },
@@ -4836,6 +4901,244 @@
               "null"
             ],
             "description": "Audit records below this age are retained regardless of a tenant retention policy (REQ-N-COMP-3)."
+          }
+        }
+      },
+      "HallucinationFinding": {
+        "type": "string",
+        "enum": [
+          "grounded",
+          "unsupported",
+          "contradicted",
+          "not_analysable"
+        ],
+        "description": "ADR-018. `unsupported` and `contradicted` are different failures with different owners: the first says retrieval did not bring the evidence, the second says the generator asserted against it. `not_analysable` covers an escalated judgement, which is not a low score.",
+        "x-requirements": [
+          "REQ-F-03-3"
+        ]
+      },
+      "AttributionStage": {
+        "type": "string",
+        "enum": [
+          "retrieval",
+          "generation",
+          "neither",
+          "not_attributable"
+        ],
+        "description": "REQ-F-03-6. `not_attributable` is the honest answer when the dataset does not say which passages were required, because then the two stages are indistinguishable.",
+        "x-requirements": [
+          "REQ-F-03-6"
+        ]
+      },
+      "RetrievedContext": {
+        "type": "object",
+        "description": "One passage retrieval returned. Identified, because a citation must point at something and a list position is not an identity.",
+        "required": [
+          "contextRef",
+          "retrievalRank",
+          "contentDigest"
+        ],
+        "x-requirements": [
+          "REQ-F-03-1",
+          "REQ-F-03-5"
+        ],
+        "properties": {
+          "contextRef": {
+            "type": "string",
+            "minLength": 1
+          },
+          "retrievalRank": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "contentDigest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "cited": {
+            "type": "boolean"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether the dataset marks this passage as one the answer needed."
+          }
+        }
+      },
+      "TrajectoryStep": {
+        "type": "object",
+        "description": "One tool call: what was called, with what, and what happened. Results are untrusted content (REQ-F-04-6) and are carried by digest.",
+        "required": [
+          "stepOrder",
+          "tool",
+          "arguments",
+          "failed"
+        ],
+        "x-requirements": [
+          "REQ-F-04-1",
+          "REQ-F-04-6"
+        ],
+        "properties": {
+          "stepOrder": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "tool": {
+            "type": "string",
+            "minLength": 1
+          },
+          "arguments": {
+            "type": "object"
+          },
+          "resultDigest": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Digest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failed": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ClaimAnalysis": {
+        "type": "object",
+        "required": [
+          "claimOrdinal",
+          "finding"
+        ],
+        "x-requirements": [
+          "REQ-F-03-3"
+        ],
+        "properties": {
+          "claimOrdinal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "claimDigest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "finding": {
+            "$ref": "#/components/schemas/HallucinationFinding"
+          },
+          "supportScore": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contradictionScore": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "StageAttribution": {
+        "type": "object",
+        "required": [
+          "stage",
+          "reason"
+        ],
+        "x-requirements": [
+          "REQ-F-03-6"
+        ],
+        "properties": {
+          "stage": {
+            "$ref": "#/components/schemas/AttributionStage"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "missingContextRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "faithfulness": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "SampleAnalysis": {
+        "type": "object",
+        "description": "Everything Phase 9 records about one evaluated sample. `trajectoryTruncated` is here rather than in a footnote: REQ-F-04-5 forbids reading a prefix as a complete run, and a consumer must be able to see which it holds.",
+        "required": [
+          "runSampleId",
+          "trajectoryTruncated"
+        ],
+        "x-requirements": [
+          "REQ-F-03-1",
+          "REQ-F-03-3",
+          "REQ-F-03-6",
+          "REQ-F-04-1",
+          "REQ-F-04-5"
+        ],
+        "properties": {
+          "runSampleId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "retrievedContexts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RetrievedContext"
+            }
+          },
+          "requiredContextRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "trajectory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrajectoryStep"
+            }
+          },
+          "trajectoryTruncated": {
+            "type": "boolean"
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClaimAnalysis"
+            }
+          },
+          "attribution": {
+            "$ref": "#/components/schemas/StageAttribution"
           }
         }
       }

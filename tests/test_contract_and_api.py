@@ -74,7 +74,7 @@ def test_every_implemented_route_is_declared_in_the_contract(client):
 
 
 def test_the_phase_implements_its_operations_and_says_so_by_omission():
-    """Phase 8 adds the judge, plan and memory operations to what came before.
+    """Phase 9 adds the sample-analysis surface to what came before.
     The rest belong to phases that have not run and are absent, not stubbed: a
     501 is still a route a client can find and build against."""
     ids = {contract.operation_id(m, p) for m, p in contract.operations()}
@@ -89,8 +89,9 @@ def test_the_phase_implements_its_operations_and_says_so_by_omission():
             "createJudgeEnsemble", "getJudgeEnsemble",
             "createEvaluationPlan", "getEvaluationPlan", "amendEvaluationPlan",
             "acceptEvaluationPlan", "listEscalations",
-            "recordEscalationReview", "getEvaluationMemory"} <= ids
-    assert len(ids) == 36
+            "recordEscalationReview", "getEvaluationMemory",
+            "getSampleAnalysis"} <= ids
+    assert len(ids) == 37
 
 
 def test_every_identifier_a_request_accepts_can_be_created_through_the_contract():
