@@ -1,0 +1,25 @@
+REAL-MODEL RUN (rubric v2) - 3 self-hosted llama.cpp servers, one model each
+  judge qwen     http://localhost:8101/v1  /models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+  judge smollm   http://localhost:8102/v1  /models/smollm2-360m-instruct-q8_0.gguf
+  judge llama    http://localhost:8103/v1  /models/llama-3.2-1b-instruct-q4_k_m.gguf
+  ensemble threshold 0.25, minimum scoring votes 2
+
+[supported-1] qwen=failed (regenerated x2) [unreadable reply: '0.0']; smollm=scored:0; llama=scored:1.0
+    consensus: escalated disagreement=1.0 measured=True verdict=None reason=disagreement_above_threshold
+[supported-2] qwen=abstained [<reason>]; smollm=scored:1; llama=scored:0.5
+    consensus: escalated disagreement=0.5 measured=True verdict=None reason=disagreement_above_threshold
+[silent-1] qwen=failed (regenerated x2) [unreadable reply: '0.0']; smollm=scored:0; llama=scored:0.5
+    consensus: escalated disagreement=0.5 measured=True verdict=None reason=disagreement_above_threshold
+[silent-2] qwen=failed (regenerated x2) [unreadable reply: 'SCORE: 0.0\nABSTAIN: The passage does not]; smollm=scored:0; llama=scored:1.0
+    consensus: escalated disagreement=1.0 measured=True verdict=None reason=disagreement_above_threshold
+[denied-1] qwen=failed (regenerated x2) [unreadable reply: '0.0']; smollm=scored:0; llama=scored:1.0
+    consensus: escalated disagreement=1.0 measured=True verdict=None reason=disagreement_above_threshold
+[denied-2] qwen=abstained [The passage denies the answer or states the opposite.]; smollm=scored:1; llama=scored:1.0
+    consensus: agreed disagreement=0.0 measured=True verdict=1.000000000 reason=None
+
+samples: 6   judgements: 18
+scored: 12   unreadable-or-failed: 4
+escalated: 5   agreed: 1
+elapsed: 14.0s
+
+Every number above came from a real generation. No stub was used and no credential was required.

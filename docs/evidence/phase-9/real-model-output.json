@@ -1,0 +1,212 @@
+[
+  {
+    "example": "supported-1",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "failed",
+        "score": null,
+        "latency_ms": 500,
+        "content_neutralised": false,
+        "detail": "unreadable reply: '0.0'"
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 488,
+        "content_neutralised": false,
+        "detail": ""
+      },
+      {
+        "judge": "llama",
+        "resolution": "scored",
+        "score": "1.0",
+        "latency_ms": 762,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1.0",
+    "disagreement_measured": true,
+    "verdict": null,
+    "escalation_reason": "disagreement_above_threshold",
+    "prompt_fenced": true
+  },
+  {
+    "example": "supported-2",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "abstained",
+        "score": null,
+        "latency_ms": 614,
+        "content_neutralised": false,
+        "detail": "<reason>"
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "1",
+        "latency_ms": 543,
+        "content_neutralised": false,
+        "detail": ""
+      },
+      {
+        "judge": "llama",
+        "resolution": "scored",
+        "score": "0.5",
+        "latency_ms": 762,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "0.5",
+    "disagreement_measured": true,
+    "verdict": null,
+    "escalation_reason": "disagreement_above_threshold",
+    "prompt_fenced": true
+  },
+  {
+    "example": "silent-1",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "failed",
+        "score": null,
+        "latency_ms": 554,
+        "content_neutralised": false,
+        "detail": "unreadable reply: '0.0'"
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 619,
+        "content_neutralised": false,
+        "detail": ""
+      },
+      {
+        "judge": "llama",
+        "resolution": "scored",
+        "score": "0.5",
+        "latency_ms": 859,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "0.5",
+    "disagreement_measured": true,
+    "verdict": null,
+    "escalation_reason": "disagreement_above_threshold",
+    "prompt_fenced": true
+  },
+  {
+    "example": "silent-2",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "failed",
+        "score": null,
+        "latency_ms": 963,
+        "content_neutralised": false,
+        "detail": "unreadable reply: 'SCORE: 0.0\\nABSTAIN: The passage does not provide information about the writer of the score.'"
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 581,
+        "content_neutralised": false,
+        "detail": ""
+      },
+      {
+        "judge": "llama",
+        "resolution": "scored",
+        "score": "1.0",
+        "latency_ms": 777,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1.0",
+    "disagreement_measured": true,
+    "verdict": null,
+    "escalation_reason": "disagreement_above_threshold",
+    "prompt_fenced": true
+  },
+  {
+    "example": "denied-1",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "failed",
+        "score": null,
+        "latency_ms": 560,
+        "content_neutralised": false,
+        "detail": "unreadable reply: '0.0'"
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 586,
+        "content_neutralised": false,
+        "detail": ""
+      },
+      {
+        "judge": "llama",
+        "resolution": "scored",
+        "score": "1.0",
+        "latency_ms": 835,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1.0",
+    "disagreement_measured": true,
+    "verdict": null,
+    "escalation_reason": "disagreement_above_threshold",
+    "prompt_fenced": true
+  },
+  {
+    "example": "denied-2",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "abstained",
+        "score": null,
+        "latency_ms": 733,
+        "content_neutralised": false,
+        "detail": "The passage denies the answer or states the opposite."
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "1",
+        "latency_ms": 855,
+        "content_neutralised": false,
+        "detail": ""
+      },
+      {
+        "judge": "llama",
+        "resolution": "scored",
+        "score": "1.0",
+        "latency_ms": 789,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "agreed",
+    "disagreement": "0.0",
+    "disagreement_measured": true,
+    "verdict": "1.000000000",
+    "escalation_reason": null,
+    "prompt_fenced": true
+  }
+]

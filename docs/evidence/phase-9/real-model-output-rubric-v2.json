@@ -1,0 +1,164 @@
+[
+  {
+    "example": "supported-1",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "failed",
+        "score": null,
+        "latency_ms": 1069,
+        "content_neutralised": false,
+        "detail": "unreadable reply: '0.0'"
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 1097,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  },
+  {
+    "example": "supported-2",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "abstained",
+        "score": null,
+        "latency_ms": 692,
+        "content_neutralised": false,
+        "detail": "<reason>"
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "1",
+        "latency_ms": 613,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  },
+  {
+    "example": "silent-1",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "failed",
+        "score": null,
+        "latency_ms": 520,
+        "content_neutralised": false,
+        "detail": "unreadable reply: '0.0'"
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 605,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  },
+  {
+    "example": "silent-2",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "failed",
+        "score": null,
+        "latency_ms": 941,
+        "content_neutralised": false,
+        "detail": "unreadable reply: 'SCORE: 0.0\\nABSTAIN: The passage does not provide information about the writer of the score.'"
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 561,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  },
+  {
+    "example": "denied-1",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "failed",
+        "score": null,
+        "latency_ms": 554,
+        "content_neutralised": false,
+        "detail": "unreadable reply: '0.0'"
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 621,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  },
+  {
+    "example": "denied-2",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "abstained",
+        "score": null,
+        "latency_ms": 679,
+        "content_neutralised": false,
+        "detail": "The passage denies the answer or states the opposite."
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "1",
+        "latency_ms": 536,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  }
+]

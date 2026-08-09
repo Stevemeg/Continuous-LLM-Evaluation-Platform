@@ -1,0 +1,24 @@
+REAL-MODEL RUN — two self-hosted llama.cpp servers
+  judge qwen     http://localhost:8101/v1  /models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+  judge smollm   http://localhost:8102/v1  /models/smollm2-360m-instruct-q8_0.gguf
+  ensemble threshold 0.25, minimum scoring votes 2
+
+[supported-1] qwen=abstained [The passage does not provide information about the capital o]; smollm=scored:0
+    consensus: escalated disagreement=1 measured=False verdict=None reason=insufficient_scoring_votes
+[supported-2] qwen=abstained [The passage does not provide information about the number of]; smollm=scored:1
+    consensus: escalated disagreement=1 measured=False verdict=None reason=insufficient_scoring_votes
+[silent-1] qwen=abstained [The passage does not provide information about the populatio]; smollm=scored:0
+    consensus: escalated disagreement=1 measured=False verdict=None reason=insufficient_scoring_votes
+[silent-2] qwen=abstained [The passage does not provide enough information to determine]; smollm=scored:0
+    consensus: escalated disagreement=1 measured=False verdict=None reason=insufficient_scoring_votes
+[denied-1] qwen=abstained [The passage does not provide information about the capital o]; smollm=scored:0
+    consensus: escalated disagreement=1 measured=False verdict=None reason=insufficient_scoring_votes
+[denied-2] qwen=abstained [The passage does not provide enough information to determine]; smollm=scored:1
+    consensus: escalated disagreement=1 measured=False verdict=None reason=insufficient_scoring_votes
+
+samples: 6   judgements: 12
+scored: 6   unreadable-or-failed: 0
+escalated: 6   agreed: 0
+elapsed: 8.8s
+
+Every number above came from a real generation. No stub was used and no credential was required.

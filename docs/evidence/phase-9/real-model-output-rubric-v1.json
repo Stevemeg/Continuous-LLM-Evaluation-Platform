@@ -1,0 +1,164 @@
+[
+  {
+    "example": "supported-1",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "abstained",
+        "score": null,
+        "latency_ms": 1086,
+        "content_neutralised": false,
+        "detail": "The passage does not provide information about the capital of France."
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 727,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  },
+  {
+    "example": "supported-2",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "abstained",
+        "score": null,
+        "latency_ms": 836,
+        "content_neutralised": false,
+        "detail": "The passage does not provide information about the number of legs a spider has."
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "1",
+        "latency_ms": 615,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  },
+  {
+    "example": "silent-1",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "abstained",
+        "score": null,
+        "latency_ms": 807,
+        "content_neutralised": false,
+        "detail": "The passage does not provide information about the population of Lyon."
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 596,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  },
+  {
+    "example": "silent-2",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "abstained",
+        "score": null,
+        "latency_ms": 816,
+        "content_neutralised": false,
+        "detail": "The passage does not provide enough information to determine who wrote the score."
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 519,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  },
+  {
+    "example": "denied-1",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "abstained",
+        "score": null,
+        "latency_ms": 785,
+        "content_neutralised": false,
+        "detail": "The passage does not provide information about the capital of Australia."
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "0",
+        "latency_ms": 550,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  },
+  {
+    "example": "denied-2",
+    "votes": [
+      {
+        "judge": "qwen",
+        "resolution": "abstained",
+        "score": null,
+        "latency_ms": 920,
+        "content_neutralised": false,
+        "detail": "The passage does not provide enough information to determine whether the Earth is flat or not."
+      },
+      {
+        "judge": "smollm",
+        "resolution": "scored",
+        "score": "1",
+        "latency_ms": 537,
+        "content_neutralised": false,
+        "detail": ""
+      }
+    ],
+    "state": "escalated",
+    "disagreement": "1",
+    "disagreement_measured": false,
+    "verdict": null,
+    "escalation_reason": "insufficient_scoring_votes",
+    "prompt_fenced": true
+  }
+]

@@ -155,8 +155,18 @@ def test_a_plugin_cannot_reach_anything_but_its_sample():
             return abstained()
 
     run_evaluator(_reg(Curious()), SAMPLE)
-    assert seen["fields"] == ["example_id", "expected", "integration_tier",
-                              "output", "prompt", "retrieved_context", "trajectory"]
+    # Phase 9 widened what a sample carries — identified contexts, citations,
+    # required-context labels, the typed trajectory and its tool schemas. The
+    # list is asserted exactly rather than as a subset, because the property is
+    # that nothing else is reachable, and a subset check would pass a sample
+    # that had quietly acquired a database handle.
+    assert seen["fields"] == [
+        "agent_trajectory", "citations", "contexts", "example_id", "expected",
+        "expected_tools", "integration_tier", "output", "prompt",
+        "required_context_ids", "retrieved_context", "tool_schemas",
+        "trajectory"]
+    for field in seen["fields"]:
+        assert not field.startswith("_"), "a private handle reached a plugin"
 
 
 def test_an_evaluator_that_overruns_its_budget_is_timed_out_not_accepted_late():

@@ -44,8 +44,40 @@ class EvaluatorError(Exception):
 
 
 @dataclass(frozen=True)
+class RetrievedContext:
+    """One passage the system retrieved, as it retrieved it.
+
+    `REQ-F-03-1`. Identified, because a citation has to point at something and a
+    position in a list is not an identity — reranking would silently repoint
+    every citation in the run.
+
+    What the dataset says *should* have been retrieved lives on the sample, in
+    `required_context_ids`, and not here. It has to: a required passage that the
+    retriever missed is absent from this list entirely, so a label on the
+    retrieved rows could never express the case that matters.
+    """
+    id: str
+    text: str
+    rank: int = 0
+
+    def __post_init__(self):
+        if not self.id:
+            raise EvaluatorError("a retrieved context must be identifiable; a "
+                                 "citation cannot point at a list position")
+        if self.rank < 0:
+            raise EvaluatorError("a rank is a position, not a negative number")
+
+
+@dataclass(frozen=True)
 class SampleContext:
-    """Everything an evaluator may see, and nothing else."""
+    """Everything an evaluator may see, and nothing else.
+
+    `retrieved_context` stays a tuple of strings for the evaluators written
+    before Phase 9; `contexts` is the identified form, and `citations` names the
+    context ids the answer claimed to rest on. Both are untrusted
+    (`REQ-F-03-5`, `REQ-F-04-6`): they arrive from a retriever or a tool, which
+    is a legitimate path and an entirely uncontrolled one.
+    """
     example_id: str
     prompt: str
     output: str
@@ -53,10 +85,48 @@ class SampleContext:
     retrieved_context: tuple[str, ...] = ()
     trajectory: tuple[str, ...] = ()
     integration_tier: str = "output_only"
+    #: The identified form. When present it is authoritative and
+    #: `retrieved_context` is derived from it, so the two cannot disagree.
+    contexts: tuple = ()
+    #: Context ids the answer cited. A citation naming nothing retrieved is a
+    #: defect the evaluators report rather than ignore.
+    citations: tuple = ()
+    #: What the dataset says retrieval was supposed to find. Empty means the
+    #: dataset does not say, and the evaluators that need it abstain — an
+    #: unlabelled example has not been answered well, it has not been asked.
+    required_context_ids: tuple = ()
+    #: The typed trajectory (`REQ-F-04-1`). `trajectory` above stays the flat
+    #: string form the judges render inside the fence; this is the structure the
+    #: agent evaluators read.
+    agent_trajectory: object | None = None
+    #: Tool schemas the task declared, keyed by tool name. Without them a call
+    #: cannot be invalid, because nothing says what valid would be.
+    tool_schemas: dict | None = None
+    #: The tools the dataset says the task required.
+    expected_tools: tuple = ()
 
     def __post_init__(self):
         if self.integration_tier not in TIERS:
             raise EvaluatorError(f"unknown integration tier {self.integration_tier!r}")
+        if self.contexts:
+            derived = tuple(c.text for c in self.contexts)
+            if self.retrieved_context and self.retrieved_context != derived:
+                raise EvaluatorError(
+                    "retrieved_context and contexts disagree; one sample cannot "
+                    "carry two versions of what was retrieved")
+            object.__setattr__(self, "retrieved_context", derived)
+            ids = [c.id for c in self.contexts]
+            if len(set(ids)) != len(ids):
+                raise EvaluatorError("two retrieved contexts share an id")
+
+    def context_by_id(self) -> dict:
+        return {c.id: c for c in self.contexts}
+
+    @property
+    def unresolved_citations(self) -> tuple:
+        """Citations naming something that was not retrieved."""
+        known = set(self.context_by_id())
+        return tuple(c for c in self.citations if c not in known)
 
 
 @dataclass(frozen=True)
@@ -79,6 +149,15 @@ class EvaluatorOutcome:
             raise EvaluatorError("an unavailable evaluator must say why")
         if self.score is not None and not (Decimal(0) <= self.score <= Decimal(1)):
             raise EvaluatorError(f"score {self.score} is outside [0, 1]")
+        if self.score is not None:
+            # Quantised to the store's resolution here, at the one boundary
+            # every evaluator passes through. A ratio like 2/3 is a repeating
+            # decimal; leaving it unrounded means the number the evaluator
+            # returned and the number `numeric(18, 9)` holds are different, and
+            # a reproduction would compare them and report a gap that is an
+            # artefact of arithmetic rather than of the run.
+            object.__setattr__(self, "score",
+                               self.score.quantize(Decimal("1e-9")))
 
 
 def scored(value) -> EvaluatorOutcome:
