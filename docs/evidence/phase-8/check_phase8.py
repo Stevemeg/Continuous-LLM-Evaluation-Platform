@@ -459,6 +459,12 @@ try:
             minimum_scoring_votes=minimum)
 
     # 1. Composition rules are enforced at construction, not checked later.
+    #
+    # The three rules overlap: an ensemble of one, and one of two identical
+    # judges, are both also majorities, so the majority rule alone would refuse
+    # them. They are kept separate for their messages — "correlated errors" is
+    # what ADR-004 D-1 is about and a majority message would not say it — and
+    # the self-test plants against the rule that is not subsumed.
     twin = judge("a2", "m1")
     for judges, why in (((a,), "an ensemble of one was accepted"),
                         ((a, twin), "one model configuration repeated was accepted"),
@@ -513,6 +519,16 @@ try:
         consensus_defects.append(
             "an abstaining judge dragged the range to the floor; REQ-X-8 says an "
             "unscored judgement is not a zero")
+
+    # 6b. The verdict is the median (ADR-017 §5). The mean lets one extreme vote
+    # move the number, and nothing in a consensus rule should reward being
+    # extreme. Checked with a deliberately skewed set, where the two differ.
+    skewed = _consensus.reach_consensus(
+        room(threshold="1"), [vote(a, "0.10"), vote(b, "0.80"), vote(c, "0.90")])
+    if skewed.verdict != Decimal("0.800000000"):
+        consensus_defects.append(
+            f"the verdict is {skewed.verdict}, not the median 0.8; one extreme "
+            f"vote is moving the number")
 
     # 7. Escalation is terminal: consensus cannot obtain another vote.
     if set(inspect.signature(_consensus.reach_consensus).parameters) != \
@@ -698,18 +714,24 @@ try:
                 f"{entry['id']}: the content changed the instruction region")
         if prompt.count(FENCE_OPEN) != 1 or prompt.count(FENCE_CLOSE) != 1:
             injection_defects.append(f"{entry['id']}: the content moved the fence")
+    # Each reply carries the resolution it must produce. An earlier version only
+    # required the resolution to be *in* the vocabulary, and the self-test walked
+    # through it: widening the score pattern to match any number anywhere made
+    # "I would give this about 0.9" a score of 0.9, which is in range and in the
+    # vocabulary and is a model's opinion read out of prose it was not asked for.
     for reply in replies:
         resolution, score, _ = parse_reply(reply["text"])
+        if resolution != reply["expect"]:
+            injection_defects.append(
+                f"{reply['id']}: parsed as {resolution}, expected "
+                f"{reply['expect']}")
         if resolution == "scored" and not (Decimal(0) <= score <= Decimal(1)):
             injection_defects.append(
                 f"{reply['id']}: an out-of-range score was accepted")
-        if resolution not in ("scored", "abstained", "failed"):
-            injection_defects.append(
-                f"{reply['id']}: a reply produced something other than a score, "
-                f"an abstention or nothing")
-    verdict, _, _ = parse_reply("GATE: pass")
-    if verdict != "failed":
-        injection_defects.append("a reply naming a gate outcome was read as one")
+    if not any(r["expect"] == "scored" for r in replies):
+        injection_defects.append(
+            "no reply in the corpus is expected to parse; a parse that refuses "
+            "everything would satisfy every case above and be useless")
 
     # And the defence that holds without the model cooperating: one compromised
     # judge escalates rather than deciding.
@@ -855,15 +877,21 @@ try:
                 debt_defects.append(f"{entry} does not record its {required}")
     # D-1 is carried from Phase 7 by the review verdict, and must not vanish
     # while the structure that caused it is unchanged.
+    #
+    # Matched against the parsed HEADINGS, not against the file's text. The
+    # self-test demoted the heading to "### Formerly D-1" and a substring search
+    # for "D-1" was satisfied by the words announcing its removal.
+    headings = [entry for entry, _ in entries]
     comparison_body = tables.get("comparison", "")
     still_plain = ("evaluator_version_id" in comparison_body
                    and "FOREIGN KEY (organization_id, evaluator_version_id)"
                    not in comparison_body)
-    if still_plain and "D-1" not in debt:
+    if still_plain and "D-1" not in headings:
         debt_defects.append(
             "comparison.evaluator_version_id still does not carry the tenant, and "
-            "the debt entry recording that has been removed")
-    if not still_plain and "Status | **Open**" in debt.split("## D-2")[0]:
+            "the debt entry recording that is no longer a register entry")
+    if not still_plain and "D-1" in headings \
+            and "**Open**" in debt.split("## D-1")[1].split("\n## ")[0]:
         debt_defects.append(
             "D-1 is recorded as open but the structure it describes has changed; "
             "close it with the fix rather than leaving it stale")

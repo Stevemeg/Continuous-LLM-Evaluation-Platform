@@ -109,9 +109,16 @@ case("P-20", "the agreement threshold acquires a default",
      lambda: plant(CONSENSUS, "    agreement_threshold: Decimal | None\n",
                    "    agreement_threshold: Decimal | None = Decimal('0.2')\n"))
 
-case("P-20", "the ensemble stops refusing one repeated configuration",
-     lambda: plant(CONSENSUS, "        if len(distinct) < 2:",
-                   "        if False and len(distinct) < 2:"))
+# The `len(distinct) < 2` and `len(judges) < 2` guards are subsumed by the
+# majority rule — an ensemble of identical judges is always a majority — so
+# disabling one of them alone is not a weakening and the plant belongs on a
+# rule that is independent. This one is ADR-017 §5.
+case("P-20", "the verdict becomes the mean rather than the median",
+     lambda: plant(CONSENSUS,
+                   "    n = len(sorted_scores)\n    middle = n // 2",
+                   "    return (sum(sorted_scores, Decimal(0))\n"
+                   "            / Decimal(len(sorted_scores))).quantize(RESOLUTION)\n"
+                   "    n = len(sorted_scores)\n    middle = n // 2"))
 
 case("P-20", "a majority configuration is allowed to outvote the rest",
      lambda: plant(CONSENSUS,

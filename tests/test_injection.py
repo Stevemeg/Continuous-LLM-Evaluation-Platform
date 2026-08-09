@@ -86,16 +86,23 @@ def test_the_rubric_survives_every_entry(entry):
 
 
 @pytest.mark.parametrize("entry", REPLIES, ids=lambda e: e["id"])
-def test_no_reply_shape_means_anything_but_a_bounded_score(entry):
-    """Defence 2. A judge that has been talked into saying something else has
-    said nothing: the parse recognises a number or an abstention, and nothing
-    that could be read as an instruction."""
+def test_every_reply_parses_to_exactly_what_the_corpus_expects(entry):
+    """Defence 2. Each entry names the resolution it must produce, rather than
+    merely being required to land somewhere in the vocabulary — a parse widened
+    to read a number out of prose satisfies the looser form and is the whole
+    vulnerability."""
     resolution, score, _ = parse_reply(entry["text"])
-    assert resolution in ("scored", "abstained", "failed")
+    assert resolution == entry["expect"]
     if resolution == "scored":
         assert Decimal(0) <= score <= Decimal(1)
     else:
         assert score is None
+
+
+def test_the_corpus_contains_a_reply_that_is_supposed_to_parse():
+    """A parse that refused everything would satisfy every hostile case above."""
+    assert any(r["expect"] == "scored" for r in REPLIES)
+    assert any(r["expect"] == "abstained" for r in REPLIES)
 
 
 def test_a_reply_that_carries_a_score_and_an_instruction_is_discarded():
