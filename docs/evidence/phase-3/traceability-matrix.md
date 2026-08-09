@@ -10,14 +10,14 @@
 
 Derived from the artifacts themselves. Regenerate with `python docs/evidence/phase-3/generate_traceability.py . --write`.
 
-**137 of 150 requirements traced**; 13 deferred with an owning phase and a reason; 0 untracked.
+**144 of 150 requirements traced**; 6 deferred with an owning phase and a reason; 0 untracked.
 
 Phase 5 added the implementation and test columns. `SC-G7` is fully measurable from here: until now a requirement could be counted as traced because a document mentioned it.
 
 | Requirement | Status | Architecture | Data model | Schema | API contract | Implementation | Tests |
 |---|---|---|---|---|---|---|---|
 | `REQ-X-1` | traced | docs/adr/ADR-011-artifact-retention.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md | docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/05-run-and-execution.sql | cancelRun, getRun, schemas/Completeness, schemas/ExecutionState | src/clep/orchestration/runner.py | — |
-| `REQ-X-2` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | listRunSamples, schemas/Run, schemas/SampleResolution | src/clep/agents/sdk.py, src/clep/judges/sdk.py | tests/test_agents.py, tests/test_judges.py |
+| `REQ-X-2` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/adr/ADR-018-hallucination-analysis.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | listRunSamples, schemas/Run, schemas/SampleResolution | src/clep/agents/sdk.py, src/clep/judges/sdk.py | tests/test_agents.py, tests/test_judges.py |
 | `REQ-X-3` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/failure-model.md | docs/data/domain-model.md | — | schemas/Classification | — | — |
 | `REQ-X-4` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | docs/data/schema/07-regression-and-gates.sql | approveBaseline, createBaseline, schemas/Baseline, schemas/Classification | — | — |
 | `REQ-X-5` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/failure-model.md, docs/architecture/threat-model.md | docs/data/domain-model.md | — | approveDatasetVersion, createPolicyException, listAuditEvents, schemas/AuditEvent | — | — |
@@ -38,18 +38,18 @@ Phase 5 added the implementation and test columns. `SC-G7` is fully measurable f
 | `REQ-F-02-4` | traced | docs/adr/ADR-003-provider-abstraction.md | — | docs/data/schema/05-run-and-execution.sql, docs/data/schema/06-registry-and-experiments.sql | schemas/RunRequest | src/clep/config.py, src/clep/providers/openai_compatible.py, src/clep/registry/repository.py | tests/test_providers.py, tests/test_registry.py |
 | `REQ-F-02-5` | traced | — | docs/data/domain-model.md | — | — | — | — |
 | `REQ-F-02-6` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | docs/data/schema/05-run-and-execution.sql | — | src/clep/judges/sdk.py, src/clep/orchestration/runner.py, src/clep/providers/gateway.py | tests/test_providers.py |
-| `REQ-F-03-1` | deferred → Phase 9 | — | — | — | — | — | — |
-| `REQ-F-03-2` | deferred → Phase 9 | — | — | — | — | — | — |
-| `REQ-F-03-3` | deferred → Phase 9 | — | — | — | — | — | — |
-| `REQ-F-03-4` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | docs/data/schema/05-run-and-execution.sql | schemas/IntegrationTier | src/clep/evaluators/builtin.py, src/clep/evaluators/sdk.py | tests/test_evaluators.py |
-| `REQ-F-03-5` | traced | docs/architecture/threat-model.md | — | — | — | — | — |
-| `REQ-F-03-6` | deferred → Phase 9 | — | — | — | — | — | — |
-| `REQ-F-04-1` | traced | docs/adr/ADR-008-tool-protocol.md | — | — | — | — | — |
-| `REQ-F-04-2` | deferred → Phase 9 | — | — | — | — | — | — |
-| `REQ-F-04-3` | deferred → Phase 9 | — | — | — | — | — | — |
-| `REQ-F-04-4` | deferred → Phase 9 | — | — | — | — | — | — |
-| `REQ-F-04-5` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md | — | — | schemas/SampleResolution | — | — |
-| `REQ-F-04-6` | traced | docs/adr/ADR-008-tool-protocol.md, docs/architecture/threat-model.md | — | — | — | — | — |
+| `REQ-F-03-1` | traced | — | — | docs/data/schema/09-rag-and-agent-evaluation.sql | getSampleAnalysis, schemas/RetrievedContext, schemas/SampleAnalysis | src/clep/evaluators/sdk.py | — |
+| `REQ-F-03-2` | traced | — | — | — | — | src/clep/evaluators/rag.py | — |
+| `REQ-F-03-3` | traced | docs/adr/ADR-018-hallucination-analysis.md | — | docs/data/schema/09-rag-and-agent-evaluation.sql | getSampleAnalysis, schemas/ClaimAnalysis, schemas/HallucinationFinding, schemas/SampleAnalysis | src/clep/rag/hallucination.py | — |
+| `REQ-F-03-4` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | docs/data/schema/05-run-and-execution.sql | schemas/IntegrationTier | src/clep/evaluators/builtin.py, src/clep/evaluators/rag.py, src/clep/evaluators/sdk.py | tests/test_evaluators.py |
+| `REQ-F-03-5` | traced | docs/architecture/threat-model.md | — | docs/data/schema/09-rag-and-agent-evaluation.sql | schemas/RetrievedContext | src/clep/evaluators/sdk.py | — |
+| `REQ-F-03-6` | traced | docs/adr/ADR-018-hallucination-analysis.md | — | docs/data/schema/09-rag-and-agent-evaluation.sql | getSampleAnalysis, schemas/AttributionStage, schemas/SampleAnalysis, schemas/StageAttribution | src/clep/evaluators/rag.py, src/clep/rag/attribution.py | — |
+| `REQ-F-04-1` | traced | docs/adr/ADR-008-tool-protocol.md | — | docs/data/schema/09-rag-and-agent-evaluation.sql | getSampleAnalysis, schemas/SampleAnalysis, schemas/TrajectoryStep | src/clep/evaluators/sdk.py, src/clep/evaluators/trajectory.py | — |
+| `REQ-F-04-2` | traced | — | — | — | — | src/clep/evaluators/agent.py | — |
+| `REQ-F-04-3` | traced | — | — | — | — | src/clep/evaluators/agent.py | — |
+| `REQ-F-04-4` | traced | — | — | — | — | src/clep/evaluators/agent.py | tests/test_agent_evaluation.py |
+| `REQ-F-04-5` | traced | docs/architecture/component-architectures.md, docs/architecture/failure-model.md | — | docs/data/schema/09-rag-and-agent-evaluation.sql | schemas/RunSample, schemas/SampleAnalysis, schemas/SampleResolution | src/clep/evaluators/agent.py, src/clep/evaluators/trajectory.py | tests/test_agent_evaluation.py |
+| `REQ-F-04-6` | traced | docs/adr/ADR-008-tool-protocol.md, docs/architecture/threat-model.md | — | docs/data/schema/09-rag-and-agent-evaluation.sql | schemas/TrajectoryStep | src/clep/evaluators/sdk.py, src/clep/evaluators/trajectory.py | — |
 | `REQ-F-05-1` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | — | approveDatasetVersion, listDatasetVersions, schemas/DatasetVersion | — | — |
 | `REQ-F-05-2` | traced | — | docs/data/domain-model.md | docs/data/schema/02-golden-dataset.sql | createDatasetVersion, schemas/Lineage | — | — |
 | `REQ-F-05-3` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/architecture/component-architectures.md | docs/data/dataset-lifecycle.md, docs/data/domain-model.md | — | createDatasetVersion | — | — |
@@ -76,7 +76,7 @@ Phase 5 added the implementation and test columns. `SC-G7` is fully measurable f
 | `REQ-F-08-3` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | — | docs/data/schema/07-regression-and-gates.sql | schemas/ComparisonResult, schemas/GateCriterionRequest | src/clep/regression/statistics.py | — |
 | `REQ-F-08-4` | traced | docs/adr/ADR-007-regression-statistics.md, docs/adr/ADR-016-gate-composition.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/07-regression-and-gates.sql | schemas/Classification, schemas/ComparisonResult, schemas/CriterionAction | src/clep/api/gate_service.py, src/clep/regression/engine.py | — |
 | `REQ-F-08-5` | traced | docs/adr/ADR-017-judge-agreement.md | — | — | schemas/SampleResolution | src/clep/regression/engine.py | tests/test_regression.py |
-| `REQ-F-08-6` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-017-judge-agreement.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql, docs/data/schema/07-regression-and-gates.sql, docs/data/schema/08-judges-plans-and-memory.sql | schemas/ComparisonResult, schemas/ComparisonResultKind | src/clep/judges/__init__.py, src/clep/judges/sdk.py, src/clep/regression/engine.py, src/clep/regression/report.py | tests/test_judges.py, tests/test_regression.py |
+| `REQ-F-08-6` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-017-judge-agreement.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql, docs/data/schema/07-regression-and-gates.sql, docs/data/schema/08-judges-plans-and-memory.sql | schemas/ComparisonResult, schemas/ComparisonResultKind | src/clep/evaluators/rag.py, src/clep/judges/__init__.py, src/clep/judges/sdk.py, src/clep/regression/engine.py, src/clep/regression/report.py | tests/test_judges.py, tests/test_rag.py, tests/test_regression.py |
 | `REQ-F-08-7` | traced | docs/adr/ADR-007-regression-statistics.md, docs/architecture/component-architectures.md | docs/data/domain-model.md | docs/data/schema/07-regression-and-gates.sql | evaluateGate, schemas/ComparisonResult, schemas/GatePolicyVersionRequest | src/clep/regression/statistics.py | — |
 | `REQ-F-08-8` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/07-regression-and-gates.sql, docs/data/schema/08-judges-plans-and-memory.sql | addJudgeVersion, publishJudgeVersion, schemas/JudgeVersion | src/clep/experiments/identity.py, src/clep/regression/comparability.py, src/clep/regression/engine.py | tests/test_regression.py |
 | `REQ-F-09-1` | traced | docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | evaluateGate | — | — |
@@ -97,7 +97,7 @@ Phase 5 added the implementation and test columns. `SC-G7` is fully measurable f
 | `REQ-F-11-3` | traced | — | docs/data/data-model.md | — | — | — | — |
 | `REQ-F-11-4` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-017-judge-agreement.md, docs/architecture/failure-model.md, docs/architecture/observability-strategy.md | — | — | getEvaluationMemory, schemas/EvaluationMemory, schemas/JudgeCalibration | — | — |
 | `REQ-F-11-5` | deferred → Phase 11 | — | — | — | — | — | — |
-| `REQ-F-11-6` | traced | docs/architecture/observability-strategy.md | — | — | — | — | — |
+| `REQ-F-11-6` | traced | docs/architecture/observability-strategy.md | — | — | getSampleAnalysis | src/clep/evaluators/rag.py | — |
 | `REQ-F-11-7` | traced | — | — | — | schemas/Completeness | — | — |
 | `REQ-F-11-8` | deferred → Phase 11 | — | — | — | — | — | — |
 | `REQ-F-11-9` | traced | docs/architecture/observability-strategy.md | docs/data/domain-model.md | — | — | — | — |
@@ -113,7 +113,7 @@ Phase 5 added the implementation and test columns. `SC-G7` is fully measurable f
 | `REQ-F-AG-1` | traced | docs/adr/ADR-002-agent-orchestration.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/08-judges-plans-and-memory.sql | acceptEvaluationPlan, amendEvaluationPlan, createEvaluationPlan, getEvaluationPlan, schemas/EvaluationPlan, schemas/PlanState, schemas/PlanStep, schemas/PlanStepKind, schemas/RunRequest | src/clep/agents/planner.py, src/clep/api/agentic_service.py | — |
 | `REQ-F-AG-2` | traced | docs/adr/ADR-002-agent-orchestration.md, docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-017-judge-agreement.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/08-judges-plans-and-memory.sql | addJudgeVersion, createJudge, createJudgeEnsemble, getJudgeEnsemble, publishJudgeVersion, schemas/ConsensusResult, schemas/Judge, schemas/JudgeEnsemble, schemas/JudgeScope, schemas/JudgeVersion, schemas/RunRequest | — | — |
 | `REQ-F-AG-3` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-017-judge-agreement.md, docs/architecture/component-architectures.md | docs/data/domain-model.md | docs/data/schema/08-judges-plans-and-memory.sql | schemas/ConsensusResult, schemas/JudgeCalibration, schemas/JudgeVersion, schemas/JudgeVote | src/clep/judges/sdk.py | tests/test_judges.py |
-| `REQ-F-AG-4` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-017-judge-agreement.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/08-judges-plans-and-memory.sql | createJudgeEnsemble, listEscalations, recordEscalationReview, schemas/ConsensusResult, schemas/ConsensusState, schemas/Escalation, schemas/EscalationReason, schemas/EscalationState, schemas/JudgeEnsemble | src/clep/judges/consensus.py | tests/test_consensus.py |
+| `REQ-F-AG-4` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-017-judge-agreement.md, docs/adr/ADR-018-hallucination-analysis.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/08-judges-plans-and-memory.sql | createJudgeEnsemble, listEscalations, recordEscalationReview, schemas/ConsensusResult, schemas/ConsensusState, schemas/Escalation, schemas/EscalationReason, schemas/EscalationState, schemas/JudgeEnsemble | src/clep/judges/consensus.py, src/clep/rag/hallucination.py | tests/test_consensus.py |
 | `REQ-F-AG-5` | traced | docs/adr/ADR-002-agent-orchestration.md, docs/architecture/system-architecture.md | — | docs/data/schema/08-judges-plans-and-memory.sql | createEvaluationPlan, getEvaluationPlan, schemas/ReasoningAttempt, schemas/ReasoningState, schemas/ReasoningTrace | src/clep/agents/__init__.py, src/clep/agents/planner.py, src/clep/agents/repository.py, src/clep/agents/sdk.py | tests/test_agents.py, tests/test_planner.py |
 | `REQ-F-AG-6` | traced | — | — | — | getEvaluationMemory, schemas/EvaluationMemory | src/clep/memory/__init__.py | — |
 | `REQ-F-AG-7` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/architecture/system-architecture.md | docs/data/domain-model.md | docs/data/schema/03-benchmark-registry.sql | — | — | — |
@@ -133,7 +133,7 @@ Phase 5 added the implementation and test columns. `SC-G7` is fully measurable f
 | `REQ-N-REL-5` | traced | docs/adr/ADR-001-durable-execution.md, docs/architecture/observability-strategy.md | — | — | — | — | — |
 | `REQ-N-SEC-1` | traced | docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | createRun | — | — |
 | `REQ-N-SEC-2` | traced | docs/adr/ADR-010-multi-tenancy.md, docs/adr/ADR-012-primary-datastore.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md | docs/data/data-model.md | — | — | — | — |
-| `REQ-N-SEC-3` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — | src/clep/judges/sdk.py | tests/test_injection.py |
+| `REQ-N-SEC-3` | traced | docs/adr/ADR-004-judge-ensemble.md, docs/adr/ADR-018-hallucination-analysis.md, docs/architecture/component-architectures.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — | src/clep/judges/sdk.py | tests/test_injection.py |
 | `REQ-N-SEC-4` | traced | docs/adr/ADR-006-evaluator-isolation.md, docs/adr/ADR-008-tool-protocol.md, docs/architecture/failure-model.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | — | — | — | — | — |
 | `REQ-N-SEC-5` | traced | docs/adr/ADR-003-provider-abstraction.md, docs/architecture/observability-strategy.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/domain-model.md | — | — | docs/dependencies.md, src/clep/config.py, src/clep/evaluators/sdk.py | tests/test_config.py, tests/test_providers.py |
 | `REQ-N-SEC-6` | traced | docs/architecture/threat-model.md | — | — | — | — | — |
@@ -157,7 +157,7 @@ Phase 5 added the implementation and test columns. `SC-G7` is fully measurable f
 | `REQ-N-PRIV-1` | traced | docs/architecture/component-architectures.md | — | — | — | — | — |
 | `REQ-N-PRIV-2` | traced | docs/architecture/observability-strategy.md | — | — | — | — | — |
 | `REQ-N-PRIV-3` | traced | docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/dataset-lifecycle.md | docs/data/schema/02-golden-dataset.sql, docs/data/schema/04-artifacts-and-audit.sql | createErasureRequest | — | — |
-| `REQ-N-PRIV-4` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/04-artifacts-and-audit.sql | createErasureRequest, schemas/ErasureAcceptance | — | — |
+| `REQ-N-PRIV-4` | traced | docs/adr/ADR-005-dataset-immutability.md, docs/adr/ADR-011-artifact-retention.md, docs/adr/ADR-013-artifact-store.md, docs/architecture/component-architectures.md, docs/architecture/system-architecture.md, docs/architecture/threat-model.md | docs/data/artifact-model.md, docs/data/data-model.md, docs/data/domain-model.md | docs/data/schema/04-artifacts-and-audit.sql, docs/data/schema/09-rag-and-agent-evaluation.sql | createErasureRequest, schemas/ErasureAcceptance | — | — |
 | `REQ-N-MAINT-1` | traced | docs/adr/ADR-002-agent-orchestration.md | — | — | — | — | — |
 | `REQ-N-MAINT-2` | traced | — | — | — | — | src/clep/evaluators/builtin.py | tests/test_evaluators.py |
 | `REQ-N-MAINT-3` | traced | docs/adr/ADR-006-evaluator-isolation.md | — | — | — | — | — |
@@ -171,13 +171,6 @@ Phase 5 added the implementation and test columns. `SC-G7` is fully measurable f
 
 | Requirement | Owning phase | Reason |
 |---|---|---|
-| `REQ-F-03-1` | Phase 9 | RAG evaluator inputs are evaluator-catalogue content; the contract exposes integration tiers, not individual evaluators |
-| `REQ-F-03-2` | Phase 9 | Specific RAG evaluators are suite content delivered with the RAG evaluation suite |
-| `REQ-F-03-3` | Phase 9 | Hallucination analysis is an evaluator behaviour, not a contract or schema shape |
-| `REQ-F-03-6` | Phase 9 | Retrieval-versus-generation failure attribution is evaluator logic |
-| `REQ-F-04-2` | Phase 9 | Agent evaluators are suite content delivered with the agent evaluation suite |
-| `REQ-F-04-3` | Phase 9 | Trajectory and loop analysis is evaluator logic |
-| `REQ-F-04-4` | Phase 9 | Final-answer evaluation is evaluator logic |
 | `REQ-F-10-2` | Phase 10 | Canary and post-deployment evaluation surfaces arrive with the CI/CD release-gate phase |
 | `REQ-F-10-4` | Phase 11 | Drift detection over baseline history is an analytics capability |
 | `REQ-F-11-2` | Phase 11 | Leaderboards are an analytics surface |

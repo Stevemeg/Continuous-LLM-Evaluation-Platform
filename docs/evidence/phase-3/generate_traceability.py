@@ -42,13 +42,10 @@ DEF_PATTERNS = [r"REQ-F-\d{2}-\d+", r"REQ-F-AG-\d+", r"REQ-X-\d+", r"REQ-N-[A-Z]
 # Requirements deliberately not traceable at Phase 3, each with the phase that
 # owns it and why. Canonical §23 phase numbering.
 DEFERRED = {
-    "REQ-F-03-1": (9, "RAG evaluator inputs are evaluator-catalogue content; the contract exposes integration tiers, not individual evaluators"),
-    "REQ-F-03-2": (9, "Specific RAG evaluators are suite content delivered with the RAG evaluation suite"),
-    "REQ-F-03-3": (9, "Hallucination analysis is an evaluator behaviour, not a contract or schema shape"),
-    "REQ-F-03-6": (9, "Retrieval-versus-generation failure attribution is evaluator logic"),
-    "REQ-F-04-2": (9, "Agent evaluators are suite content delivered with the agent evaluation suite"),
-    "REQ-F-04-3": (9, "Trajectory and loop analysis is evaluator logic"),
-    "REQ-F-04-4": (9, "Final-answer evaluation is evaluator logic"),
+    # The seven RAG and agent deferrals that pointed at Phase 9 are gone,
+    # removed rather than left in place: the generator fails a deferral that is
+    # in fact traced, which is the mechanism that stops this table describing a
+    # past state of the product.
     "REQ-F-10-2": (10, "Canary and post-deployment evaluation surfaces arrive with the CI/CD release-gate phase"),
     "REQ-F-10-4": (11, "Drift detection over baseline history is an analytics capability"),
     "REQ-F-11-2": (11, "Leaderboards are an analytics surface"),

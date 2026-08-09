@@ -1,1 +1,39 @@
-(placeholder — replaced by the recorded run before the phase is finalized)
+[PASS   ] P-1    test suite: exit 0; 629 passed; coverage 93.25% against a 85.0% gate
+[PASS   ] P-2    schema conformance: exit 0; 67 tables including the Phase 9 retrieval, trajectory and analysis tables
+[FAIL   ] P-3    traceability: exit 1. traced to an artifact: 144; implementation layer: 56; test layer: 31; deferred with an owner: 13
+[FAIL   ] P-4    the committed matrix is stale; regenerate it
+[PASS   ] P-5    Technology Spike Sprint gate re-evaluated against its own history (ccc4bdd0), in an isolated clone pruned to 8 reachable commit(s): exit 0 {"PASS": 26}
+[PASS   ] P-6    Phase 4 gate re-evaluated against its own history (82d02608), in an isolated clone pruned to 7 reachable commit(s): exit 0 {"PASS": 19}
+[PASS   ] P-7    Phase 5 gate re-evaluated against its own history (27da6ddc), in an isolated clone pruned to 10 reachable commit(s): exit 0 {"PASS": 21}
+[PASS   ] P-8    Phase 6 gate re-evaluated against its own history (7e88bf66), in an isolated clone pruned to 13 reachable commit(s): exit 0 {"PASS": 27}
+[PASS   ] P-9    Phase 7 gate re-evaluated against its own history (5f782269), in an isolated clone pruned to 20 reachable commit(s): exit 0 {"PASS": 30}
+[PASS   ] P-9b   Phase 8 gate re-evaluated against its own history (7a239f67), in an isolated clone pruned to 27 reachable commit(s): exit 0 {"PASS": 34}
+[PASS   ] P-10   Phase 1 milestone validators re-run. M1.1 documents: exit 0 {"PASS": 11}; M1.2 competitive: exit 0 {"PASS": 14}; M1.3 requirements: exit 0 {"PASS": 18}
+[PASS   ] P-11   contract declares 37 operations, is read and never written, and every identifier it accepts can be created through it
+[PASS   ] P-12   vocabularies compared across schema, contract and code: 24; disagreements: 0
+[PASS   ] P-13   11 declared dependencies, each with a recorded reason and a rejected alternative; unjustified: none. Phase 9 added none — the real-model validation runs against a container, not a library.
+[PASS   ] P-14   18 ADRs; undecided: none; absent from the index: none
+[PASS   ] P-15   every externally visible effect carries a unique idempotency key (4 tables, including a judgement, which costs money); missing: none
+[PASS   ] P-16   66 tenant-scoped tables, each with ENABLE and FORCE
+[PASS   ] P-17   34 composite foreign-key targets, each with a matching unique constraint; 6 Phase 9 tables, every reference carrying the tenant; missing: none
+[PASS   ] P-18   migrations are applied from docs/data/schema/ with no second copy of the DDL; copies found: none
+[PASS   ] P-19a  REQ-F-03-2 divides along the REQ-F-08-6 line: retrieval and citations computed, the four semantic judgements left to the ensemble; defects: 0
+[PASS   ] P-19b  REQ-F-03-1: required context is a property of the example, an unlabelled example abstains, and a citation cannot name what was not retrieved; defects: 0
+[PASS   ] P-19c  ADR-018: unsupported and contradicted stay distinct, contradiction outranks support, thresholds stay unset, and the judge's vocabulary is not widened; defects: 0
+[PASS   ] P-19d  REQ-F-03-6: retrieval outranks generation, an unlabelled example is not attributed, and every attribution states its grounds; defects: 0
+[PASS   ] P-19e  REQ-F-04-5: the ingest bound cannot be routed around, a prefix is not scored as a run, and what a prefix does show is still reported; defects: 0
+[PASS   ] P-19f  REQ-F-04-2/3/4: agent signals are computed, abstain when their input is absent, penalise spurious tools, and are never combined into one number; defects: 0
+[PASS   ] P-19g  the Phase 9 store: findings immutable, no DELETE granted, third-party content held by digest and reached by cascade; defects: 0
+[PASS   ] P-19h  real-model evidence: recorded, exercising both agreement and escalation, stating its gaps, with no fallback to a stub; defects: 0
+[PASS   ] P-20   working tree: 238 files (2 binary skipped), 0 match(es); all blobs all refs: 0 undisclosed match(es), 2 disclosed and unremovable from published history
+           - docs/evidence/spike-sprint/common.py: spike common.py: local throwaway DSN password, container destroyed
+           - docs/evidence/spike-sprint/spike_provider_abstraction.py: spike provider script: planted leak-detector canary, never a credential
+[PASS   ] P-21   governed scope: 0 file match(es), 0 history match(es)
+[PASS   ] P-22   authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']
+[PASS   ] P-23   canonical document local=True tracked=False ignored=True refs_scanned=12 reachable_from_published=0 reachable_from_local_undisclosed=0 disclosed_local_only=0
+[FAIL   ] P-24   231 tracked file(s); stray: 0; clean tree: False
+           -  M docs/evidence/phase-3/traceability-matrix.md
+[PASS   ] P-25   Phase 10+ artifact classes checked: 6; artifacts Phase 9 must not contain: 0
+[PASS   ] P-26   15 validators in the repository, 15 reachable from this gate; orphaned: none
+------------------------------------------------------------------------------
+SUMMARY: {"FAIL": 3, "PASS": 31}
