@@ -40,10 +40,25 @@ PHASE5 = ROOT / "docs/evidence/phase-5/check_phase5.py"
 
 
 def rebuild_fast():
+    """The validator with its slow halves removed, and nothing else changed.
+
+    Two ranges go: P-1 to P-10, which are the suite and the five earlier gates
+    re-run at their own histories, and P-28 to P-33, which walk every blob on
+    every ref. Both are exercised by the full run. Keeping them here would turn
+    a two-minute proof into an overnight one and would prove nothing further
+    about the Phase 8 rules, which are what these plants attack.
+
+    The checks that remain are the real ones, sliced out of the shipped file
+    rather than copied — so a plant is tested against the code that runs, not
+    against a paraphrase of it.
+    """
     src = (ROOT / "docs/evidence/phase-8/check_phase8.py").read_text(encoding="utf-8")
-    start = src.index("# ===================================================== P-1 ")
-    end = src.index("# ===================================== P-11 the contract leads")
-    FAST.write_text(src[:start] + src[end:], encoding="utf-8")
+    slow_start = src.index("# ===================================================== P-1 ")
+    slow_end = src.index("# ===================================== P-11 the contract leads")
+    src = src[:slow_start] + src[slow_end:]
+    scan_start = src.index("# ============================================================ P-28 secrets")
+    scan_end = src.index("# ============ P-34 every earlier gate is reachable")
+    FAST.write_text(src[:scan_start] + src[scan_end:], encoding="utf-8")
 
 
 def restore():
