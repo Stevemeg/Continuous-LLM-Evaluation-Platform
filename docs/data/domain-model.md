@@ -152,6 +152,23 @@ Entities, their identity and versioning rules, and the invariants that must hold
 | I-23 | Deterministic evaluator results are a distinct entity from `JudgeVote` — not a discriminator column. | `REQ-F-08-6` |
 | I-24 | `escalated` is a terminal `ConsensusResult` state, not a retry marker. | `REQ-F-AG-4` |
 
+**As realised in Phase 8.** Three notes where the schema is narrower or more
+specific than the table above, each recorded rather than left to be discovered:
+
+- **`JudgeDefinition` and `JudgeVersion` are tenant-scoped**, not "P or G". A
+  judge version binds a rubric to a model configuration, and model
+  configurations are tenant data; a global row could not carry the
+  tenant-carrying foreign key rule P-5 requires. Recorded as
+  [D-2](../architecture/tracked-debt.md).
+- **`JudgeRun` and `JudgeVote` are one-to-one, and the split earns its keep.**
+  The run is the attempt and always exists; the vote is the score and exists
+  only when there is one. An unscored judgement therefore has no score row to
+  read as a zero — `REQ-X-8` enforced by absence rather than by a NULL check.
+- **A `ConsensusResult` reached with fewer than two scoring votes reports
+  disagreement at its maximum**, with `disagreement_measured` false. I-22 is
+  satisfied without a single vote being reported as perfect agreement
+  ([ADR-017](../adr/ADR-017-judge-agreement.md) §4).
+
 ## 8. Baselines, regressions, gates — canonical §17
 
 | Entity | Tenancy | Identity | Mutability | Retention | Notes |

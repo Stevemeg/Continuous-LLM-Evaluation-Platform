@@ -26,8 +26,13 @@ pytestmark = [pytest.mark.integration, requires_postgres]
 TENANT_SCOPED = [
     "project", "dataset", "dataset_version", "example", "example_content",
     "dataset_approval", "dataset_lineage", "quality_check_result",
+    "dataset_label",
     "benchmark_suite", "suite_version", "suite_member", "suite_grant",
     "suite_evaluator", "threshold", "artifact", "artifact_reference",
+    # Dual-scoped: a NULL organization_id is the enumerated global exception
+    # under ADR-010 rule 4, and the policy has a NULL branch in USING but not
+    # in WITH CHECK. ENABLE and FORCE are required of them all the same.
+    "evaluator_definition", "evaluator_version",
     "audit_event", "erasure_request", "run", "run_candidate", "run_sample",
     "sample_cost", "run_checkpoint", "evaluator_outcome",
     # Phase 6. The registry is where a self-hosted endpoint and a proprietary
@@ -42,7 +47,26 @@ TENANT_SCOPED = [
     # visible to, or writable by, anyone else.
     "baseline", "gate_policy", "gate_policy_version", "gate_criterion",
     "gate_decision", "comparison", "gate_criterion_result", "policy_exception",
+    # Phase 8. A judge's rubric is one tenant's statement of what good looks
+    # like, a judgement is the evidence behind a score, and an escalation names
+    # a person who was asked to look. None of it may cross a tenant boundary.
+    "judge_definition", "judge_version", "judge_ensemble",
+    "judge_ensemble_member", "judge_run", "judge_vote", "consensus_result",
+    "escalation", "evaluation_plan", "plan_step", "plan_amendment",
+    "reasoning_trace", "reasoning_attempt",
 ]
+
+
+def test_the_list_above_is_every_tenant_scoped_table_in_the_live_catalogue():
+    """The list is parametrised, so a table missing from it is a table nobody
+    tests. Derived from the catalogue rather than trusted."""
+    import re
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    sql = "\n".join(p.read_text(encoding="utf-8")
+                    for p in sorted((root / "docs/data/schema").glob("*.sql")))
+    declared = set(re.findall(r"CREATE TABLE clep\.(\w+)\s*\(", sql))
+    assert declared - {"organization"} == set(TENANT_SCOPED)
 
 
 def test_the_four_adr_012_conditions_hold_for_the_connected_role(migrated_database):

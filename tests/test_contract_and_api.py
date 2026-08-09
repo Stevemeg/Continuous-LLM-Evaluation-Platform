@@ -74,7 +74,7 @@ def test_every_implemented_route_is_declared_in_the_contract(client):
 
 
 def test_the_phase_implements_its_operations_and_says_so_by_omission():
-    """Phase 7 adds the baseline and gate operations to what came before.
+    """Phase 8 adds the judge, plan and memory operations to what came before.
     The rest belong to phases that have not run and are absent, not stubbed: a
     501 is still a route a client can find and build against."""
     ids = {contract.operation_id(m, p) for m, p in contract.operations()}
@@ -84,8 +84,54 @@ def test_the_phase_implements_its_operations_and_says_so_by_omission():
             "reproduceRun", "createBaseline", "approveBaseline",
             "createGatePolicy", "addGatePolicyVersion",
             "publishGatePolicyVersion", "evaluateGate", "getGateDecision",
-            "createPolicyException"} <= ids
-    assert len(ids) == 24
+            "createPolicyException",
+            "createJudge", "addJudgeVersion", "publishJudgeVersion",
+            "createJudgeEnsemble", "getJudgeEnsemble",
+            "createEvaluationPlan", "getEvaluationPlan", "amendEvaluationPlan",
+            "acceptEvaluationPlan", "listEscalations",
+            "recordEscalationReview", "getEvaluationMemory"} <= ids
+    assert len(ids) == 36
+
+
+def test_every_identifier_a_request_accepts_can_be_created_through_the_contract():
+    """The defect class Phases 6 and 7 each found: a request field naming
+    something no operation produces. Derived from the request schemas rather
+    than listed, so a new one cannot be added without being creatable."""
+    ids = {contract.operation_id(m, p) for m, p in contract.operations()}
+    creators = {
+        "judgeVersionId": "addJudgeVersion",
+        "judgeEnsembleId": "createJudgeEnsemble",
+        "evaluationPlanId": "createEvaluationPlan",
+        "gatePolicyVersionId": "addGatePolicyVersion",
+        "baselineId": "createBaseline",
+        "modelConfigurationId": None,   # Phase 6 registry, created out of band
+        "promptVersionId": "addPromptVersion",
+        "suiteVersionId": None,         # Phase 4 registry
+        "datasetVersionId": "createDatasetVersion",
+        "runId": "createRun",
+        "candidateRunId": "createRun",
+        "projectId": None,
+        "gateDecisionId": "evaluateGate",
+        "escalationId": None,           # raised by execution, not by a caller
+        "judgeId": "createJudge",
+        "datasetId": None,
+        "gatePolicyId": "createGatePolicy",
+        "promptId": "createPrompt",
+        "runSampleId": None,
+    }
+    schemas = contract.load()["components"]["schemas"]
+    cited = set()
+    for name, schema in schemas.items():
+        if not name.endswith("Request"):
+            continue
+        for field in schema.get("properties", {}):
+            if field.endswith("Id") or field.endswith("Ids"):
+                cited.add(field.removesuffix("s") if field.endswith("Ids") else field)
+    unknown = sorted(cited - set(creators))
+    assert not unknown, f"no creation route recorded for: {unknown}"
+    missing = sorted(f for f in cited
+                     if creators[f] is not None and creators[f] not in ids)
+    assert not missing, f"cited but not creatable: {missing}"
 
 
 def test_asking_for_an_operation_the_contract_lacks_is_an_error():

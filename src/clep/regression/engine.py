@@ -31,11 +31,15 @@ from clep.identity import ulid_to_uuid
 from clep.regression import comparability, statistics
 from clep.regression.statistics import Pair
 
-#: Criterion sources that have a signal in this phase, and the ones that do not.
-#: A source with no signal abstains loudly rather than passing quietly: the
-#: judge ensemble arrives in Phase 8 and there is nothing to read until it does.
-SOURCES_WITH_SIGNAL = ("evaluator", "cost", "latency")
-SOURCES_WITHOUT_SIGNAL = ("judge_agreement",)
+#: Criterion sources that have a signal, and the ones that do not. A source with
+#: no signal abstains loudly rather than passing quietly.
+#:
+#: Phase 8 emptied the second tuple: `judge_agreement` now reads the per-sample
+#: disagreement the ensemble records. The tuple stays, and so does the branch
+#: that honours it, because the next source with no signal yet should abstain
+#: the same way rather than being written to pass.
+SOURCES_WITH_SIGNAL = ("evaluator", "cost", "latency", "judge_agreement")
+SOURCES_WITHOUT_SIGNAL = ()
 
 #: How bad a verdict is. The decision takes the worst of its criteria.
 SEVERITY = {"pass": 0, "warning": 1, "approval_required": 2, "hard_fail": 3}
@@ -132,9 +136,9 @@ def _decision_outcome(outcomes: list[CriterionOutcome]) -> str:
 def _evaluate_criterion(conn, organization_id, *, criterion, baseline_run_id,
                         candidate_run_id, policy_version) -> CriterionOutcome:
     if criterion.source in SOURCES_WITHOUT_SIGNAL:
-        detail = (f"no {criterion.source} signal is recorded yet; the judge "
-                  f"ensemble arrives in a later phase, so this criterion has "
-                  f"nothing to measure rather than nothing to report")
+        detail = (f"no {criterion.source} signal is recorded yet, so this "
+                  f"criterion has nothing to measure rather than nothing to "
+                  f"report")
         return CriterionOutcome(
             criterion_id=criterion.id, metric_key=criterion.metric_key,
             verdict=criterion.on_insufficient_evidence, rule_fired="no_signal",
@@ -166,6 +170,10 @@ def _evaluate_criterion(conn, organization_id, *, criterion, baseline_run_id,
         pairs = _cost_pairs(conn, organization_id, baseline_run_id,
                             candidate_run_id)
         result_kind = "operational"
+    elif criterion.source == "judge_agreement":
+        pairs = _agreement_pairs(conn, organization_id, baseline_run_id,
+                                 candidate_run_id)
+        result_kind = "probabilistic_judge"
     else:
         pairs = _latency_pairs(conn, organization_id, baseline_run_id,
                                candidate_run_id)
@@ -352,6 +360,41 @@ def _cost_pairs(conn, organization_id, baseline_run_id,
         "  ON cc.organization_id = cs.organization_id AND cc.run_sample_id = cs.id "
         "WHERE bs.organization_id = %s AND bs.run_id = %s "
         "GROUP BY bs.example_id ORDER BY bs.example_id",
+        (ulid_to_uuid(candidate_run_id), organization_id,
+         ulid_to_uuid(baseline_run_id))).fetchall()
+    return [Pair(str(r[0]), r[1], r[2]) for r in rows]
+
+
+def _agreement_pairs(conn, organization_id, baseline_run_id,
+                     candidate_run_id) -> list[Pair]:
+    """Per-example judge disagreement, paired between the two runs.
+
+    Two guards, and both are `REQ-F-08-5` rather than convenience. Only
+    judgements whose disagreement was **measured** are paired: an unmeasured one
+    holds 1 as a floor on ignorance, and pairing that against a real spread
+    would read as a large regression caused by a judge failing to answer. And
+    both sides must be measured, for the same reason a comparison needs a
+    scored sample on both sides — one number and one absence is not a pair.
+
+    The metric direction for an agreement criterion is `lower_is_better`: the
+    ensemble spreading further apart between baseline and candidate is the
+    regression, and the criterion states that itself rather than this function
+    assuming it.
+    """
+    rows = conn.execute(
+        "SELECT bs.example_id, bc.disagreement, cc.disagreement "
+        "FROM clep.run_sample bs "
+        "JOIN clep.consensus_result bc "
+        "  ON bc.organization_id = bs.organization_id "
+        " AND bc.run_sample_id = bs.id AND bc.disagreement_measured "
+        "JOIN clep.run_sample cs "
+        "  ON cs.organization_id = bs.organization_id "
+        " AND cs.example_id = bs.example_id AND cs.run_id = %s "
+        "JOIN clep.consensus_result cc "
+        "  ON cc.organization_id = cs.organization_id "
+        " AND cc.run_sample_id = cs.id AND cc.disagreement_measured "
+        "WHERE bs.organization_id = %s AND bs.run_id = %s "
+        "ORDER BY bs.example_id",
         (ulid_to_uuid(candidate_run_id), organization_id,
          ulid_to_uuid(baseline_run_id))).fetchall()
     return [Pair(str(r[0]), r[1], r[2]) for r in rows]

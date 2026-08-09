@@ -4,6 +4,11 @@
 evaluator version changes between baseline and candidate, and shall offer
 re-scoring of the baseline as the remedy."
 
+The requirement said "a judge or evaluator version" from the start. Until Phase 8
+only half of it could be enforced, because judge versions were not captured; the
+half that could be was, and `judge_version` joined `PINNED_KINDS` the moment
+there was one to pin.
+
 The distinction this module exists to keep is between the things a comparison is
 *about* and the things it holds *fixed*. A prompt version or a model
 configuration that differs is the entire point — that is the change under test. A
@@ -25,7 +30,7 @@ from dataclasses import dataclass
 #: Differ here and the runs are not comparable. Each is something the evaluation
 #: holds fixed while something else varies.
 PINNED_KINDS = ("dataset_version", "suite_version", "evaluator_version",
-                "integration_tier")
+                "judge_version", "integration_tier")
 
 #: Differ here and that is the experiment. Listed rather than implied, so that
 #: adding a kind to the identity forces a decision about which list it joins.

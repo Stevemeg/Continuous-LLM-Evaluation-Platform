@@ -1,0 +1,55 @@
+seeded
+[OK  ] a rubric digest that is not a sha256 is refused: new row for relation "judge_version" violates check constraint "ck_judge_version__rubric_digest_form"
+[OK  ] a published judge version cannot be edited: a published judge version is immutable; af4cd59e-d97d-4c8b-9783-03f32fd61c12 may not be modified or deleted
+[OK  ] a draft judge version CAN be edited: accepted
+[OK  ] an ensemble threshold above 1 is refused: new row for relation "judge_ensemble" violates check constraint "ck_judge_ensemble__threshold_range"
+[OK  ] a minimum scoring-vote count below two is refused: new row for relation "judge_ensemble" violates check constraint "ck_judge_ensemble__minimum_is_at_least_two"
+[OK  ] a judgement cannot be recorded twice under one idempotency key: duplicate key value violates unique constraint "uq_judge_run__idempotency_key"
+[OK  ] a cost with no currency is refused: new row for relation "judge_run" violates check constraint "ck_judge_run__cost_and_currency_travel_together"
+[OK  ] a judgement is immutable: permission denied for table judge_run
+[OK  ] a judgement cannot be deleted: permission denied for table judge_run
+[OK  ] a score outside [0, 1] is refused: new row for relation "judge_vote" violates check constraint "ck_judge_vote__score_range"
+[OK  ] a judgement cannot carry two scores: duplicate key value violates unique constraint "uq_judge_vote__one_per_run"
+[OK  ] an agreed result with no verdict is refused: new row for relation "consensus_result" violates check constraint "ck_consensus_result__verdict_matches_state"
+[OK  ] an escalated result carrying a verdict is refused: new row for relation "consensus_result" violates check constraint "ck_consensus_result__verdict_matches_state"
+[OK  ] an escalated result with no reason is refused: new row for relation "consensus_result" violates check constraint "ck_consensus_result__escalation_names_its_reason"
+[OK  ] an unmeasured disagreement of zero is refused: new row for relation "consensus_result" violates check constraint "ck_consensus_result__unmeasured_is_maximum"
+[OK  ] an unknown escalation reason is refused: new row for relation "consensus_result" violates check constraint "ck_consensus_result__escalation_reason"
+[OK  ] a confidence on an unmeasured disagreement is refused: new row for relation "consensus_result" violates check constraint "ck_consensus_result__confidence_requires_measurement"
+[OK  ] a consensus result is immutable: permission denied for table consensus_result
+[OK  ] an ensemble that has judged cannot be recomposed: permission denied for table judge_ensemble
+[OK  ] a new member cannot be added to an ensemble that has judged: ensemble 16dd1d83-bbbd-4789-addc-6580c0c0fbd3 reached consensus f7701a4b-452f-4593-a100-1fd0aa4db203 and is immutable; i
+[OK  ] the runtime role cannot edit an ensemble at all: permission denied for table judge_ensemble
+[OK  ] an open escalation cannot carry half a review: new row for relation "escalation" violates check constraint "ck_escalation__open_carries_no_review"
+[OK  ] an escalation CAN be reviewed once: accepted
+[OK  ] an escalation cannot be reviewed twice: escalation b6109127-5082-4984-9bf0-ff3cfd4fb226 has already been reviewed by 9fa4bda9-bf47-463b-a784-6a9cb07c356e; a sec
+[OK  ] an escalation cannot be deleted: permission denied for table escalation
+[OK  ] a plan whose estimate exceeds its budget is refused: new row for relation "evaluation_plan" violates check constraint "ck_evaluation_plan__estimate_within_budget"
+[OK  ] an accepted plan with no acceptor is refused: new row for relation "evaluation_plan" violates check constraint "ck_evaluation_plan__acceptance_is_recorded"
+[OK  ] an amendment is immutable once written: permission denied for table plan_amendment
+[OK  ] a draft plan CAN be accepted: accepted
+[OK  ] an accepted plan cannot gain a step: evaluation plan e35d60fd-aad5-4c6b-980b-fd13b3b74743 is no longer a draft; amending it would change the record of what w
+[OK  ] an accepted plan cannot be reopened: evaluation plan e35d60fd-aad5-4c6b-980b-fd13b3b74743 is already accepted; it may not be reopened or edited
+[OK  ] a trace with no stated bound is refused: new row for relation "reasoning_trace" violates check constraint "ck_reasoning_trace__bounds_are_stated"
+[OK  ] a trace that does not say why it stopped is refused: new row for relation "reasoning_trace" violates check constraint "ck_reasoning_trace__stopped_because_is_present"
+[OK  ] a rejected attempt with neither critique nor error is refused: new row for relation "reasoning_attempt" violates check constraint "ck_reasoning_attempt__rejection_carries_a_reason"
+[OK  ] a reasoning trace is immutable: permission denied for table reasoning_trace
+
+probes: 35/35 behaved as required
+
+[OK  ] judge_run UPDATE, as superuser: REQ-N-COMP-1: judge_run is audit-class; row 98fbfe4c-28e4-4933-8da9-fe6922d52c4a may not be modified or deleted
+[OK  ] judge_run DELETE, as superuser: REQ-N-COMP-1: judge_run is audit-class; row 98fbfe4c-28e4-4933-8da9-fe6922d52c4a may not be modified or deleted
+[OK  ] judge_vote UPDATE, as superuser: REQ-N-COMP-1: judge_vote is audit-class; row 5c5b7cbf-7a94-495b-bf38-10180134129d may not be modified or deleted
+[OK  ] consensus_result UPDATE, as superuser: REQ-N-COMP-1: consensus_result is audit-class; row f7701a4b-452f-4593-a100-1fd0aa4db203 may not be modified or deleted
+[OK  ] consensus_result DELETE, as superuser: REQ-N-COMP-1: consensus_result is audit-class; row f7701a4b-452f-4593-a100-1fd0aa4db203 may not be modified or deleted
+[OK  ] published judge_version UPDATE, as superuser: ADR-004 D-5: judge version af4cd59e-d97d-4c8b-9783-03f32fd61c12 produced judgement 98fbfe4c-28e4-4933-8da9-fe6922d52c4a 
+[OK  ] used judge_ensemble UPDATE, as superuser: ensemble 16dd1d83-bbbd-4789-addc-6580c0c0fbd3 reached consensus f7701a4b-452f-4593-a100-1fd0aa4db203 and is immutable; i
+[OK  ] new member into a used ensemble, as superuser: ensemble 16dd1d83-bbbd-4789-addc-6580c0c0fbd3 reached consensus f7701a4b-452f-4593-a100-1fd0aa4db203 and is immutable; i
+[OK  ] an ensemble that has judged nothing CAN be corrected, as superuser: accepted
+[OK  ] reviewed escalation UPDATE, as superuser: escalation b6109127-5082-4984-9bf0-ff3cfd4fb226 has already been reviewed by 9fa4bda9-bf47-463b-a784-6a9cb07c356e; a sec
+[OK  ] accepted plan step INSERT, as superuser: evaluation plan e35d60fd-aad5-4c6b-980b-fd13b3b74743 is no longer a draft; amending it would change the record of what w
+[OK  ] accepted plan reopened, as superuser: evaluation plan e35d60fd-aad5-4c6b-980b-fd13b3b74743 is already accepted; it may not be reopened or edited
+[OK  ] plan_amendment UPDATE, as superuser: REQ-N-COMP-1: plan_amendment is audit-class; row d937520c-5ac9-4166-91b5-17997477cb6c may not be modified or deleted
+[OK  ] reasoning_trace DELETE, as superuser: REQ-N-COMP-1: reasoning_trace is audit-class; row d937520c-5ac9-4166-91b5-17997477cb6c may not be modified or deleted
+
+trigger probes: 14/14 refused by the store, with no grant in the way

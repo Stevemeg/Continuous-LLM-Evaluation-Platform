@@ -26,8 +26,14 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Path, Query, Reques
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
+from clep.agents.planner import PlanError, PlanInputs
+from clep.agents.repository import PlanSettled
+from clep.agents.sdk import Bounds
 from clep.api import contract
 from clep.identity import is_ulid, new_ulid
+from clep.judges.consensus import ConsensusError
+from clep.judges.repository import (EscalationAlreadyReviewed,
+                                    JudgeRepositoryError)
 from clep.regression.repository import PolicyNotPublished
 
 PROBLEM_TYPE = "https://clep.invalid/problems/"
@@ -79,6 +85,49 @@ class RunRequestIn(BaseModel):
     candidates: list[CandidateSpecIn] = Field(min_length=1)
     budget: BudgetIn | None = None
     integrationTier: str | None = None
+    evaluationPlanId: str | None = None
+    judgeEnsembleId: str | None = None
+
+
+class JudgeIn(BaseModel):
+    slug: str = Field(min_length=1)
+    displayName: str = Field(min_length=1)
+
+
+class JudgeVersionIn(BaseModel):
+    rubric: str = Field(min_length=1)
+    modelConfigurationId: str
+
+
+class JudgeEnsembleIn(BaseModel):
+    slug: str = Field(min_length=1)
+    judgeVersionIds: list[str] = Field(min_length=2)
+    agreementThreshold: str | None = None
+    minimumScoringVotes: int | None = Field(default=None, ge=2)
+
+
+class EvaluationPlanIn(BaseModel):
+    objective: str = Field(min_length=1)
+    suiteVersionId: str
+    candidates: list[CandidateSpecIn] = Field(min_length=1)
+    baselineId: str | None = None
+    gatePolicyVersionId: str | None = None
+    judgeEnsembleId: str | None = None
+    budget: BudgetIn | None = None
+    integrationTier: str | None = None
+
+
+class PlanAmendmentIn(BaseModel):
+    note: str = Field(min_length=1)
+
+
+class PlanAcceptanceIn(BaseModel):
+    justification: str = Field(min_length=1)
+
+
+class EscalationReviewIn(BaseModel):
+    outcome: str = Field(min_length=1)
+    justification: str = Field(min_length=1)
 
 
 class TenantPrincipal(BaseModel):
@@ -164,7 +213,17 @@ class PolicyExceptionIn(BaseModel):
     expiresAt: datetime
 
 
-def create_app(run_service, registry_service=None, gate_service=None) -> FastAPI:
+#: The bounds the planner runs under when the API drafts a plan. Stated here,
+#: at the only place that constructs them, rather than defaulted inside the
+#: harness: `Bounds` has no defaults on purpose, and this is the caller that
+#: has to choose. Small on purpose — drafting is cheap and a planner that
+#: iterates twenty times has not understood the objective.
+PLANNING_BOUNDS = Bounds(max_iterations=4, budget=Decimal("0.50"),
+                         timeout_ms=30_000)
+
+
+def create_app(run_service, registry_service=None, gate_service=None,
+               agentic_service=None) -> FastAPI:
     """`run_service` supplies persistence and execution.
 
     Injected rather than imported so the contract tests can drive every path
@@ -194,7 +253,19 @@ def create_app(run_service, registry_service=None, gate_service=None) -> FastAPI
                          ("POST", "/gate-policy-versions/{gatePolicyVersionId}/publish"),
                          ("POST", "/projects/{projectId}/gate-evaluations"),
                          ("GET", "/gate-decisions/{gateDecisionId}"),
-                         ("POST", "/gate-decisions/{gateDecisionId}/exceptions")):
+                         ("POST", "/gate-decisions/{gateDecisionId}/exceptions"),
+                         ("POST", "/projects/{projectId}/judges"),
+                         ("POST", "/judges/{judgeId}/versions"),
+                         ("POST", "/judge-versions/{judgeVersionId}/publish"),
+                         ("POST", "/projects/{projectId}/judge-ensembles"),
+                         ("GET", "/judge-ensembles/{judgeEnsembleId}"),
+                         ("POST", "/projects/{projectId}/evaluation-plans"),
+                         ("GET", "/evaluation-plans/{evaluationPlanId}"),
+                         ("POST", "/evaluation-plans/{evaluationPlanId}/amendments"),
+                         ("POST", "/evaluation-plans/{evaluationPlanId}/acceptance"),
+                         ("GET", "/projects/{projectId}/escalations"),
+                         ("POST", "/escalations/{escalationId}/review"),
+                         ("GET", "/projects/{projectId}/evaluation-memory")):
         contract.operation_for(method, path)
 
     @app.exception_handler(HTTPException)
@@ -475,6 +546,171 @@ def create_app(run_service, registry_service=None, gate_service=None) -> FastAPI
         if exception is None:
             raise HTTPException(status_code=404, detail="no such gate decision")
         return exception
+
+    # ================================================================ Phase 8
+    @app.post("/projects/{projectId}/judges", status_code=201)
+    def create_judge(body: JudgeIn, projectId: str = Path(...),
+                     principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        return agentic_service.create_judge(
+            organization_id=principal.organization_id, project_id=projectId,
+            slug=body.slug, display_name=body.displayName,
+            actor_id=principal.subject)
+
+    @app.post("/judges/{judgeId}/versions", status_code=201)
+    def add_judge_version(body: JudgeVersionIn, judgeId: str = Path(...),
+                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(judgeId, "judgeId")
+        _require_ulid(body.modelConfigurationId, "modelConfigurationId")
+        return agentic_service.add_judge_version(
+            organization_id=principal.organization_id, judge_id=judgeId,
+            rubric=body.rubric, model_configuration_id=body.modelConfigurationId,
+            actor_id=principal.subject)
+
+    @app.post("/judge-versions/{judgeVersionId}/publish")
+    def publish_judge_version(judgeVersionId: str = Path(...),
+                              principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(judgeVersionId, "judgeVersionId")
+        version = agentic_service.publish_judge_version(
+            organization_id=principal.organization_id,
+            version_id=judgeVersionId, actor_id=principal.subject)
+        if version is None:
+            raise HTTPException(status_code=404, detail="no such judge version")
+        return version
+
+    @app.post("/projects/{projectId}/judge-ensembles", status_code=201)
+    def create_judge_ensemble(body: JudgeEnsembleIn, projectId: str = Path(...),
+                              principal: TenantPrincipal = Depends(principal_from_authorization)):
+        """A composition ADR-017 forbids is a caller error, not a platform one.
+
+        An ensemble that cannot disagree with itself would agree on everything,
+        which is a 422 about the request rather than a 503 about the service.
+        """
+        _require_ulid(projectId, "projectId")
+        for version_id in body.judgeVersionIds:
+            _require_ulid(version_id, "judgeVersionIds")
+        try:
+            return agentic_service.create_ensemble(
+                organization_id=principal.organization_id, project_id=projectId,
+                slug=body.slug, judge_version_ids=body.judgeVersionIds,
+                agreement_threshold=(Decimal(body.agreementThreshold)
+                                     if body.agreementThreshold else None),
+                minimum_scoring_votes=body.minimumScoringVotes,
+                actor_id=principal.subject)
+        except (ConsensusError, JudgeRepositoryError) as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+    @app.get("/judge-ensembles/{judgeEnsembleId}")
+    def get_judge_ensemble(judgeEnsembleId: str = Path(...),
+                           principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(judgeEnsembleId, "judgeEnsembleId")
+        ensemble = agentic_service.get_ensemble(
+            organization_id=principal.organization_id,
+            ensemble_id=judgeEnsembleId)
+        if ensemble is None:
+            raise HTTPException(status_code=404, detail="no such ensemble")
+        return ensemble
+
+    @app.post("/projects/{projectId}/evaluation-plans", status_code=201)
+    def create_evaluation_plan(body: EvaluationPlanIn, projectId: str = Path(...),
+                               principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        _require_ulid(body.suiteVersionId, "suiteVersionId")
+        if body.integrationTier:
+            _require_enum(body.integrationTier, "IntegrationTier", "integrationTier")
+        inputs = PlanInputs(
+            objective=body.objective, suite_version_id=body.suiteVersionId,
+            dataset_version_ids=(),
+            candidate_labels=tuple(c.label or c.modelConfigurationId
+                                   for c in body.candidates),
+            baseline_id=body.baselineId,
+            gate_policy_version_id=body.gatePolicyVersionId,
+            judge_ensemble_id=body.judgeEnsembleId,
+            budget=Decimal(body.budget.limit) if body.budget else None,
+            currency=body.budget.currency if body.budget else "USD",
+            integration_tier=body.integrationTier or "output_only")
+        return agentic_service.create_plan(
+            organization_id=principal.organization_id, project_id=projectId,
+            inputs=inputs, actor_id=principal.subject,
+            bounds=PLANNING_BOUNDS)
+
+    @app.get("/evaluation-plans/{evaluationPlanId}")
+    def get_evaluation_plan(evaluationPlanId: str = Path(...),
+                            principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(evaluationPlanId, "evaluationPlanId")
+        plan = agentic_service.get_plan(
+            organization_id=principal.organization_id, plan_id=evaluationPlanId)
+        if plan is None:
+            raise HTTPException(status_code=404, detail="no such evaluation plan")
+        return plan
+
+    @app.post("/evaluation-plans/{evaluationPlanId}/amendments")
+    def amend_evaluation_plan(body: PlanAmendmentIn,
+                              evaluationPlanId: str = Path(...),
+                              principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(evaluationPlanId, "evaluationPlanId")
+        try:
+            plan = agentic_service.amend_plan(
+                organization_id=principal.organization_id,
+                plan_id=evaluationPlanId, note=body.note,
+                actor_id=principal.subject)
+        except (PlanError, PlanSettled) as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        if plan is None:
+            raise HTTPException(status_code=404, detail="no such evaluation plan")
+        return plan
+
+    @app.post("/evaluation-plans/{evaluationPlanId}/acceptance")
+    def accept_evaluation_plan(body: PlanAcceptanceIn,
+                               evaluationPlanId: str = Path(...),
+                               principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(evaluationPlanId, "evaluationPlanId")
+        try:
+            plan = agentic_service.accept_plan(
+                organization_id=principal.organization_id,
+                plan_id=evaluationPlanId, justification=body.justification,
+                actor_id=principal.subject)
+        except (PlanError, PlanSettled) as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        if plan is None:
+            raise HTTPException(status_code=404, detail="no such evaluation plan")
+        return plan
+
+    @app.get("/projects/{projectId}/escalations")
+    def list_escalations(projectId: str = Path(...),
+                         state: str | None = Query(default=None),
+                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        if state:
+            _require_enum(state, "EscalationState", "state")
+        return agentic_service.list_escalations(
+            organization_id=principal.organization_id, project_id=projectId,
+            state=state)
+
+    @app.post("/escalations/{escalationId}/review")
+    def record_escalation_review(body: EscalationReviewIn,
+                                 escalationId: str = Path(...),
+                                 principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(escalationId, "escalationId")
+        try:
+            reviewed = agentic_service.review_escalation(
+                organization_id=principal.organization_id,
+                escalation_id=escalationId, outcome=body.outcome,
+                justification=body.justification, actor_id=principal.subject)
+        except EscalationAlreadyReviewed as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        if reviewed is None:
+            raise HTTPException(status_code=404, detail="no such escalation")
+        return reviewed
+
+    @app.get("/projects/{projectId}/evaluation-memory")
+    def get_evaluation_memory(projectId: str = Path(...),
+                              windowDays: int | None = Query(default=None, ge=1),
+                              principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        return agentic_service.evaluation_memory(
+            organization_id=principal.organization_id, project_id=projectId,
+            window_days=windowDays)
 
     return app
 

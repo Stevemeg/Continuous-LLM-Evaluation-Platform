@@ -20,6 +20,7 @@ Canonical §19 fixes the required ADR topics; all eleven are present. Two more w
 | [ADR-014](ADR-014-run-identity-scope.md) | What a run identity captures, and what enters its digest | Accepted |
 | [ADR-015](ADR-015-cache-correctness.md) | Result caching that cannot change an outcome | Accepted |
 | [ADR-016](ADR-016-gate-composition.md) | How statistical evidence and configured thresholds compose into a gate decision | Accepted |
+| [ADR-017](ADR-017-judge-agreement.md) | What judge disagreement is measured as, and what an ensemble may be composed of | Accepted |
 
 ## The two ADRs that were held open, and are now closed
 

@@ -422,9 +422,12 @@ def test_a_criterion_with_no_precision_threshold_abstains_rather_than_guessing(
     assert outcome.comparison["classification"] == "insufficient_evidence"
 
 
-def test_a_judge_agreement_criterion_abstains_loudly_instead_of_passing(
+def test_a_judge_agreement_criterion_abstains_when_no_ensemble_judged(
         migrated_database, seeded, examples):
-    """A gate for a capability that does not exist yet must not report success."""
+    """Phase 8 gave this source a signal. With no ensemble on either run there
+    is still nothing to pair, and the criterion abstains — with the reason the
+    absence of pairs gives, rather than the 'not built yet' reason it used to
+    give, which would now be false."""
     baseline_run = build_run(migrated_database, seeded, examples, BASELINE_SCORES,
                              key="j1")
     candidate_run = build_run(migrated_database, seeded, examples, BASELINE_SCORES,
@@ -435,9 +438,21 @@ def test_a_judge_agreement_criterion_abstains_loudly_instead_of_passing(
                              dimension="judge_agreement",
                              metric_key="judge_agreement"))
     outcome = result.criterion_outcomes[0]
-    assert outcome.rule_fired == "no_signal"
     assert outcome.verdict == "warning"
     assert outcome.comparison["classification"] == "insufficient_evidence"
+    assert outcome.comparison["sample_size"] == 0
+
+
+def test_a_source_with_no_signal_still_abstains_loudly():
+    """The branch that handles a signal-less source outlived the source it was
+    written for. It stays, because the next one should abstain the same way
+    rather than be written to pass."""
+    from clep.regression import engine
+    assert engine.SOURCES_WITHOUT_SIGNAL == ()
+    assert "judge_agreement" in engine.SOURCES_WITH_SIGNAL
+    declared = set(engine.SOURCES_WITH_SIGNAL) | set(engine.SOURCES_WITHOUT_SIGNAL)
+    from clep.api import contract
+    assert declared == set(contract.enum_of("CriterionSource"))
 
 
 def test_a_multi_candidate_run_is_not_comparable_rather_than_averaged(

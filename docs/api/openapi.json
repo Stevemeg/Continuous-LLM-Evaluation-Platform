@@ -54,6 +54,18 @@
     {
       "name": "experiments",
       "description": "Reproducible experiment tracking, and reproduction of a past run from its captured identity."
+    },
+    {
+      "name": "judges",
+      "description": "Judge definitions, versions and ensembles."
+    },
+    {
+      "name": "plans",
+      "description": "Evaluation plans: drafted, amended, accepted."
+    },
+    {
+      "name": "memory",
+      "description": "Historical evaluation memory and escalation review."
     }
   ],
   "paths": {
@@ -1277,6 +1289,606 @@
           }
         }
       }
+    },
+    "/projects/{projectId}/judges": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "createJudge",
+        "summary": "Register a judge",
+        "tags": [
+          "judges"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-2"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JudgeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The registered judge.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Judge"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/judges/{judgeId}/versions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/judgeId"
+        }
+      ],
+      "post": {
+        "operationId": "addJudgeVersion",
+        "summary": "Add an immutable judge version",
+        "tags": [
+          "judges"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-2",
+          "REQ-F-08-8"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JudgeVersionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created version, in draft.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeVersion"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/judge-versions/{judgeVersionId}/publish": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/judgeVersionId"
+        }
+      ],
+      "post": {
+        "operationId": "publishJudgeVersion",
+        "summary": "Publish a judge version",
+        "description": "A published version is frozen. It participates in run identity, so editing it would change what past runs measured (ADR-004 D-5).",
+        "tags": [
+          "judges"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-2",
+          "REQ-F-08-8"
+        ],
+        "responses": {
+          "200": {
+            "description": "The published version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeVersion"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/judge-ensembles": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "createJudgeEnsemble",
+        "summary": "Configure a judge ensemble",
+        "description": "Composition is validated here: an ensemble that cannot disagree with itself is refused rather than accepted and quietly agreeable (ADR-017 \u00a72).",
+        "tags": [
+          "judges"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-2",
+          "REQ-F-AG-4"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JudgeEnsembleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The configured ensemble.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeEnsemble"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/judge-ensembles/{judgeEnsembleId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/judgeEnsembleId"
+        }
+      ],
+      "get": {
+        "operationId": "getJudgeEnsemble",
+        "summary": "Read an ensemble's composition and parameters",
+        "tags": [
+          "judges"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-2"
+        ],
+        "responses": {
+          "200": {
+            "description": "The ensemble.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeEnsemble"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/evaluation-plans": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "createEvaluationPlan",
+        "summary": "Draft an evaluation plan",
+        "description": "Returns a draft with the reasoning trace that produced it. A draft that does not validate is returned as a draft with its problems, not as a 500.",
+        "tags": [
+          "plans"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-1",
+          "REQ-F-AG-5",
+          "REQ-X-9"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationPlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The drafted plan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationPlan"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/evaluation-plans/{evaluationPlanId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/evaluationPlanId"
+        }
+      ],
+      "get": {
+        "operationId": "getEvaluationPlan",
+        "summary": "Read a plan, its amendments and its reasoning trace",
+        "tags": [
+          "plans"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-1",
+          "REQ-F-AG-5"
+        ],
+        "responses": {
+          "200": {
+            "description": "The plan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationPlan"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/evaluation-plans/{evaluationPlanId}/amendments": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/evaluationPlanId"
+        }
+      ],
+      "post": {
+        "operationId": "amendEvaluationPlan",
+        "summary": "Amend a draft plan",
+        "description": "Refused once the plan is accepted: the accepted plan is the record of what was approved.",
+        "tags": [
+          "plans"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-1"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanAmendmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The amended draft.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationPlan"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/evaluation-plans/{evaluationPlanId}/acceptance": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/evaluationPlanId"
+        }
+      ],
+      "post": {
+        "operationId": "acceptEvaluationPlan",
+        "summary": "Accept a plan for execution",
+        "description": "A plan that does not validate cannot be accepted; an over-budget plan is refused rather than started and abandoned (REQ-F-10-5).",
+        "tags": [
+          "plans"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-1",
+          "REQ-F-12-7"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanAcceptanceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The accepted, frozen plan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationPlan"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/escalations": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "listEscalations",
+        "summary": "List judgements awaiting human review",
+        "tags": [
+          "memory"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-4"
+        ],
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/EscalationState"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Escalations in this project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EscalationPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/escalations/{escalationId}/review": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/escalationId"
+        }
+      ],
+      "post": {
+        "operationId": "recordEscalationReview",
+        "summary": "Record a human review of an escalated judgement",
+        "description": "The review is recorded against the escalation. It does not edit the judgement, and it never re-runs the judges (ADR-004 D-4).",
+        "tags": [
+          "memory"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-4",
+          "REQ-F-12-7"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EscalationReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The reviewed escalation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Escalation"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/evaluation-memory": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "getEvaluationMemory",
+        "summary": "Structured history for this project",
+        "description": "Derived from the stored records at read time. Subject to tenant retention, and to the audit-retention floor that overrides it (REQ-N-COMP-3).",
+        "tags": [
+          "memory"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-6",
+          "REQ-F-12-6",
+          "REQ-F-11-4"
+        ],
+        "parameters": [
+          {
+            "name": "windowDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project's evaluation memory.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationMemory"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1385,6 +1997,51 @@
         "name": "promptVersionId",
         "in": "path",
         "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "judgeId": {
+        "name": "judgeId",
+        "in": "path",
+        "required": true,
+        "description": "A judge definition.",
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "judgeVersionId": {
+        "name": "judgeVersionId",
+        "in": "path",
+        "required": true,
+        "description": "An immutable judge version.",
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "judgeEnsembleId": {
+        "name": "judgeEnsembleId",
+        "in": "path",
+        "required": true,
+        "description": "A configured judge ensemble.",
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "evaluationPlanId": {
+        "name": "evaluationPlanId",
+        "in": "path",
+        "required": true,
+        "description": "An evaluation plan.",
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "escalationId": {
+        "name": "escalationId",
+        "in": "path",
+        "required": true,
+        "description": "A judgement awaiting human review.",
         "schema": {
           "$ref": "#/components/schemas/Ulid"
         }
@@ -1632,6 +2289,34 @@
           },
           "integrationTier": {
             "$ref": "#/components/schemas/IntegrationTier"
+          },
+          "evaluationPlanId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "An accepted plan this run executes.",
+            "x-requirements": [
+              "REQ-F-AG-1"
+            ]
+          },
+          "judgeEnsembleId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The ensemble that judges this run's samples.",
+            "x-requirements": [
+              "REQ-F-AG-2"
+            ]
           }
         }
       },
@@ -1856,7 +2541,7 @@
       },
       "ConsensusResult": {
         "type": "object",
-        "description": "Always carries a disagreement measure. A verdict without one is not representable.",
+        "description": "Always carries a disagreement measure. A verdict without one is not representable (I-22). The measure is the range of the scoring votes (ADR-017 \u00a71); when fewer than two judges scored it is reported at its maximum with `disagreementMeasured` false, so an absence of evidence never reads as agreement.",
         "x-requirements": [
           "REQ-F-AG-2",
           "REQ-F-AG-3",
@@ -1864,24 +2549,56 @@
         ],
         "required": [
           "state",
-          "disagreement"
+          "disagreement",
+          "disagreementMeasured",
+          "methodVersion"
         ],
         "properties": {
           "state": {
-            "type": "string",
-            "enum": [
-              "agreed",
-              "escalated"
-            ],
-            "description": "`escalated` is terminal, not a retry marker."
+            "$ref": "#/components/schemas/ConsensusState"
           },
           "disagreement": {
             "type": "number",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 1
+          },
+          "disagreementMeasured": {
+            "type": "boolean"
+          },
+          "methodVersion": {
+            "type": "string"
+          },
+          "verdict": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Present exactly when the state is `agreed`."
           },
           "confidence": {
             "type": [
               "number",
+              "null"
+            ],
+            "description": "1 \u2212 disagreement. A transformation of the measure, not a probability (ADR-017 \u00a76)."
+          },
+          "escalationReason": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EscalationReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "escalationDetail": {
+            "type": [
+              "string",
               "null"
             ]
           },
@@ -1917,8 +2634,25 @@
           },
           "latencyMs": {
             "type": "integer"
+          },
+          "contentNeutralised": {
+            "type": "boolean",
+            "description": "True when the sample content contained the containment fence token and it was removed. Recorded because a sample that tried is worth knowing about (REQ-X-7)."
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 3,
+            "maxLength": 3
           }
-        }
+        },
+        "x-requirements": [
+          "REQ-F-AG-3",
+          "REQ-X-8"
+        ],
+        "description": "One judge's answer. A score is present exactly when the resolution is `scored`, so a judge that failed or abstained can never be read as a zero."
       },
       "UncertaintyInterval": {
         "type": "object",
@@ -2147,7 +2881,7 @@
           },
           "evaluatedOutcome": {
             "$ref": "#/components/schemas/GateOutcome",
-            "description": "What the evidence produced. Immutable. `outcome` may differ from it only by `exception_applied`, and only while an exception is in force — an exception never edits a decision (ADR-016)."
+            "description": "What the evidence produced. Immutable. `outcome` may differ from it only by `exception_applied`, and only while an exception is in force \u2014 an exception never edits a decision (ADR-016)."
           },
           "criterionResults": {
             "type": "array",
@@ -2695,12 +3429,13 @@
           "model_configuration",
           "system_version",
           "evaluator_version",
+          "judge_version",
           "suite_version",
           "integration_tier",
           "seed",
           "environment"
         ],
-        "description": "Every kind is captured under REQ-F-07-1. `environment` is captured and deliberately excluded from the identity digest (ADR-014): two runs of the same measurement on different hosts are the same measurement."
+        "description": "Every kind is captured under REQ-F-07-1. `judge_version` is captured for the same reason `evaluator_version` is: ADR-004 D-5 makes a judge version part of run identity, and REQ-F-08-8 invalidates comparability when it changes rather than warning. `environment` is captured and deliberately excluded from the identity digest (ADR-014): two runs of the same measurement on different hosts are the same measurement."
       },
       "IdentityComponent": {
         "type": "object",
@@ -3275,6 +4010,834 @@
         "x-requirements": [
           "REQ-F-09-4"
         ]
+      },
+      "JudgeScope": {
+        "type": "string",
+        "enum": [
+          "builtin",
+          "custom"
+        ],
+        "description": "Built-in judges are global; custom judges are tenant-scoped.",
+        "x-requirements": [
+          "REQ-F-AG-2"
+        ]
+      },
+      "ConsensusState": {
+        "type": "string",
+        "enum": [
+          "agreed",
+          "escalated"
+        ],
+        "description": "`escalated` is terminal, not a retry marker (I-24).",
+        "x-requirements": [
+          "REQ-F-AG-4"
+        ]
+      },
+      "EscalationReason": {
+        "type": "string",
+        "enum": [
+          "disagreement_above_threshold",
+          "no_threshold_configured",
+          "insufficient_scoring_votes"
+        ],
+        "description": "Why a judgement went to a human. `no_threshold_configured` is the ADR-017 \u00a73 abstention: the platform declines to invent the value ADR-004 left unset.",
+        "x-requirements": [
+          "REQ-F-AG-4"
+        ]
+      },
+      "EscalationState": {
+        "type": "string",
+        "enum": [
+          "open",
+          "reviewed"
+        ],
+        "description": "An escalation is closed by a person, never by a retry.",
+        "x-requirements": [
+          "REQ-F-AG-4"
+        ]
+      },
+      "PlanState": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "accepted",
+          "rejected"
+        ],
+        "description": "A plan is amendable while `draft` and frozen afterwards.",
+        "x-requirements": [
+          "REQ-F-AG-1"
+        ]
+      },
+      "PlanStepKind": {
+        "type": "string",
+        "enum": [
+          "score_candidate",
+          "run_evaluator",
+          "run_ensemble",
+          "compare_to_baseline",
+          "evaluate_gate"
+        ],
+        "description": "Closed: a step nobody can execute is a sentence, not a plan.",
+        "x-requirements": [
+          "REQ-F-AG-1"
+        ]
+      },
+      "ReasoningState": {
+        "type": "string",
+        "enum": [
+          "accepted",
+          "iterations_exhausted",
+          "budget_exhausted",
+          "deadline_exceeded",
+          "no_progress",
+          "failed"
+        ],
+        "description": "How a bounded reasoning loop stopped. Exactly one is a success; the rest carry no result, because an exhausted bound is an outcome rather than a half-finished answer (REQ-F-AG-5, REQ-X-2).",
+        "x-requirements": [
+          "REQ-F-AG-5"
+        ]
+      },
+      "Judge": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "scope"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-2"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/JudgeScope"
+          }
+        }
+      },
+      "JudgeRequest": {
+        "type": "object",
+        "required": [
+          "slug",
+          "displayName"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "JudgeVersion": {
+        "type": "object",
+        "description": "An immutable judge identity. Carries the model configuration it runs on, because ADR-004 D-1 measures heterogeneity on the configuration and not on the name.",
+        "required": [
+          "id",
+          "judgeId",
+          "versionNumber",
+          "state",
+          "contentDigest"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-2",
+          "REQ-F-AG-3",
+          "REQ-F-08-8"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "judgeId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "versionNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "state": {
+            "$ref": "#/components/schemas/VersionState"
+          },
+          "modelConfigurationId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "rubricDigest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "contentDigest": {
+            "$ref": "#/components/schemas/Digest"
+          }
+        }
+      },
+      "JudgeVersionRequest": {
+        "type": "object",
+        "required": [
+          "rubric",
+          "modelConfigurationId"
+        ],
+        "properties": {
+          "rubric": {
+            "type": "string",
+            "minLength": 1
+          },
+          "modelConfigurationId": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        }
+      },
+      "JudgeEnsemble": {
+        "type": "object",
+        "description": "A configured ensemble. Composition is validated at creation (ADR-017 \u00a72): at least two judges, at least two distinct model configurations, and no configuration holding a majority of the seats.",
+        "required": [
+          "id",
+          "judgeVersionIds"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-2",
+          "REQ-F-AG-4"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "judgeVersionIds": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          "agreementThreshold": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null until calibrated. An ensemble with no threshold escalates every judgement rather than guessing (ADR-017 \u00a73)."
+          },
+          "minimumScoringVotes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 2
+          }
+        }
+      },
+      "JudgeEnsembleRequest": {
+        "type": "object",
+        "required": [
+          "slug",
+          "judgeVersionIds"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "judgeVersionIds": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          "agreementThreshold": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minimumScoringVotes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 2
+          }
+        }
+      },
+      "Escalation": {
+        "type": "object",
+        "description": "A judgement routed to a person. Closed by a recorded review, never by re-asking the judges (ADR-004 D-4).",
+        "required": [
+          "id",
+          "state",
+          "reason",
+          "disagreement"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-4"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "runSampleId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/EscalationState"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/EscalationReason"
+          },
+          "disagreement": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "raisedAt": {
+            "$ref": "#/components/schemas/Instant"
+          },
+          "reviewedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewedAt": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Instant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reviewOutcome": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "EscalationPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Escalation"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "EscalationReviewRequest": {
+        "type": "object",
+        "required": [
+          "outcome",
+          "justification"
+        ],
+        "description": "A human resolution. The review is recorded against the escalation; it does not edit the judgement, which is audit-class.",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "minLength": 1
+          },
+          "justification": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "PlanStep": {
+        "type": "object",
+        "required": [
+          "order",
+          "kind",
+          "subject"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-1"
+        ],
+        "properties": {
+          "order": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PlanStepKind"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "estimatedCost": {
+            "$ref": "#/components/schemas/Decimal"
+          }
+        }
+      },
+      "PlanAmendment": {
+        "type": "object",
+        "required": [
+          "actor",
+          "note",
+          "priorDigest"
+        ],
+        "properties": {
+          "actor": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "priorDigest": {
+            "$ref": "#/components/schemas/Digest"
+          }
+        }
+      },
+      "EvaluationPlan": {
+        "type": "object",
+        "description": "A typed, reviewable plan. Amendable while `draft`; frozen on acceptance, because an accepted plan is the record of what was approved (REQ-F-AG-1).",
+        "required": [
+          "id",
+          "state",
+          "objective",
+          "steps",
+          "digest"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-1",
+          "REQ-X-9"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/PlanState"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "suiteVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "baselineId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gatePolicyVersionId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "judgeEnsembleId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "budget": {
+            "$ref": "#/components/schemas/Budget"
+          },
+          "estimatedCost": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanStep"
+            }
+          },
+          "amendments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanAmendment"
+            }
+          },
+          "reasoning": {
+            "$ref": "#/components/schemas/ReasoningTrace"
+          },
+          "acceptedBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "digest": {
+            "$ref": "#/components/schemas/Digest"
+          }
+        }
+      },
+      "EvaluationPlanRequest": {
+        "type": "object",
+        "required": [
+          "objective",
+          "suiteVersionId",
+          "candidates"
+        ],
+        "properties": {
+          "objective": {
+            "type": "string",
+            "minLength": 1
+          },
+          "suiteVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "candidates": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/CandidateSpec"
+            }
+          },
+          "baselineId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "gatePolicyVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "judgeEnsembleId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/Budget"
+          },
+          "integrationTier": {
+            "$ref": "#/components/schemas/IntegrationTier"
+          }
+        }
+      },
+      "PlanAmendmentRequest": {
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 1
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanStep"
+            }
+          }
+        }
+      },
+      "PlanAcceptanceRequest": {
+        "type": "object",
+        "required": [
+          "justification"
+        ],
+        "properties": {
+          "justification": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "ReasoningAttempt": {
+        "type": "object",
+        "required": [
+          "index",
+          "accepted"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-5"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "critique": {
+            "type": "string"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "durationMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ReasoningTrace": {
+        "type": "object",
+        "description": "The complete history of a bounded loop, rejected iterations included. The rejected ones are the history worth having (REQ-F-AG-5).",
+        "required": [
+          "state",
+          "attempts",
+          "stoppedBecause"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-5"
+        ],
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/ReasoningState"
+          },
+          "maxIterations": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "budget": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cost": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "durationMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "stoppedBecause": {
+            "type": "string"
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReasoningAttempt"
+            }
+          }
+        }
+      },
+      "JudgeCalibration": {
+        "type": "object",
+        "description": "Per judge version, accumulated across judgements: how far it sits from the ensemble median, and how often it fails to answer. The bias and variance signals canonical \u00a78 asks the ensemble to expose.",
+        "required": [
+          "judgeVersionId",
+          "judgements"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-3",
+          "REQ-F-11-4"
+        ],
+        "properties": {
+          "judgeVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "judgements": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "meanDeviation": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deviationSpread": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "abstentionRate": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failureRate": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "RecurringFailure": {
+        "type": "object",
+        "required": [
+          "signature",
+          "occurrences"
+        ],
+        "properties": {
+          "signature": {
+            "type": "string"
+          },
+          "occurrences": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "firstSeen": {
+            "$ref": "#/components/schemas/Instant"
+          },
+          "lastSeen": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "EvaluatorInstability": {
+        "type": "object",
+        "description": "An evaluator whose resolutions vary across runs of the same identity. Recorded because an unstable evaluator invalidates comparisons drawn through it, and does so silently.",
+        "required": [
+          "evaluatorVersionId",
+          "runs",
+          "unstable"
+        ],
+        "properties": {
+          "evaluatorVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "runs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failureRate": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unstable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EvaluationMemory": {
+        "type": "object",
+        "description": "Structured history, derived from the records that already exist rather than copied into a second store. A summary that could disagree with the decisions it summarises would be worse than no summary (REQ-F-AG-6).",
+        "required": [
+          "gateDecisions",
+          "escalations",
+          "judgeCalibration",
+          "recurringFailures",
+          "evaluatorInstability"
+        ],
+        "x-requirements": [
+          "REQ-F-AG-6",
+          "REQ-F-11-4"
+        ],
+        "properties": {
+          "windowDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "gateDecisions": {
+            "type": "object",
+            "description": "Release decisions by outcome, over the window.",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "regressions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "escalations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "judgeCalibration": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JudgeCalibration"
+            }
+          },
+          "recurringFailures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecurringFailure"
+            }
+          },
+          "evaluatorInstability": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvaluatorInstability"
+            }
+          },
+          "retentionFloorDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Audit records below this age are retained regardless of a tenant retention policy (REQ-N-COMP-3)."
+          }
+        }
       }
     }
   }

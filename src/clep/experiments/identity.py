@@ -33,6 +33,10 @@ IDENTITY_KINDS = (
     "model_configuration",
     "system_version",
     "evaluator_version",
+    # ADR-004 D-5. A judge version is part of what a run measured, exactly as
+    # an evaluator version is: REQ-F-08-8 invalidates comparability when either
+    # changes, rather than warning about it.
+    "judge_version",
     "suite_version",
     "integration_tier",
     "seed",

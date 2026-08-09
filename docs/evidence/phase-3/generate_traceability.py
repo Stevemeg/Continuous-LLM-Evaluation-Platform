@@ -54,7 +54,10 @@ DEFERRED = {
     "REQ-F-11-2": (11, "Leaderboards are an analytics surface"),
     "REQ-F-11-5": (11, "Agent analytics reporting is an analytics surface"),
     "REQ-F-11-8": (11, "Executive scorecards are a reporting surface"),
-    "REQ-F-AG-6": (8, "Historical evaluation memory arrives with the agentic evaluation layer"),
+    # REQ-F-AG-6 was deferred to Phase 8 and is delivered there. Removed rather
+    # than left in place: the generator fails a deferral that is in fact traced,
+    # which is the mechanism that stops this table describing a past state of
+    # the product.
     "REQ-N-COMP-4": (15, "Per-capability methodology documentation is a release-documentation obligation"),
 }
 
