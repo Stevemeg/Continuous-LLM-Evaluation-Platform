@@ -355,6 +355,14 @@ add("P-15", "PASS" if not missing_keys else "FAIL",
 # ========================== P-16 row-level security on every tenant-scoped table
 tables = dict(re.findall(r"CREATE TABLE clep\.(\w+)\s*\((.*?)\n\);", sql, re.S))
 tenant_scoped = [t for t in tables if t != "organization"]
+
+#: Everything schema 08 adds. Named once and used by the checks below, because
+#: three separate lists of the same thirteen tables would drift.
+PHASE8_TABLES = ("judge_definition", "judge_version", "judge_ensemble",
+                 "judge_ensemble_member", "judge_run", "judge_vote",
+                 "consensus_result", "escalation", "evaluation_plan",
+                 "plan_step", "plan_amendment", "reasoning_trace",
+                 "reasoning_attempt")
 rls_defects = []
 for t in tenant_scoped:
     if not re.search(rf"ALTER TABLE clep\.{t}\s+ENABLE ROW LEVEL SECURITY", sql):
@@ -371,11 +379,7 @@ fk_targets = set(re.findall(
 has_uq = {t for t, body in tables.items()
           if re.search(r"UNIQUE\s*\(\s*organization_id\s*,\s*id\s*\)", body)}
 missing_uq = sorted(fk_targets - has_uq)
-phase8 = [t for t in tables if t in (
-    "judge_definition", "judge_version", "judge_ensemble",
-    "judge_ensemble_member", "judge_run", "judge_vote", "consensus_result",
-    "escalation", "evaluation_plan", "plan_step", "plan_amendment",
-    "reasoning_trace", "reasoning_attempt")]
+phase8 = [t for t in tables if t in PHASE8_TABLES]
 plain_fks = []
 for t in phase8:
     body = tables[t]
@@ -420,8 +424,17 @@ for table, trigger in (("judge_version", "trg_judge_version__immutable"),
                        ("evaluation_plan", "trg_evaluation_plan__settles_once")):
     if not re.search(rf"CREATE TRIGGER {trigger}", sql):
         immutability.append(f"{table} may change after something has cited it")
-if re.search(r"GRANT[^;]*\bDELETE\b[^;]*clep\.\w+", sql):
-    immutability.append("something in the schema grants DELETE")
+# No DELETE on anything Phase 8 owns. Scoped to those tables rather than to the
+# schema: the platform genuinely needs DELETE on datasets, examples and
+# artifacts, because REQ-N-PRIV-4 requires erasure to reach derived content. A
+# blanket "no DELETE anywhere" reads as stricter and is simply wrong — it
+# reported the erasure grants as a defect on its first run.
+for statement in re.findall(r"GRANT[^;]*;", sql, re.S):
+    if not re.search(r"\bDELETE\b", statement):
+        continue
+    for table in PHASE8_TABLES:
+        if re.search(rf"clep\.{table}\b", statement):
+            immutability.append(f"DELETE is granted on {table}")
 add("P-19", "PASS" if not immutability else "FAIL",
     f"judgement evidence is immutable in the store: {len(audit_class)} audit-class "
     f"tables plus six freeze triggers; defects: {len(immutability)}", immutability)
@@ -658,13 +671,17 @@ try:
         pass
     # In the store the same rule is structural: the score is a separate table,
     # so there is no column to read as zero rather than a nullable one to check.
-    if "score" in tables.get("judge_run", ""):
+    # A COLUMN named score, not the substring. The first version of this used
+    # `"score" in tables["judge_run"]` and reported a defect against a correct
+    # schema: the resolution CHECK constraint contains 'scored'.
+    if re.search(r"^\s{4}score\s+", tables.get("judge_run", ""), re.M):
         unscored_defects.append(
             "judge_run carries a score column; an unanswered judgement would be "
             "one NULL check away from being a zero")
     if not re.search(r"CREATE TABLE clep\.judge_vote", sql):
         unscored_defects.append("there is no separate table for a judge's score")
-    if "score            numeric(18, 9) NOT NULL" not in tables.get("judge_vote", ""):
+    if not re.search(r"^\s{4}score\s+numeric\(18, 9\)\s+NOT NULL",
+                     tables.get("judge_vote", ""), re.M):
         unscored_defects.append("a judge_vote row can exist without a score")
     if "uq_judge_vote__one_per_run" not in sql:
         unscored_defects.append("a judgement can carry two scores")
@@ -906,13 +923,8 @@ add("P-26", "PASS" if not debt_defects else "FAIL",
     debt_defects)
 
 # ============== P-27 the Phase 8 tables store no credential-shaped column
-phase8_tables = ("judge_definition", "judge_version", "judge_ensemble",
-                 "judge_ensemble_member", "judge_run", "judge_vote",
-                 "consensus_result", "escalation", "evaluation_plan",
-                 "plan_step", "plan_amendment", "reasoning_trace",
-                 "reasoning_attempt")
 leaky = []
-for t in phase8_tables:
+for t in PHASE8_TABLES:
     body = tables.get(t, "")
     for column in re.findall(r"^\s{4}(\w+)\s+", body, re.M):
         if any(w in column for w in ("key", "secret", "token", "password",
@@ -925,7 +937,7 @@ for t in phase8_tables:
 if "rubric  " in tables.get("judge_version", ""):
     leaky.append("judge_version stores the rubric text rather than its digest")
 add("P-27", "PASS" if not leaky else "FAIL",
-    f"{len(phase8_tables)} Phase 8 tables carry no endpoint or credential column; "
+    f"{len(PHASE8_TABLES)} Phase 8 tables carry no endpoint or credential column; "
     f"found: {leaky or 'none'}", leaky)
 
 # ============================================================ P-28 secrets
