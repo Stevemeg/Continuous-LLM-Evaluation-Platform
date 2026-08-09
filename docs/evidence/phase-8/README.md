@@ -91,6 +91,23 @@ found it, and the fix came with the positive probe that would have caught it:
 refuses everything is not a stricter trigger; it is a broken one, and an
 uncalibrated threshold nobody can fix is the opposite of what ADR-017 wants.
 
+## What the validator's first run found — in the validator
+
+Two checks failed against a correct schema, and both were reading a substring
+where the property was about structure. The same class the self-test had already
+caught three times, which is worth stating plainly rather than filing as a
+detail: **string matching keeps producing checks that are satisfied, or
+tripped, by text that has nothing to do with the rule.**
+
+| Check | What it did | Why it was wrong |
+|---|---|---|
+| `P-19` | Asserted nothing in the schema grants `DELETE` | The platform needs `DELETE` on datasets, examples and artifacts, because `REQ-N-PRIV-4` requires erasure to reach derived content. The blanket rule read as stricter and was false. Scoped to the tables Phase 8 owns |
+| `P-22` | Searched `judge_run`'s body for `score` | Its resolution constraint contains `'scored'`. Matched on a column declaration instead |
+
+Neither was a defect in the schema. Both were defects in the evidence, found
+because the gate was run rather than assumed — which is the only way this class
+of error surfaces at all.
+
 ## The requirement that finally became enforceable
 
 `REQ-F-08-8` has said "when a **judge** or evaluator version changes" since
@@ -141,9 +158,9 @@ carry a tenant-carrying foreign key into tenant data.
 | | |
 |---|---|
 | Validator | **34 checks, all PASS**, exit 0 |
-| Self-test | planted violations, all caught |
+| Self-test | **25 planted violations, 25 caught** (after three checks were strengthened) |
 | Schema probes | 35 as the runtime role, 14 as superuser |
-| Tests | **573 passed**, coverage **93.65%** against an 85% gate |
+| Tests | **576 passed**, coverage **93.65%** against an 85% gate |
 | Schema | 61 tables, 60 tenant-scoped with ENABLE and FORCE |
 | Contract | 36 operations, 96 schemas |
 | Regression | Spike Sprint; Phases 4, 5, 6, 7; Phase 1 milestones |
