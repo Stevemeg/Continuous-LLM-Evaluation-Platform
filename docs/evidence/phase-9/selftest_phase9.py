@@ -75,16 +75,30 @@ def case(check_id, label, mutate):
     CASES.append((check_id, label, mutate))
 
 
+def plant_registered_evaluator(path, name, class_name, anchor, registration):
+    """Define an evaluator AND register it.
+
+    The first version of the two plants below only defined the class.
+    Registration is an explicit tuple, so nothing picked it up, the registry
+    never saw it, and the rule was never broken — the checks were right and the
+    plants were inert. A plant that does not break the rule proves nothing about
+    the check that did not catch it.
+    """
+    plant(path, anchor,
+          f'class {class_name}:\n'
+          f'    name = "{name}"\n'
+          f'    version = "1.0.0"\n'
+          f'    requires_tier = "partial"\n\n'
+          f'    def evaluate(self, sample):\n'
+          f'        return scored(1)\n\n\n' + anchor)
+    plant(path, registration, f"{class_name}, " + registration.lstrip())
+
+
 # ------------------------------------------- P-19a the computed/judged split
 case("P-19a", "a semantic judgement becomes a deterministic evaluator",
-     lambda: plant(RAG, 'class CitationCoverage:\n    """',
-                   'class Groundedness:\n'
-                   '    name = "groundedness"\n'
-                   '    version = "1.0.0"\n'
-                   '    requires_tier = "partial"\n\n'
-                   '    def evaluate(self, sample):\n'
-                   '        return scored(1)\n\n\n'
-                   'class CitationCoverage:\n    """'))
+     lambda: plant_registered_evaluator(
+         RAG, "groundedness", "Groundedness", 'class CitationCoverage:\n    """',
+         "                              CitationValidity, CitationCoverage)]"))
 
 case("P-19a", "a judged rubric quietly disappears",
      lambda: plant(RAG, '    "groundedness":', '    "groundedness_removed":'))
@@ -177,13 +191,9 @@ case("P-19f", "recovery is credited to an agent that never failed",
                    "            return scored(1)"))
 
 case("P-19f", "an evaluator combines route quality with answer quality",
-     lambda: plant(AGENT, 'class TaskSuccess:', 'class AgentScoreOverall:\n'
-                   '    name = "agent_score"\n'
-                   '    version = "1.0.0"\n'
-                   '    requires_tier = "full"\n\n'
-                   '    def evaluate(self, sample):\n'
-                   '        return scored(1)\n\n\n'
-                   'class TaskSuccess:'))
+     lambda: plant_registered_evaluator(
+         AGENT, "agent_score", "AgentScoreOverall", "class TaskSuccess:",
+         "                              TaskSuccess, NonTerminatingLoop,"))
 
 # --------------------------------------------------------- P-19g the store
 case("P-19g", "a hallucination finding becomes editable",
