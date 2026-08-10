@@ -119,3 +119,21 @@ delivering them. Six deferrals remain, owned by Phases 10, 11 and 15.
 | Traceability | 144 of 150 traced, 6 deferred, 0 untracked |
 | ADRs | 18 recorded, 0 undecided |
 | Dependencies added | **none** — the real-model validation runs against a container, not a library |
+
+## At finalization
+
+Re-run against the accepted tree before Phase 10 began:
+[`finalization-output.txt`](finalization-output.txt), 34 checks, exit 0,
+including the full regression closure.
+
+Three lines differ from [`validation-output.txt`](validation-output.txt), and
+all three are the recorded run being one commit older than the finalized tree:
+
+| Check | Then | Now | Why |
+|---|---|---|---|
+| `P-20` | 240 files scanned | 241 | this evidence file and the README section you are reading |
+| `P-23` | `refs_scanned=12` | `13` | the `phase/9-rag-and-agent` branch created at the phase tip |
+| `P-24` | 233 tracked | 234 | as above |
+
+The counts that carry meaning — undisclosed secrets, attribution matches, and
+every canonical-document reachability figure — are unchanged at zero.
