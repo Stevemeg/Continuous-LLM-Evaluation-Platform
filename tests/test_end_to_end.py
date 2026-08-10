@@ -440,3 +440,84 @@ def test_a_failed_candidate_is_not_judged(
         assert conn.execute(
             "SELECT count(*) FROM clep.judge_run WHERE run_id = %s",
             (ulid_to_uuid(run_id),)).fetchone()[0] == 0
+
+
+# =================================================== the full release decision
+def approved_baseline_from(dsn, seeded, run_id):
+    """A baseline made from a run this file executed, not from a fixture."""
+    from clep.regression.repository import RegressionRepository
+    with tenant_session(dsn, seeded["organization"]) as conn:
+        repo = RegressionRepository(conn, seeded["organization"])
+        baseline_id = repo.create_baseline(run_id=run_id, created_by="tester",
+                                           label="release-1")
+        repo.approve_baseline(baseline_id, approved_by="tester")
+    return baseline_id
+
+
+def published_policy(dsn, seeded, metric_key):
+    from clep.regression.repository import RegressionRepository
+    with tenant_session(dsn, seeded["organization"]) as conn:
+        repo = RegressionRepository(conn, seeded["organization"])
+        policy_id = repo.create_gate_policy(project_id=seeded["project"],
+                                            slug="release", display_name="Release")
+        version_id = repo.add_policy_version(
+            policy_id=policy_id, confidence_level=Decimal("0.95"),
+            resample_count=200, bootstrap_seed=20260810, created_by="tester")
+        repo.add_criterion(
+            version_id, metric_key=metric_key, dimension="quality",
+            source="evaluator", direction="higher_is_better",
+            precision_threshold=Decimal("0.5"), on_regression="hard_fail",
+            on_insufficient_evidence="warning", on_not_comparable="hard_fail")
+        repo.publish_policy_version(version_id)
+    return version_id
+
+
+def test_the_whole_path_from_examples_to_a_release_decision_and_its_report(
+        migrated_database, seeded, examples_with_evidence):
+    """M10.4. Dataset -> run -> evaluators -> scores -> baseline -> comparison
+    -> gate policy -> persisted decision -> retrievable report, every step
+    through the platform rather than beside it."""
+    from clep.api.gate_service import GateService
+
+    examples = build_examples(examples_with_evidence)
+    baseline_run, baseline_outcome = execute_run(
+        migrated_database, seeded, examples, key="e2e-gate-baseline")
+    candidate_run, candidate_outcome = execute_run(
+        migrated_database, seeded, examples, key="e2e-gate-candidate")
+    assert baseline_outcome.samples_scored == candidate_outcome.samples_scored == 3
+
+    baseline_id = approved_baseline_from(migrated_database, seeded, baseline_run)
+    metric_key = _metric_key_of(migrated_database, seeded)
+    policy_version_id = published_policy(migrated_database, seeded, metric_key)
+
+    service = GateService(migrated_database)
+    decision = service.evaluate_gate(
+        organization_id=seeded["organization"], project_id=seeded["project"],
+        candidate_run_id=candidate_run, policy_version_id=policy_version_id,
+        baseline_id=baseline_id, actor_id="tester")
+    assert decision is not None, "the gate produced no decision"
+
+    # The decision is persisted and readable, in both representations.
+    read_back = service.get_decision(seeded["organization"], decision["id"])
+    assert read_back["evaluatedOutcome"] == decision["evaluatedOutcome"]
+    assert read_back["gateEvidenceDigest"] == decision["gateEvidenceDigest"]
+    human = service.decision_report(seeded["organization"], decision["id"])
+    assert metric_key in human
+    assert decision["evaluatedOutcome"] in human
+
+    # Two identical runs are not a regression. The point of the assertion is
+    # that a real comparison happened, not that it was favourable.
+    assert decision["evaluatedOutcome"] in ("pass", "warning",
+                                            "insufficient_evidence")
+    assert decision["comparisons"], "the decision cites no evidence"
+
+
+def _metric_key_of(dsn, seeded):
+    """The evaluator the seeded fixture registered, by the name the gate uses."""
+    with tenant_session(dsn, seeded["organization"]) as conn:
+        row = conn.execute(
+            "SELECT d.slug FROM clep.evaluator_version v "
+            "JOIN clep.evaluator_definition d ON d.id = v.evaluator_definition_id "
+            "WHERE v.id = %s", (ulid_to_uuid(seeded["evaluator_version"]),)
+        ).fetchone()
+    return row[0]

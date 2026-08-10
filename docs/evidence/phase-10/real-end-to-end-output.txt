@@ -1,0 +1,21 @@
+REAL END-TO-END RUN — everything through the platform
+  candidate  http://localhost:8101/v1  /models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+  qwen       http://localhost:8101/v1  /models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+  smollm     http://localhost:8102/v1  /models/smollm2-360m-instruct-q8_0.gguf
+  llama      http://localhost:8103/v1  /models/llama-3.2-1b-instruct-q4_k_m.gguf
+
+  run e2e-baseline: complete, 3 samples, 27 evaluator outcomes, 3 passages, 6 trajectory steps
+    judges: 9 judgements, 6 scored, 2 unreadable, 0 regenerations, 1 agreed, 2 escalated
+  run e2e-candidate: complete, 3 samples, 27 evaluator outcomes, 3 passages, 6 trajectory steps
+    judges: 9 judgements, 6 scored, 2 unreadable, 0 regenerations, 1 agreed, 2 escalated
+
+  gate decision: pass, 1 comparison(s), evidence sha256:3bbfb4ebd716fc80...
+  read back: outcome pass, digest matches: True
+  human report: 25 lines
+
+  persisted rows: consensus_result=6, escalation=4, judge_run=18, judge_vote=12, required_context=3, retrieved_context=6, sample_citation=6, trajectory_step=12
+  sample analysis read back: 1 passage(s), 2 step(s), truncated=False
+
+  elapsed: 19.2s
+
+Every generation above came from a real model. Every row was written by the platform's own repositories. No stub was used and no credential was required.

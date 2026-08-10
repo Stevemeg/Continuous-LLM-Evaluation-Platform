@@ -1,0 +1,53 @@
+{
+  "decision": "pass",
+  "comparisons": 1,
+  "counts": {
+    "judge_run": 18,
+    "judge_vote": 12,
+    "consensus_result": 6,
+    "escalation": 4,
+    "retrieved_context": 6,
+    "trajectory_step": 12,
+    "sample_citation": 6,
+    "required_context": 3
+  },
+  "analysis": {
+    "runSampleId": "01KZN18DMEG6HR7B7J5J6DMBKQ",
+    "retrievedContexts": [
+      {
+        "contextRef": "01KZN18471V7KDJXG7CYB5ASP6-c1",
+        "retrievalRank": 0,
+        "contentDigest": "sha256:268fb45dc1d7786c20896683116248749e62ab0b428b76685928c7846e12deac",
+        "cited": true,
+        "required": true
+      }
+    ],
+    "requiredContextRefs": [
+      "01KZN18471V7KDJXG7CYB5ASP6-c1"
+    ],
+    "trajectory": [
+      {
+        "stepOrder": 0,
+        "tool": "search",
+        "arguments": {
+          "q": "What is the capital of France?"
+        },
+        "resultDigest": "sha256:268fb45dc1d7786c20896683116248749e62ab0b428b76685928c7846e12deac",
+        "failed": false,
+        "error": null
+      },
+      {
+        "stepOrder": 1,
+        "tool": "answer",
+        "arguments": {
+          "text": "Paris"
+        },
+        "resultDigest": "sha256:2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df",
+        "failed": false,
+        "error": null
+      }
+    ],
+    "trajectoryTruncated": false,
+    "claims": []
+  }
+}
