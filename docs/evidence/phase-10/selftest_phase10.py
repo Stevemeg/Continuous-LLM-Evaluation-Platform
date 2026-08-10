@@ -166,8 +166,8 @@ case("P-19f", "an observation becomes editable after the outcome is known",
 
 # --------------------------------------------- P-19g the end-to-end evidence
 case("P-19g", "the real runner acquires a fallback",
-     lambda: plant(E2E, '        print(f"REFUSING: unreachable models {unreachable}. This script "',
-                   '        print(f"continuing anyway at {unreachable}. This script "'))
+     lambda: plant(E2E, 'print(f"REFUSING: unreachable models {unreachable}. This script does "',
+                   'print(f"continuing anyway with {unreachable}. This script does "'))
 
 case("P-19g", "the deterministic end-to-end test starts needing a live model",
      lambda: plant(ROOT / "tests/test_end_to_end.py",
