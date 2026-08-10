@@ -70,6 +70,10 @@
     {
       "name": "analysis",
       "description": "Retrieval, trajectory and hallucination analysis for one evaluated sample."
+    },
+    {
+      "name": "release",
+      "description": "Scheduled, post-deployment and canary evaluation, and the recommendations they produce."
     }
   ],
   "paths": {
@@ -1938,6 +1942,154 @@
           }
         }
       }
+    },
+    "/projects/{projectId}/evaluation-schedules": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "createEvaluationSchedule",
+        "summary": "Schedule a recurring evaluation",
+        "description": "REQ-F-10-1. A budget is required, because REQ-F-10-5 skips a run whose estimate exceeds it rather than partially executing one.",
+        "tags": [
+          "release"
+        ],
+        "x-requirements": [
+          "REQ-F-10-1",
+          "REQ-F-10-5"
+        ],
+        "responses": {
+          "201": {
+            "description": "The schedule.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationSchedule"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationScheduleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evaluation-schedules/{scheduleId}/pause": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/scheduleId"
+        }
+      ],
+      "post": {
+        "operationId": "pauseEvaluationSchedule",
+        "summary": "Pause a recurring evaluation",
+        "description": "Paused rather than deleted, so what was scheduled survives the decision to stop.",
+        "tags": [
+          "release"
+        ],
+        "x-requirements": [
+          "REQ-F-10-1"
+        ],
+        "responses": {
+          "200": {
+            "description": "The paused schedule.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationSchedule"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/release-observations": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "recordReleaseObservation",
+        "summary": "Record a post-deployment or canary evaluation",
+        "description": "REQ-F-10-2, and REQ-F-10-3 in the same breath: the response carries a recommendation and no actuation. Nothing here changes a production system.",
+        "tags": [
+          "release"
+        ],
+        "x-requirements": [
+          "REQ-F-10-2",
+          "REQ-F-10-3"
+        ],
+        "responses": {
+          "201": {
+            "description": "The observation and what it recommends.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseObservation"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseObservationRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2100,6 +2252,15 @@
         "in": "path",
         "required": true,
         "description": "One evaluated sample.",
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "scheduleId": {
+        "name": "scheduleId",
+        "in": "path",
+        "required": true,
+        "description": "A recurring evaluation.",
         "schema": {
           "$ref": "#/components/schemas/Ulid"
         }
@@ -2375,6 +2536,9 @@
             "x-requirements": [
               "REQ-F-AG-2"
             ]
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/RunTrigger"
           }
         }
       },
@@ -5139,6 +5303,232 @@
           },
           "attribution": {
             "$ref": "#/components/schemas/StageAttribution"
+          }
+        }
+      },
+      "RunTrigger": {
+        "type": "string",
+        "enum": [
+          "manual",
+          "schedule",
+          "pull_request",
+          "post_deployment",
+          "canary"
+        ],
+        "description": "Why this run happened. Recorded because a canary run and a pull-request run are the same measurement asked for different reasons, and a reader comparing them needs to know which is which.",
+        "x-requirements": [
+          "REQ-F-10-1",
+          "REQ-F-10-2"
+        ]
+      },
+      "RemediationKind": {
+        "type": "string",
+        "enum": [
+          "rollback",
+          "investigate",
+          "hold_release",
+          "none"
+        ],
+        "description": "What the platform RECOMMENDS. REQ-F-10-3: it never acts. No value here names an action the platform would take on a production system.",
+        "x-requirements": [
+          "REQ-F-10-3"
+        ]
+      },
+      "Recommendation": {
+        "type": "object",
+        "description": "Advice, addressed to a person. It carries no actuation and no endpoint to call: REQ-F-10-3 forbids the product from autonomously changing a production system, a dataset, a policy or a release decision.",
+        "required": [
+          "kind",
+          "rationale"
+        ],
+        "x-requirements": [
+          "REQ-F-10-3"
+        ],
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/RemediationKind"
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gateDecisionId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "ScheduleState": {
+        "type": "string",
+        "enum": [
+          "active",
+          "paused"
+        ],
+        "description": "Paused rather than deleted, so what was scheduled survives the decision to stop.",
+        "x-requirements": [
+          "REQ-F-10-1"
+        ]
+      },
+      "EvaluationSchedule": {
+        "type": "object",
+        "description": "A recurring evaluation. The budget is required: REQ-F-10-5 skips a run whose estimate exceeds it rather than partially executing one, and a schedule with no budget is an unbounded standing order.",
+        "required": [
+          "id",
+          "suiteVersionId",
+          "cadence",
+          "budget",
+          "state"
+        ],
+        "x-requirements": [
+          "REQ-F-10-1",
+          "REQ-F-10-5"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "suiteVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "gatePolicyVersionId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baselineId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cadence": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A cron expression, interpreted in UTC."
+          },
+          "budget": {
+            "$ref": "#/components/schemas/Budget"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ScheduleState"
+          },
+          "lastRunId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "EvaluationScheduleRequest": {
+        "type": "object",
+        "required": [
+          "suiteVersionId",
+          "cadence",
+          "budget",
+          "candidates"
+        ],
+        "properties": {
+          "suiteVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "gatePolicyVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "baselineId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "cadence": {
+            "type": "string",
+            "minLength": 1
+          },
+          "budget": {
+            "$ref": "#/components/schemas/Budget"
+          },
+          "candidates": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/CandidateSpec"
+            }
+          }
+        }
+      },
+      "ReleaseObservation": {
+        "type": "object",
+        "description": "A post-deployment or canary evaluation of a system that is already live, and what the platform recommends about it \u2014 recommends, never does.",
+        "required": [
+          "id",
+          "trigger",
+          "runId",
+          "recommendation"
+        ],
+        "x-requirements": [
+          "REQ-F-10-2",
+          "REQ-F-10-3"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/RunTrigger"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "gateDecisionId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recommendation": {
+            "$ref": "#/components/schemas/Recommendation"
+          },
+          "observedAt": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "ReleaseObservationRequest": {
+        "type": "object",
+        "required": [
+          "trigger",
+          "runId"
+        ],
+        "properties": {
+          "trigger": {
+            "$ref": "#/components/schemas/RunTrigger"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "gateDecisionId": {
+            "$ref": "#/components/schemas/Ulid"
           }
         }
       }

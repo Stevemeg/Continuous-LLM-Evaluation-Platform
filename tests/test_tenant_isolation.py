@@ -59,6 +59,9 @@ TENANT_SCOPED = [
     # evidence behind a score.
     "required_context", "retrieved_context", "sample_citation",
     "trajectory_step", "hallucination_finding", "stage_attribution",
+    # Phase 10. A schedule is one tenant's standing order and an observation is
+    # what was advised about their live system.
+    "evaluation_schedule", "release_observation",
 ]
 
 

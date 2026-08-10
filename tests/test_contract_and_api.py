@@ -74,7 +74,7 @@ def test_every_implemented_route_is_declared_in_the_contract(client):
 
 
 def test_the_phase_implements_its_operations_and_says_so_by_omission():
-    """Phase 9 adds the sample-analysis surface to what came before.
+    """Phase 10 adds the scheduled and post-deployment surface.
     The rest belong to phases that have not run and are absent, not stubbed: a
     501 is still a route a client can find and build against."""
     ids = {contract.operation_id(m, p) for m, p in contract.operations()}
@@ -90,8 +90,9 @@ def test_the_phase_implements_its_operations_and_says_so_by_omission():
             "createEvaluationPlan", "getEvaluationPlan", "amendEvaluationPlan",
             "acceptEvaluationPlan", "listEscalations",
             "recordEscalationReview", "getEvaluationMemory",
-            "getSampleAnalysis"} <= ids
-    assert len(ids) == 37
+            "getSampleAnalysis", "createEvaluationSchedule",
+            "pauseEvaluationSchedule", "recordReleaseObservation"} <= ids
+    assert len(ids) == 40
 
 
 def test_every_identifier_a_request_accepts_can_be_created_through_the_contract():
@@ -119,6 +120,7 @@ def test_every_identifier_a_request_accepts_can_be_created_through_the_contract(
         "gatePolicyId": "createGatePolicy",
         "promptId": "createPrompt",
         "runSampleId": None,
+        "scheduleId": None,
     }
     schemas = contract.load()["components"]["schemas"]
     cited = set()

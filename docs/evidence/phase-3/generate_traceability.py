@@ -46,7 +46,6 @@ DEFERRED = {
     # removed rather than left in place: the generator fails a deferral that is
     # in fact traced, which is the mechanism that stops this table describing a
     # past state of the product.
-    "REQ-F-10-2": (10, "Canary and post-deployment evaluation surfaces arrive with the CI/CD release-gate phase"),
     "REQ-F-10-4": (11, "Drift detection over baseline history is an analytics capability"),
     "REQ-F-11-2": (11, "Leaderboards are an analytics surface"),
     "REQ-F-11-5": (11, "Agent analytics reporting is an analytics surface"),
