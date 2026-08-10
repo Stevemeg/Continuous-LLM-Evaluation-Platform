@@ -17,6 +17,12 @@ dependencies = [
     "redis>=5.0",
 ]
 
+# Canonical §11: a CLI suitable for GitHub Actions and other CI systems. The
+# console script is the whole distribution surface; argparse is standard
+# library, so this adds no dependency.
+[project.scripts]
+clep = "clep.cli.main:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
