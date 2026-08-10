@@ -116,8 +116,8 @@ add("P-4", "PASS" if before == after else "FAIL",
     if before == after else "the committed matrix is stale; regenerate it")
 
 
-# ================ P-5..P-9c earlier gates, at the trees and histories they mean
-def gate_at_its_own_tree(cid, grep, script, label):
+# ====================== P-5 the preceding gate, at its own tree, at the trees and histories they mean
+def gate_at_its_own_tree(cid, grep, script, label, timeout=2400):
     """Re-run an earlier gate against the history it was written for.
 
     Three conditions, each learned by getting it wrong: an isolated clone rather
@@ -155,7 +155,8 @@ def gate_at_its_own_tree(cid, grep, script, label):
     if docx:
         shutil.copy2(docx, tree / docx.name)
     env = dict(os.environ, PYTHONPATH=str(tree / "src"))
-    c, o = run([PY, str(tree / script), str(tree)], cwd=tree, env=env)
+    c, o = run([PY, str(tree / script), str(tree)], cwd=tree, env=env,
+               timeout=timeout)
     summary = re.search(r"SUMMARY: (.*)", o)
     fails = [l.strip()[:150] for l in o.splitlines() if l.startswith("[FAIL")]
     shutil.rmtree(work, ignore_errors=True)
@@ -165,23 +166,27 @@ def gate_at_its_own_tree(cid, grep, script, label):
         f"{summary.group(1) if summary else ''}", fails)
 
 
-gate_at_its_own_tree("P-5", "docs(spike)",
-                     "docs/evidence/spike-sprint/check_spike_sprint.py",
-                     "Technology Spike Sprint")
-gate_at_its_own_tree("P-6", "docs(phase-4)",
-                     "docs/evidence/phase-4/check_phase4.py", "Phase 4")
-gate_at_its_own_tree("P-7", "phase-5)",
-                     "docs/evidence/phase-5/check_phase5.py", "Phase 5")
-gate_at_its_own_tree("P-8", "phase-6)",
-                     "docs/evidence/phase-6/check_phase6.py", "Phase 6")
-gate_at_its_own_tree("P-9", "phase-7)",
-                     "docs/evidence/phase-7/check_phase7.py", "Phase 7")
-gate_at_its_own_tree("P-9b", "phase-8)",
-                     "docs/evidence/phase-8/check_phase8.py", "Phase 8")
-gate_at_its_own_tree("P-9c", "phase-9)",
-                     "docs/evidence/phase-9/check_phase9.py", "Phase 9")
+# Only the immediately preceding gate is invoked here, and that is a change
+# from Phases 7 to 9, which each named every earlier gate directly.
+#
+# The reason is arithmetic. Each phase gate re-runs the gates before it, so
+# naming them all again at the top duplicates the entire chain: Phase 10's first
+# attempt ran the Spike Sprint, Phase 4, 5, 6, 7 and 8 gates directly and then
+# started Phase 9's gate, which runs all six again — and the subprocess timed
+# out at forty minutes with the work still compounding. Phases 11 to 15 would
+# each make it worse.
+#
+# What makes the shorter form sufficient is P-26, which does not assume the
+# chain and does not trust this comment: it derives the closure from the
+# invocation paths each gate actually contains and requires every validator in
+# the repository to be reachable. Coverage is therefore still total, and it is
+# still checked — by the mechanism built for exactly that, rather than by
+# repeating the work at every level.
+gate_at_its_own_tree("P-5", "phase-9)",
+                     "docs/evidence/phase-9/check_phase9.py", "Phase 9",
+                     timeout=7200)
 
-# ========================================= P-10 Phase 1 milestone validators
+# ========================================== P-6 Phase 1 milestone validators
 m1 = []
 for script, label in (("docs/evidence/M1.1/check_m11.py", "M1.1 documents"),
                       ("docs/evidence/M1.2/check_m12.py", "M1.2 competitive"),
@@ -190,7 +195,7 @@ for script, label in (("docs/evidence/M1.1/check_m11.py", "M1.1 documents"),
         c, o = run([PY, script, "."])
         s = re.search(r"SUMMARY: (.*)", o)
         m1.append(f"{label}: exit {c} {s.group(1) if s else ''}")
-add("P-10", "PASS" if all("exit 0" in x for x in m1) and m1 else "FAIL",
+add("P-6", "PASS" if all("exit 0" in x for x in m1) and m1 else "FAIL",
     "Phase 1 milestone validators re-run. " + "; ".join(m1))
 
 # ===================================== P-11 the contract leads, not follows
