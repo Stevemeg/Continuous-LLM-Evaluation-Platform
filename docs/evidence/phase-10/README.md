@@ -122,3 +122,18 @@ The check count fell from the 34 the earlier phases carried, and the reason is
 the scaling fix below: six gate invocations that duplicated the chain became
 one. Fewer checks, identical coverage, and `P-26` is what proves the second
 half of that sentence.
+
+## The observed run
+
+`validation-output.txt` is the run made **against the finalized tree**, after the
+evidence above was committed, with its exit code captured rather than inferred:
+
+```
+SUMMARY: {"PASS": 28}
+OBSERVED_EXIT=0
+```
+
+An earlier run of the same 28 checks against `d8839bc` produced the identical
+summary. This one is recorded because recording evidence changes the tree, and
+a gate result that predates the tree it describes is a result about something
+else.

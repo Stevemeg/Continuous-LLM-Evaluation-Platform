@@ -19,13 +19,13 @@
 [PASS   ] P-19e  the CLI reports and exits: three read-only subcommands, no evaluation of its own; defects: 0
 [PASS   ] P-19f  REQ-F-10-3 and REQ-F-10-5 in the store: advice with no actuation, and no unbudgeted standing order; defects: 0
 [PASS   ] P-19g  the end-to-end evidence: a real run persisted and read back, and a deterministic one needing no model; defects: 0
-[PASS   ] P-20   working tree: 258 files (2 binary skipped), 0 match(es); all blobs all refs: 0 undisclosed match(es), 2 disclosed and unremovable from published history
+[PASS   ] P-20   working tree: 259 files (2 binary skipped), 0 match(es); all blobs all refs: 0 undisclosed match(es), 2 disclosed and unremovable from published history
            - docs/evidence/spike-sprint/common.py: spike common.py: local throwaway DSN password, container destroyed
            - docs/evidence/spike-sprint/spike_provider_abstraction.py: spike provider script: planted leak-detector canary, never a credential
 [PASS   ] P-21   governed scope: 0 file match(es), 0 history match(es)
 [PASS   ] P-22   authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']
 [PASS   ] P-23   canonical document local=True tracked=False ignored=True refs_scanned=13 reachable_from_published=0 reachable_from_local_undisclosed=0 disclosed_local_only=0
-[PASS   ] P-24   251 tracked file(s); stray: 0; clean tree: True
+[PASS   ] P-24   252 tracked file(s); stray: 0; clean tree: True
 [PASS   ] P-25   Phase 11+ artifact classes checked: 5; artifacts Phase 10 must not contain: 0
 [PASS   ] P-26   16 validators in the repository, 16 reachable from this gate; orphaned: none
 ------------------------------------------------------------------------------
