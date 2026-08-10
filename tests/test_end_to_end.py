@@ -55,6 +55,7 @@ from tests.conftest import MIGRATION_DSN, requires_postgres
 
 pytestmark = [pytest.mark.integration, requires_postgres]
 
+JUDGE_URL = "http://localhost:8101/v1"
 ANSWER = "Paris is the capital of France."
 
 

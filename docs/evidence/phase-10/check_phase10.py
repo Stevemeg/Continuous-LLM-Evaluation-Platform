@@ -501,10 +501,62 @@ try:
         persistence_defects.append(
             "consensus is reached before the judgements are written; a crash "
             "between the two would leave a verdict with no evidence")
-    if "if vote.is_scoring" in judge_block.split("record_judgement")[0]:
+    # Exercised, not read. A source search for "if vote.is_scoring" missed a
+    # plant that wrote "if not vote.is_scoring" — the same string-matching
+    # weakness that has now cost four checks across three phases.
+    from decimal import Decimal as _D
+
+    from clep.evaluators.sdk import SampleContext as _Sample
+    from clep.judges.consensus import Ensemble as _Ensemble
+    from clep.judges.sdk import JudgeVersion as _JV, Vote as _Vote
+
+    class _RecordingRepository:
+        def __init__(self):
+            self.judgements, self.consensus = [], []
+
+        def record_judgement(self, **kw):
+            self.judgements.append(kw)
+            return "recorded"
+
+        def record_consensus(self, **kw):
+            self.consensus.append(kw)
+            return "recorded"
+
+    class _ScriptedGateway:
+        """One judge answers, one does not. Both must be written down."""
+
+        def invoke(self, invocation):
+            from clep.providers.gateway import CandidateOutcome
+            from clep.providers.port import CompletionResult, Usage
+            text = ("SCORE: 0.5" if invocation.request.model == "answers"
+                    else "I would rather not")
+            return CandidateOutcome(
+                invocation.candidate_label,
+                result=CompletionResult(text=text, model=invocation.request.model,
+                                        usage=Usage(1, 1, 2), endpoint_name="e",
+                                        endpoint_kind="hosted"))
+
+    answering = _JV(slug="a", version="1", model="answers", endpoint_name="ea",
+                    rubric="r")
+    refusing = _JV(slug="b", version="1", model="refuses", endpoint_name="eb",
+                   rubric="r")
+    recorder = _RecordingRepository()
+    _panel.JudgePanel(
+        ensemble=_Ensemble(judges=(answering, refusing),
+                           agreement_threshold=_D("0.2"),
+                           minimum_scoring_votes=2),
+        ensemble_id="E", judge_version_ids={answering.version_key: "VA",
+                                            refusing.version_key: "VB"},
+        gateway=_ScriptedGateway(), repository=recorder, project_id="P",
+    ).judge(run_id="R", run_sample_id="S",
+            sample=_Sample(example_id="x", prompt="p", output="o"),
+            outcome=_panel.PanelOutcome())
+    if len(recorder.judgements) != 2:
         persistence_defects.append(
-            "a judgement is written only when it scored; an ensemble whose "
-            "dissenters crashed would look unanimous")
+            f"{len(recorder.judgements)} of 2 judgements were written; an "
+            f"ensemble whose dissenters crashed would look unanimous")
+    if len(recorder.consensus) != 1:
+        persistence_defects.append("the consensus was not written")
     # The store keeps the two apart, so an unscored judgement has no row to
     # read as a zero.
     if "score" in tables.get("judge_run", "").split("CONSTRAINT")[0].replace(
