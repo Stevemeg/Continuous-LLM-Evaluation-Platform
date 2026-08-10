@@ -40,9 +40,15 @@ def rebuild_fast():
 
 
 def restore():
-    subprocess.run(["git", "checkout", "--", "docs/data/schema", "src/clep",
-                    "docs/api/openapi.json", "docs/evidence", "docs/architecture",
-                    "pyproject.toml"], cwd=str(ROOT), capture_output=True)
+    # Every path any plant touches. `tests` was missing, and a plant that
+    # inserted a live model URL into the deterministic end-to-end test survived
+    # the self-test, survived review, and was committed — found by P-19g, which
+    # exists to assert that very test needs no model.
+    #
+    # Derived rather than listed, so a plant on a new path cannot leak the same
+    # way: the restore reverts everything the working tree has changed.
+    subprocess.run(["git", "checkout", "--", "."], cwd=str(ROOT),
+                   capture_output=True)
 
 
 def status_of(check_id: str) -> str:
