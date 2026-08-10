@@ -174,8 +174,16 @@ class RunRepository:
                       example_id: str, sample_index: int, resolution: str,
                       score: Decimal | None = None, failure_kind: str | None = None,
                       example_content_digest: str | None = None,
-                      served_from_cache: bool = False) -> tuple[str, bool]:
+                      served_from_cache: bool = False,
+                      trajectory_truncated: bool = False) -> tuple[str, bool]:
         """Returns (sample ULID, was_inserted).
+
+        `trajectory_truncated` is written here rather than patched afterwards.
+        A resolved sample is immutable (I-18) and the runtime role has no UPDATE
+        grant on it — the store refused the later UPDATE the first version of
+        this tried, which was correct: whether a trajectory was cut is known
+        when the sample is written, and a fact known at insert has no business
+        arriving as an amendment.
 
         `was_inserted` is False when this exact work unit had already been
         recorded — a redelivery. The caller uses it to avoid re-billing, and the
@@ -189,15 +197,16 @@ class RunRepository:
             INSERT INTO clep.run_sample
                 (id, organization_id, run_id, run_candidate_id, example_id,
                  sample_index, example_content_digest, resolution, score,
-                 is_served_from_cache, failure_kind, idempotency_key)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 is_served_from_cache, failure_kind, idempotency_key,
+                 trajectory_truncated)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (organization_id, idempotency_key) DO NOTHING
             RETURNING id
             """,
             (ulid_to_uuid(sample_ulid), self._org, ulid_to_uuid(run_id),
              ulid_to_uuid(candidate_id), ulid_to_uuid(example_id), sample_index,
              example_content_digest, resolution, score, served_from_cache,
-             failure_kind, key)).fetchone()
+             failure_kind, key, trajectory_truncated)).fetchone()
         if row:
             return sample_ulid, True
         existing = self._conn.execute(

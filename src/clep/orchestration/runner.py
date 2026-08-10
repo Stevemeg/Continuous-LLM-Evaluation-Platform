@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 
 from clep.evaluators.sdk import (EvaluatorRegistry, SampleContext, run_evaluator)
+from clep.judges.panel import PanelOutcome
 from clep.orchestration.repository import RunRepository, sample_key
 from clep.providers.gateway import (CandidateInvocation, ProviderGateway)
 from clep.providers.port import CompletionRequest
@@ -38,6 +39,17 @@ class Example:
     expected: str | None = None
     content_digest: str | None = None
     retrieved_context: tuple[str, ...] = ()
+    # Phase 9 inputs, carried by the example so the loop passes them through
+    # rather than reconstructing them. `contexts` is the identified form of
+    # `retrieved_context`; `required_context_ids` is what the dataset says
+    # retrieval was supposed to find, which is the only thing that makes
+    # REQ-F-03-6 attribution possible.
+    contexts: tuple = ()
+    citations: tuple = ()
+    required_context_ids: tuple = ()
+    trajectory: object | None = None
+    tool_schemas: dict | None = None
+    expected_tools: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -60,16 +72,32 @@ class RunOutcome:
     unpriced_calls: int = 0
     evaluator_outcomes: int = 0
     resumed_from_index: int = -1
+    # Phase 10: what the run recorded beyond scores. Counted here so an
+    # end-to-end run can be shown to have written its evidence rather than
+    # merely computed it.
+    retrieval_recorded: int = 0
+    trajectory_steps_recorded: int = 0
+    panel: "PanelOutcome" = field(default_factory=lambda: PanelOutcome())
     notes: list[str] = field(default_factory=list)
 
 
 class RunExecutor:
     def __init__(self, repository: RunRepository, gateway: ProviderGateway,
                  registry: EvaluatorRegistry, *, evaluator_ids: dict[str, str] | None = None,
-                 is_cancelled=None, evaluator_timeout_ms: int | None = None):
+                 is_cancelled=None, evaluator_timeout_ms: int | None = None,
+                 analysis_repository=None, judge_panel=None,
+                 judge_timeout_ms: int | None = None):
         self._repo = repository
         self._gateway = gateway
         self._registry = registry
+        #: Phase 9 evidence, written as the run executes. Optional, because a
+        #: suite with no retrieval and no trajectory has nothing to record.
+        self._analysis = analysis_repository
+        #: A `JudgePanel` when the suite configures an ensemble. Optional for
+        #: the same reason, and injected rather than constructed here so the
+        #: loop cannot reach a provider the gateway did not give it.
+        self._panel = judge_panel
+        self._judge_timeout_ms = judge_timeout_ms
         #: Maps an evaluator's version key to the evaluator_version_id recorded
         #: against each outcome. Supplied by the caller because evaluator
         #: identity is registry data, not something this loop may invent.
@@ -81,6 +109,7 @@ class RunExecutor:
                 *, budget_limit: Decimal | None = None,
                 budget_currency: str = "USD",
                 integration_tier: str = "output_only") -> RunOutcome:
+        self._run_id = run_id
         resume_from = self._repo.checkpoint(run_id) + 1
         outcome = RunOutcome(completeness="complete", resumed_from_index=resume_from)
         if resume_from:
@@ -130,17 +159,21 @@ class RunExecutor:
                 candidate_label=c.label, endpoint_name=c.endpoint_name,
                 request=CompletionRequest(model=c.model, prompt=example.prompt))
             for c in candidates]
-        results = self._gateway.invoke_all(invocations)
+        candidate_outcomes = self._gateway.invoke_all(invocations)
         by_label = {c.label: c for c in candidates}
         added = Decimal(0)
 
-        for candidate_outcome in results:
+        for candidate_outcome in candidate_outcomes:
             candidate = by_label[candidate_outcome.candidate_label]
             key = sample_key(run_id, candidate.label, example.id)
 
+            evaluations = []
             if candidate_outcome.succeeded:
-                resolution, score, failure_kind = self._score(
-                    example, candidate_outcome.result.text, tier, outcome)
+                sample = self._sample_context(
+                    example, candidate_outcome.result.text, tier)
+                evaluations = self._evaluate(sample)
+                resolution, score, failure_kind = self._score_from(
+                    evaluations)
             else:
                 # No score. Not zero. The distinction is the requirement.
                 resolution = "failed"
@@ -152,7 +185,9 @@ class RunExecutor:
                 candidate_label=candidate.label, example_id=example.id,
                 sample_index=index, resolution=resolution, score=score,
                 failure_kind=failure_kind,
-                example_content_digest=example.content_digest)
+                example_content_digest=example.content_digest,
+                trajectory_truncated=bool(example.trajectory is not None
+                                          and example.trajectory.truncated))
 
             if inserted:
                 outcome.samples_recorded += 1
@@ -160,8 +195,9 @@ class RunExecutor:
                     outcome.samples_scored += 1
                 else:
                     outcome.samples_failed += 1
-                self._record_evaluators(sample_id, example, candidate_outcome, tier,
-                                        outcome)
+                self._record_evaluators(sample_id, evaluations, outcome)
+                self._record_analysis(sample_id, example, outcome)
+                self._judge(sample_id, example, candidate_outcome, tier, outcome)
             else:
                 # Redelivery. The work was already recorded; recording it again
                 # is what would double-bill, so nothing further happens here.
@@ -181,48 +217,85 @@ class RunExecutor:
                     added += candidate_outcome.cost.amount
         return added
 
-    def _score(self, example, output, tier, outcome):
+    def _sample_context(self, example, output, tier) -> SampleContext:
+        """One construction, used by scoring and by recording alike.
+
+        There were two before Phase 9, and they had already drifted apart in
+        which fields they passed. Every field a Phase 9 evaluator reads —
+        identified contexts, citations, the required set, the typed trajectory
+        and its schemas — travels through here, so an evaluator cannot see one
+        thing while scoring and another while being recorded.
+        """
+        return SampleContext(
+            example_id=example.id, prompt=example.prompt, output=output,
+            expected=example.expected,
+            retrieved_context=() if example.contexts else example.retrieved_context,
+            integration_tier=tier, contexts=example.contexts,
+            citations=example.citations,
+            required_context_ids=example.required_context_ids,
+            agent_trajectory=example.trajectory,
+            tool_schemas=example.tool_schemas,
+            expected_tools=example.expected_tools)
+
+    def _evaluate(self, sample: SampleContext):
+        """Run every registered evaluator once, and return what each said."""
+        return [(key, run_evaluator(self._registry.get(key), sample,
+                                    timeout_ms=self._evaluator_timeout_ms))
+                for key in self._registry.keys()]
+
+    def _score_from(self, results):
         """The sample's own resolution, taken from its evaluators.
 
         Scored only when at least one evaluator produced a number. An evaluator
         set that all abstained leaves the sample abstained, because averaging
-        over nothing is not a score.
+        over nothing is not a score — and a truncated trajectory contributes
+        nothing here for the same reason.
         """
-        scores = []
-        for key in self._registry.keys():
-            registration = self._registry.get(key)
-            result = run_evaluator(
-                registration,
-                SampleContext(example_id=example.id, prompt=example.prompt,
-                              output=output, expected=example.expected,
-                              retrieved_context=example.retrieved_context,
-                              integration_tier=tier),
-                timeout_ms=self._evaluator_timeout_ms)
-            if result.resolution == "scored":
-                scores.append(result.score)
+        scores = [r.score for _, r in results if r.resolution == "scored"]
         if not scores:
             return "abstained", None, None
         return "scored", sum(scores) / Decimal(len(scores)), None
 
-    def _record_evaluators(self, sample_id, example, candidate_outcome, tier, outcome):
-        if not candidate_outcome.succeeded:
-            return
-        for key in self._registry.keys():
-            registration = self._registry.get(key)
+    def _record_evaluators(self, sample_id, results, outcome):
+        for key, result in results:
             evaluator_version_id = self._evaluator_ids.get(key)
             if evaluator_version_id is None:
                 continue
-            result = run_evaluator(
-                registration,
-                SampleContext(example_id=example.id, prompt=example.prompt,
-                              output=candidate_outcome.result.text,
-                              expected=example.expected,
-                              retrieved_context=example.retrieved_context,
-                              integration_tier=tier),
-                timeout_ms=self._evaluator_timeout_ms)
             self._repo.record_evaluator_outcome(
                 sample_id=sample_id, evaluator_version_id=evaluator_version_id,
                 resolution=result.resolution, score=result.score,
                 unavailable_reason=result.unavailable_reason,
                 duration_ms=result.duration_ms)
             outcome.evaluator_outcomes += 1
+
+    def _judge(self, sample_id, example, candidate_outcome, tier, outcome):
+        """Run the ensemble over this sample, if the suite configured one.
+
+        A judgement is worth having only about an answer that exists, so a
+        candidate that failed is not judged — there is nothing to judge, and a
+        judgement of nothing would be a score against a provider outage.
+        """
+        if self._panel is None or not candidate_outcome.succeeded:
+            return
+        sample = self._sample_context(example, candidate_outcome.result.text, tier)
+        self._panel.judge(run_id=self._run_id, run_sample_id=sample_id,
+                          sample=sample, outcome=outcome.panel)
+
+    def _record_analysis(self, sample_id, example, outcome):
+        """Persist the Phase 9 inputs this sample was evaluated against.
+
+        Written here, by the run, rather than assembled afterwards from
+        anything: the evidence behind a score has to be the evidence the score
+        was computed from.
+        """
+        if self._analysis is None:
+            return
+        if example.contexts:
+            self._analysis.record_retrieval(
+                run_sample_id=sample_id, contexts=example.contexts,
+                citations=example.citations)
+            outcome.retrieval_recorded += len(example.contexts)
+        if example.trajectory is not None:
+            self._analysis.record_trajectory(run_sample_id=sample_id,
+                                             trajectory=example.trajectory)
+            outcome.trajectory_steps_recorded += len(example.trajectory.steps)
