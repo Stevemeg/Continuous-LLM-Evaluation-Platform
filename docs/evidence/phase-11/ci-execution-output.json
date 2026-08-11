@@ -1,0 +1,213 @@
+{
+  "checks": [
+    {
+      "detail": "git clone -> checkout (exit 0) ",
+      "ok": true,
+      "step": "clean checkout"
+    },
+    {
+      "detail": "stray directories: none; egg-info: none; uncommitted: 0",
+      "ok": true,
+      "step": "checkout is clean"
+    },
+    {
+      "detail": "python -m venv (exit 0)",
+      "ok": true,
+      "step": "isolated interpreter"
+    },
+    {
+      "detail": "pip install <checkout> (exit 0) ",
+      "ok": true,
+      "step": "package installed"
+    },
+    {
+      "detail": "clep.exe present in the environment's script directory",
+      "ok": true,
+      "step": "console script exists"
+    },
+    {
+      "detail": "console_scripts: ['clep=clep.cli.main:main'] (exit 0) ",
+      "ok": true,
+      "step": "entry point declared"
+    },
+    {
+      "detail": "clep.__file__ = C:\\Users\\konab\\AppData\\Local\\Temp\\clep-ci-zcmdt6i8\\venv\\Lib\\site-packages\\clep\\__init__.py",
+      "ok": true,
+      "step": "package resolves inside the environment"
+    },
+    {
+      "detail": "`clep` -> C:\\Users\\konab\\AppData\\Local\\Temp\\clep-ci-zcmdt6i8\\venv\\Scripts\\clep.EXE",
+      "ok": true,
+      "step": "console script resolves on PATH"
+    },
+    {
+      "detail": "`clep --help` from workspace (exit 0)",
+      "ok": true,
+      "step": "console script runs by name"
+    },
+    {
+      "detail": "schema applied, tenant 80269657\u2026, 10 examples",
+      "ok": true,
+      "step": "database prepared"
+    },
+    {
+      "detail": "exit 0 (expected 0); the pipeline continues",
+      "ok": true,
+      "step": "successful evaluation"
+    },
+    {
+      "detail": "exit 1 (expected 1); the pipeline stops",
+      "ok": true,
+      "step": "blocking evaluation"
+    },
+    {
+      "detail": "exit 70 (expected 70); the pipeline stops",
+      "ok": true,
+      "step": "abstention blocks"
+    },
+    {
+      "detail": "re-run exit 1 matches 1",
+      "ok": true,
+      "step": "deterministic interpretation"
+    },
+    {
+      "detail": "exit 78 (expected 78); the pipeline stops",
+      "ok": true,
+      "step": "platform failure is distinguishable"
+    }
+  ],
+  "environment": "local CI-style, not hosted CI",
+  "installation": {
+    "entry_points": [
+      "clep=clep.cli.main:main"
+    ],
+    "main_is_callable": true,
+    "package_file": "C:\\Users\\konab\\AppData\\Local\\Temp\\clep-ci-zcmdt6i8\\venv\\Lib\\site-packages\\clep\\__init__.py",
+    "version": "0.1.0"
+  },
+  "note": "An isolated venv and a clean git clone on this machine. No hosted CI service ran this, and nothing here claims one did.",
+  "ok": true,
+  "platform": "win32",
+  "python": "3.11.0",
+  "steps": {
+    "abstention blocks": {
+      "argv": [
+        "clep",
+        "gate",
+        "--project",
+        "01KZRJHRWRV3W5CRAPNJCEAXC7",
+        "--run",
+        "01KZRJHS4HJXD88ZGPKDEPK4S8",
+        "--policy",
+        "01KZRJHSDZNPQ9JR5560VHW6H7",
+        "--baseline",
+        "01KZRJHS3R7RB0VDZFYAX3THXG"
+      ],
+      "ciDecision": "the pipeline stops",
+      "exitCode": 70,
+      "stderr": [],
+      "stdout": [
+        "gate: insufficient_evidence",
+        "decision: 01KZRJHX4J155GJ5NW6B3TGA97",
+        "evidence: sha256:6049bb646a2b54508dc58e2f81c2b918016762b44ccd83c64e4c4085992be064",
+        "  exact_match_ci_ewxw3zza: insufficient_evidence (n=10)",
+        "      abstained: 10 paired sample(s) is below the configured minimum of 1000 for this metric",
+        "",
+        "this outcome blocks the pipeline (exit 70)"
+      ]
+    },
+    "blocking evaluation": {
+      "argv": [
+        "clep",
+        "gate",
+        "--project",
+        "01KZRJHRWRV3W5CRAPNJCEAXC7",
+        "--run",
+        "01KZRJHS7GF5ERM7TF2JQ1Z6PP",
+        "--policy",
+        "01KZRJHSCA1N2Z2TA13V06VSX9",
+        "--baseline",
+        "01KZRJHS3R7RB0VDZFYAX3THXG"
+      ],
+      "ciDecision": "the pipeline stops",
+      "exitCode": 1,
+      "stderr": [],
+      "stdout": [
+        "gate: hard_fail",
+        "decision: 01KZRJHVWAZ6Q304CKQJ5E317S",
+        "evidence: sha256:48390a341294822d6e133d393859c2135c7724abe95083c5ecbae791603735d7",
+        "  exact_match_ci_ewxw3zza: regression (n=10)",
+        "",
+        "this outcome blocks the pipeline (exit 1)"
+      ]
+    },
+    "blocking evaluation, re-run": {
+      "argv": [
+        "clep",
+        "gate",
+        "--project",
+        "01KZRJHRWRV3W5CRAPNJCEAXC7",
+        "--run",
+        "01KZRJHS7GF5ERM7TF2JQ1Z6PP",
+        "--policy",
+        "01KZRJHSCA1N2Z2TA13V06VSX9",
+        "--baseline",
+        "01KZRJHS3R7RB0VDZFYAX3THXG"
+      ],
+      "ciDecision": "the pipeline stops",
+      "exitCode": 1,
+      "stderr": [],
+      "stdout": [
+        "gate: hard_fail",
+        "decision: 01KZRJHYBD1Q2A1ACW9DJ5KSFV",
+        "evidence: sha256:48390a341294822d6e133d393859c2135c7724abe95083c5ecbae791603735d7",
+        "  exact_match_ci_ewxw3zza: regression (n=10)",
+        "",
+        "this outcome blocks the pipeline (exit 1)"
+      ]
+    },
+    "malformed input is a platform failure": {
+      "argv": [
+        "clep",
+        "gate",
+        "--project",
+        "01KZRJHRWRV3W5CRAPNJCEAXC7",
+        "--run",
+        "not-a-ulid",
+        "--policy",
+        "01KZRJHSCA1N2Z2TA13V06VSX9",
+        "--baseline",
+        "01KZRJHS3R7RB0VDZFYAX3THXG"
+      ],
+      "ciDecision": "the pipeline stops",
+      "exitCode": 78,
+      "stderr": [
+        "clep: --run is not a well-formed identifier"
+      ],
+      "stdout": []
+    },
+    "successful evaluation": {
+      "argv": [
+        "clep",
+        "gate",
+        "--project",
+        "01KZRJHRWRV3W5CRAPNJCEAXC7",
+        "--run",
+        "01KZRJHS4HJXD88ZGPKDEPK4S8",
+        "--policy",
+        "01KZRJHSCA1N2Z2TA13V06VSX9",
+        "--baseline",
+        "01KZRJHS3R7RB0VDZFYAX3THXG"
+      ],
+      "ciDecision": "the pipeline continues",
+      "exitCode": 0,
+      "stderr": [],
+      "stdout": [
+        "gate: pass",
+        "decision: 01KZRJHTK4GXTG2YQJ7PDKBP95",
+        "evidence: sha256:3a2d085494ca3c944943ea6f0a7e22551f1e21f728fae5edc9094083b984625a",
+        "  exact_match_ci_ewxw3zza: no_change (n=10)"
+      ]
+    }
+  }
+}

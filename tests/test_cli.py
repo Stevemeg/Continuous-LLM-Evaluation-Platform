@@ -206,3 +206,30 @@ def test_the_cli_changes_nothing_in_production():
     assert sorted(actions) == ["analysis", "decision", "gate"]
     for forbidden in ("deploy", "rollback", "promote", "approve", "delete"):
         assert forbidden not in actions
+
+
+# ------------------------------------------------------- the installed script
+def test_the_distribution_declares_the_console_script_a_pipeline_invokes():
+    """`clep`, not `python -m clep.cli.main`.
+
+    A CI job runs a command on its PATH. This asserts the declaration that puts
+    it there against the *installed* metadata rather than against the source, so
+    a `[project.scripts]` entry deleted from `pyproject.toml` fails here.
+    `docs/evidence/phase-11/ci_execution.py` proves the other half — that the
+    declaration produces a working executable from a clean checkout in an
+    isolated environment.
+    """
+    from importlib.metadata import entry_points
+    declared = {e.name: e.value
+                for e in entry_points(group="console_scripts")
+                if e.name == "clep"}
+    assert declared == {"clep": "clep.cli.main:main"}
+
+
+def test_the_declared_entry_point_loads_and_is_the_callable_it_names():
+    from importlib.metadata import entry_points
+    entry = next(e for e in entry_points(group="console_scripts")
+                 if e.name == "clep")
+    loaded = entry.load()
+    assert loaded is main
+    assert callable(loaded)

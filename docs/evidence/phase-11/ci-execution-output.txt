@@ -1,0 +1,61 @@
+CI EXECUTION — installed console script, local CI-style environment
+==============================================================================
+An isolated venv and a clean git clone on this machine. No hosted CI service ran this, and nothing here claims one did.
+
+[OK  ] clean checkout: git clone -> checkout (exit 0) 
+[OK  ] checkout is clean: stray directories: none; egg-info: none; uncommitted: 0
+[OK  ] isolated interpreter: python -m venv (exit 0)
+[OK  ] package installed: pip install <checkout> (exit 0) 
+[OK  ] console script exists: clep.exe present in the environment's script directory
+[OK  ] entry point declared: console_scripts: ['clep=clep.cli.main:main'] (exit 0) 
+[OK  ] package resolves inside the environment: clep.__file__ = C:\Users\konab\AppData\Local\Temp\clep-ci-zcmdt6i8\venv\Lib\site-packages\clep\__init__.py
+[OK  ] console script resolves on PATH: `clep` -> C:\Users\konab\AppData\Local\Temp\clep-ci-zcmdt6i8\venv\Scripts\clep.EXE
+[OK  ] console script runs by name: `clep --help` from workspace (exit 0)
+[OK  ] database prepared: schema applied, tenant 80269657…, 10 examples
+[OK  ] successful evaluation: exit 0 (expected 0); the pipeline continues
+[OK  ] blocking evaluation: exit 1 (expected 1); the pipeline stops
+[OK  ] abstention blocks: exit 70 (expected 70); the pipeline stops
+[OK  ] deterministic interpretation: re-run exit 1 matches 1
+[OK  ] platform failure is distinguishable: exit 78 (expected 78); the pipeline stops
+
+Pipeline steps
+------------------------------------------------------------------------------
+$ clep gate --project 01KZRJHRWRV3W5CRAPNJCEAXC7 --run 01KZRJHS4HJXD88ZGPKDEPK4S8 --policy 01KZRJHSCA1N2Z2TA13V06VSX9 --baseline 01KZRJHS3R7RB0VDZFYAX3THXG
+  gate: pass
+  decision: 01KZRJHTK4GXTG2YQJ7PDKBP95
+  evidence: sha256:3a2d085494ca3c944943ea6f0a7e22551f1e21f728fae5edc9094083b984625a
+    exact_match_ci_ewxw3zza: no_change (n=10)
+  exit 0 -> the pipeline continues
+
+$ clep gate --project 01KZRJHRWRV3W5CRAPNJCEAXC7 --run 01KZRJHS7GF5ERM7TF2JQ1Z6PP --policy 01KZRJHSCA1N2Z2TA13V06VSX9 --baseline 01KZRJHS3R7RB0VDZFYAX3THXG
+  gate: hard_fail
+  decision: 01KZRJHVWAZ6Q304CKQJ5E317S
+  evidence: sha256:48390a341294822d6e133d393859c2135c7724abe95083c5ecbae791603735d7
+    exact_match_ci_ewxw3zza: regression (n=10)
+  
+  this outcome blocks the pipeline (exit 1)
+  exit 1 -> the pipeline stops
+
+$ clep gate --project 01KZRJHRWRV3W5CRAPNJCEAXC7 --run 01KZRJHS4HJXD88ZGPKDEPK4S8 --policy 01KZRJHSDZNPQ9JR5560VHW6H7 --baseline 01KZRJHS3R7RB0VDZFYAX3THXG
+  gate: insufficient_evidence
+  decision: 01KZRJHX4J155GJ5NW6B3TGA97
+  evidence: sha256:6049bb646a2b54508dc58e2f81c2b918016762b44ccd83c64e4c4085992be064
+    exact_match_ci_ewxw3zza: insufficient_evidence (n=10)
+        abstained: 10 paired sample(s) is below the configured minimum of 1000 for this metric
+  
+  this outcome blocks the pipeline (exit 70)
+  exit 70 -> the pipeline stops
+
+$ clep gate --project 01KZRJHRWRV3W5CRAPNJCEAXC7 --run 01KZRJHS7GF5ERM7TF2JQ1Z6PP --policy 01KZRJHSCA1N2Z2TA13V06VSX9 --baseline 01KZRJHS3R7RB0VDZFYAX3THXG
+  gate: hard_fail
+  decision: 01KZRJHYBD1Q2A1ACW9DJ5KSFV
+  evidence: sha256:48390a341294822d6e133d393859c2135c7724abe95083c5ecbae791603735d7
+    exact_match_ci_ewxw3zza: regression (n=10)
+  
+  this outcome blocks the pipeline (exit 1)
+  exit 1 -> the pipeline stops
+
+$ clep gate --project 01KZRJHRWRV3W5CRAPNJCEAXC7 --run not-a-ulid --policy 01KZRJHSCA1N2Z2TA13V06VSX9 --baseline 01KZRJHS3R7RB0VDZFYAX3THXG
+  ! clep: --run is not a well-formed identifier
+  exit 78 -> the pipeline stops
+
