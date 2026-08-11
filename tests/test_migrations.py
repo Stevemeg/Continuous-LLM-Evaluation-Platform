@@ -21,7 +21,8 @@ def test_the_schema_specification_is_the_migration_set():
         "05-run-and-execution.sql", "06-registry-and-experiments.sql",
         "07-regression-and-gates.sql", "08-judges-plans-and-memory.sql",
         "09-rag-and-agent-evaluation.sql",
-        "10-release-and-schedules.sql"]
+        "10-release-and-schedules.sql",
+        "11-analytics-and-alerts.sql"]
 
 
 def test_files_must_be_ordered(tmp_path):

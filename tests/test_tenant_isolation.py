@@ -62,6 +62,10 @@ TENANT_SCOPED = [
     # Phase 10. A schedule is one tenant's standing order and an observation is
     # what was advised about their live system.
     "evaluation_schedule", "release_observation",
+    # Phase 11. A schedule's candidates name one tenant's models and prompts; an
+    # alert rule is their statement of what is worth knowing, and a firing is
+    # evidence about their systems.
+    "evaluation_schedule_candidate", "alert_rule", "alert_event",
 ]
 
 

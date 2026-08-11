@@ -187,7 +187,8 @@ class RunExecutor:
                 failure_kind=failure_kind,
                 example_content_digest=example.content_digest,
                 trajectory_truncated=bool(example.trajectory is not None
-                                          and example.trajectory.truncated))
+                                          and example.trajectory.truncated),
+                model_latency_ms=candidate_outcome.latency_ms)
 
             if inserted:
                 outcome.samples_recorded += 1

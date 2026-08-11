@@ -71,17 +71,18 @@ class RunRepository:
                    integration_tier: str, idempotency_key: str,
                    budget_limit: Decimal | None = None,
                    budget_currency: str | None = None,
-                   correlation_id: str | None = None) -> str:
+                   correlation_id: str | None = None,
+                   trigger_kind: str = "manual") -> str:
         """Returns the run's ULID. Re-submitting the same idempotency key
         returns the existing run rather than starting a second one — REQ-N-REL-2
-        applies to run creation, not only to sample effects."""
-        existing = self._conn.execute(
-            "SELECT id FROM clep.run WHERE organization_id = %s AND project_id = %s "
-            "AND idempotency_key = %s",
-            (self._org, ulid_to_uuid(project_id), idempotency_key)).fetchone()
+        applies to run creation, not only to sample effects.
+
+        `trigger_kind` defaults to `manual` because that is what a run with no
+        stated reason is: someone asked for it. The scheduler states its own.
+        """
+        existing = self.find_run_by_idempotency_key(project_id, idempotency_key)
         if existing:
-            from clep.identity import uuid_to_ulid
-            return uuid_to_ulid(existing[0])
+            return existing
 
         run_ulid = new_ulid()
         self._conn.execute(
@@ -90,18 +91,34 @@ class RunRepository:
                                   dataset_version_id, identity_digest,
                                   integration_tier, execution_state,
                                   budget_limit, budget_currency, correlation_id,
-                                  idempotency_key)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 'queued', %s, %s, %s, %s)
+                                  idempotency_key, trigger_kind)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'queued', %s, %s, %s, %s, %s)
             """,
             (ulid_to_uuid(run_ulid), self._org, ulid_to_uuid(project_id),
              ulid_to_uuid(suite_version_id), ulid_to_uuid(dataset_version_id),
              identity_digest, integration_tier, budget_limit, budget_currency,
-             correlation_id, idempotency_key))
+             correlation_id, idempotency_key, trigger_kind))
         self._conn.execute(
             "INSERT INTO clep.run_checkpoint (id, organization_id, run_id) "
             "VALUES (%s, %s, %s)",
             (ulid_to_uuid(new_ulid()), self._org, ulid_to_uuid(run_ulid)))
         return run_ulid
+
+    def find_run_by_idempotency_key(self, project_id: str,
+                                    idempotency_key: str) -> str | None:
+        """The run a key already produced, or None.
+
+        Separate from `create_run` because the scheduler needs the answer
+        *before* it decides to do anything: a trigger that has already fired
+        must not enqueue a second job, and "create_run returned an id" cannot
+        distinguish the first firing from the second.
+        """
+        from clep.identity import uuid_to_ulid
+        row = self._conn.execute(
+            "SELECT id FROM clep.run WHERE organization_id = %s AND project_id = %s "
+            "AND idempotency_key = %s",
+            (self._org, ulid_to_uuid(project_id), idempotency_key)).fetchone()
+        return uuid_to_ulid(row[0]) if row else None
 
     def add_candidate(self, run_id: str, *, label: str, model_configuration_id: str,
                       endpoint_kind: str, prompt_version_id: str | None = None) -> str:
@@ -175,8 +192,14 @@ class RunRepository:
                       score: Decimal | None = None, failure_kind: str | None = None,
                       example_content_digest: str | None = None,
                       served_from_cache: bool = False,
-                      trajectory_truncated: bool = False) -> tuple[str, bool]:
+                      trajectory_truncated: bool = False,
+                      model_latency_ms: int | None = None) -> tuple[str, bool]:
         """Returns (sample ULID, was_inserted).
+
+        `model_latency_ms` obeys the same rule as `trajectory_truncated`: it is
+        known when the sample is written, so it is written then. `REQ-F-11-3`
+        needs it per sample rather than per run, because a distribution cannot
+        be recovered from a mean.
 
         `trajectory_truncated` is written here rather than patched afterwards.
         A resolved sample is immutable (I-18) and the runtime role has no UPDATE
@@ -198,15 +221,15 @@ class RunRepository:
                 (id, organization_id, run_id, run_candidate_id, example_id,
                  sample_index, example_content_digest, resolution, score,
                  is_served_from_cache, failure_kind, idempotency_key,
-                 trajectory_truncated)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 trajectory_truncated, model_latency_ms)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (organization_id, idempotency_key) DO NOTHING
             RETURNING id
             """,
             (ulid_to_uuid(sample_ulid), self._org, ulid_to_uuid(run_id),
              ulid_to_uuid(candidate_id), ulid_to_uuid(example_id), sample_index,
              example_content_digest, resolution, score, served_from_cache,
-             failure_kind, key, trajectory_truncated)).fetchone()
+             failure_kind, key, trajectory_truncated, model_latency_ms)).fetchone()
         if row:
             return sample_ulid, True
         existing = self._conn.execute(

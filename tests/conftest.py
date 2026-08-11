@@ -41,6 +41,25 @@ requires_postgres = pytest.mark.skipif(
     not _postgres_available(),
     reason="PostgreSQL is not reachable; run `docker compose up -d`")
 
+REDIS_URL = os.environ.get("CLEP_REDIS_URL", "redis://localhost:6399")
+
+
+def _redis_available() -> bool:
+    try:
+        import redis
+        redis.Redis.from_url(REDIS_URL, socket_connect_timeout=3).ping()
+        return True
+    except Exception:
+        return False
+
+
+#: The scheduled-execution test drives a real arq worker against a real broker.
+#: There is no fake: the thing under test is that the queue's own cron fires,
+#: and a fake cron proves only that the fake was called.
+requires_redis = pytest.mark.skipif(
+    not _redis_available(),
+    reason="Redis is not reachable; run `docker compose up -d`")
+
 
 @pytest.fixture(scope="session")
 def migrated_database():
@@ -157,6 +176,14 @@ def seeded(migrated_database, organization):
                      "'schema://in/v1','schema://out/v1','none',true,'free')",
                      (u(ids["evaluator_version"]), u(ids["evaluator_definition"]),
                       "sha256:" + "c" * 64))
+        # What the suite version measures. Phase 11 reads this: a scheduled run
+        # has no caller to name a dataset, so it resolves one through the suite.
+        # A suite version with no member is a fixture artefact — it would make
+        # every schedule unexecutable for a reason that is not about schedules.
+        conn.execute("INSERT INTO clep.suite_member (id, organization_id,"
+                     " suite_version_id, dataset_version_id) VALUES (%s,%s,%s,%s)",
+                     (uuid.uuid4(), org, u(ids["suite_version"]),
+                      u(ids["dataset_version"])))
         # The suite's evaluators are part of run identity (REQ-F-07-1) and are
         # read from the suite rather than from the request, so the fixture has to
         # attach one or every captured identity would be missing that component.

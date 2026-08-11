@@ -49,6 +49,39 @@ def tenant_session(dsn: str, organization_id: uuid.UUID | str) -> Iterator[psyco
 
 
 @contextlib.contextmanager
+def directory_session(dsn: str) -> Iterator[psycopg.Connection]:
+    """A runtime session with no tenant context, for the one read that has none.
+
+    A scheduler has no request and therefore no principal, so it cannot be told
+    which tenant it is acting for. It has to ask which tenants exist and then
+    open a real `tenant_session` for each — which is ADR-010 rule 3 obeyed, not
+    bypassed: the ingress here is the schedule sweep, and the context is still
+    established once per tenant before any tenant-scoped work.
+
+    What makes this safe is not discipline. It is the runtime role: every
+    tenant-scoped table has FORCE ROW LEVEL SECURITY and a policy comparing
+    `organization_id` with the context, and an unset context is NULL, which
+    compares equal to nothing. So this session can read `clep.organization` — the
+    tenant root, which has no policy because it *is* the tenant — and can read
+    nothing else, by construction. Using it for anything further returns an empty
+    result rather than another tenant's rows.
+    """
+    conn = psycopg.connect(dsn)
+    try:
+        with conn.transaction():
+            yield conn
+    finally:
+        conn.close()
+
+
+def known_organizations(dsn: str) -> list[str]:
+    """Every tenant, for a sweep that must consider all of them."""
+    with directory_session(dsn) as conn:
+        return [str(r[0]) for r in
+                conn.execute("SELECT id FROM clep.organization ORDER BY id")]
+
+
+@contextlib.contextmanager
 def admin_session(dsn: str) -> Iterator[psycopg.Connection]:
     """A session with no tenant context, for migrations and provisioning only.
 

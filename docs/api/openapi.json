@@ -5375,6 +5375,19 @@
           "REQ-F-10-1"
         ]
       },
+      "ScheduleTrigger": {
+        "type": "string",
+        "enum": [
+          "schedule",
+          "post_deployment",
+          "canary"
+        ],
+        "description": "Why a standing order exists, and a strict subset of RunTrigger: a schedule cannot be `manual`, which is the opposite of what it is, and a pull request is not a schedule. Only `post_deployment` and `canary` describe a system that is already live, so only those produce a release observation.",
+        "x-requirements": [
+          "REQ-F-10-1",
+          "REQ-F-10-2"
+        ]
+      },
       "EvaluationSchedule": {
         "type": "object",
         "description": "A recurring evaluation. The budget is required: REQ-F-10-5 skips a run whose estimate exceeds it rather than partially executing one, and a schedule with no budget is an unbounded standing order.",
@@ -5383,7 +5396,8 @@
           "suiteVersionId",
           "cadence",
           "budget",
-          "state"
+          "state",
+          "trigger"
         ],
         "x-requirements": [
           "REQ-F-10-1",
@@ -5419,7 +5433,10 @@
           "cadence": {
             "type": "string",
             "minLength": 1,
-            "description": "A cron expression, interpreted in UTC."
+            "description": "A five-field cron expression — minute hour day-of-month month day-of-week — interpreted in UTC. An expression the platform cannot read is refused when the schedule is created, because a standing order that silently never fires is indistinguishable from one that works."
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/ScheduleTrigger"
           },
           "budget": {
             "$ref": "#/components/schemas/Budget"
@@ -5460,6 +5477,9 @@
           "cadence": {
             "type": "string",
             "minLength": 1
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/ScheduleTrigger"
           },
           "budget": {
             "$ref": "#/components/schemas/Budget"

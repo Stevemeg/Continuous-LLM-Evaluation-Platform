@@ -17,12 +17,15 @@ from __future__ import annotations
 import os
 from decimal import Decimal
 
+from arq import cron
 from arq.connections import RedisSettings
 
 from clep.db.session import tenant_session
 from clep.evaluators.builtin import default_registry
 from clep.orchestration.repository import RunRepository
 from clep.orchestration.runner import RunExecutor
+from clep.orchestration.scheduler import (SWEEP_SECONDS, execute_scheduled_run,
+                                          sweep_schedules)
 
 JOB_TIMEOUT = int(os.environ.get("CLEP_JOB_TIMEOUT", "300"))
 POLL_DELAY = float(os.environ.get("CLEP_POLL_DELAY", "0.5"))
@@ -93,8 +96,23 @@ def _is_cancelled(repository: RunRepository, run_id: str) -> bool:
     return bool(run and run.completeness == "cancelled")
 
 
+def sweep_cron(every_seconds: int = SWEEP_SECONDS):
+    """The trigger `REQ-F-10-1` needs: the queue's own scheduler, not a caller.
+
+    A factory rather than a constant so that the cadence is configuration in a
+    deployment and can be a second in a test, without the test inventing a
+    trigger of its own. `run_at_startup` is False deliberately — a worker
+    restarting would otherwise fire every schedule whose minute it happened to
+    land in, which is a redeploy that looks like a cadence.
+    """
+    every = max(1, min(60, int(every_seconds)))
+    return cron(sweep_schedules, second=set(range(0, 60, every)),
+                run_at_startup=False, unique=True, max_tries=1)
+
+
 class WorkerSettings:
-    functions = [execute_run]
+    functions = [execute_run, execute_scheduled_run]
+    cron_jobs = [sweep_cron()]
     job_timeout = JOB_TIMEOUT
     poll_delay = POLL_DELAY
     max_tries = 10

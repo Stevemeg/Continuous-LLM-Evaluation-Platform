@@ -34,6 +34,8 @@ from clep.identity import is_ulid, new_ulid
 from clep.judges.consensus import ConsensusError
 from clep.judges.repository import (EscalationAlreadyReviewed,
                                     JudgeRepositoryError)
+from clep.orchestration.releases import ReleaseObservationError
+from clep.orchestration.schedules import CadenceError, ScheduleError
 from clep.regression.repository import PolicyNotPublished
 
 PROBLEM_TYPE = "https://clep.invalid/problems/"
@@ -208,6 +210,22 @@ class GateEvaluationIn(BaseModel):
     gatePolicyVersionId: str
 
 
+class EvaluationScheduleIn(BaseModel):
+    suiteVersionId: str
+    cadence: str = Field(min_length=1)
+    budget: BudgetIn
+    candidates: list[CandidateSpecIn] = Field(min_length=1)
+    trigger: str | None = None
+    gatePolicyVersionId: str | None = None
+    baselineId: str | None = None
+
+
+class ReleaseObservationIn(BaseModel):
+    trigger: str
+    runId: str
+    gateDecisionId: str | None = None
+
+
 class PolicyExceptionIn(BaseModel):
     justification: str = Field(min_length=20)
     expiresAt: datetime
@@ -223,7 +241,7 @@ PLANNING_BOUNDS = Bounds(max_iterations=4, budget=Decimal("0.50"),
 
 
 def create_app(run_service, registry_service=None, gate_service=None,
-               agentic_service=None) -> FastAPI:
+               agentic_service=None, schedule_service=None) -> FastAPI:
     """`run_service` supplies persistence and execution.
 
     Injected rather than imported so the contract tests can drive every path
@@ -265,7 +283,10 @@ def create_app(run_service, registry_service=None, gate_service=None,
                          ("POST", "/evaluation-plans/{evaluationPlanId}/acceptance"),
                          ("GET", "/projects/{projectId}/escalations"),
                          ("POST", "/escalations/{escalationId}/review"),
-                         ("GET", "/projects/{projectId}/evaluation-memory")):
+                         ("GET", "/projects/{projectId}/evaluation-memory"),
+                         ("POST", "/projects/{projectId}/evaluation-schedules"),
+                         ("POST", "/evaluation-schedules/{scheduleId}/pause"),
+                         ("POST", "/projects/{projectId}/release-observations")):
         contract.operation_for(method, path)
 
     @app.exception_handler(HTTPException)
@@ -711,6 +732,71 @@ def create_app(run_service, registry_service=None, gate_service=None,
         return agentic_service.evaluation_memory(
             organization_id=principal.organization_id, project_id=projectId,
             window_days=windowDays)
+
+    # ---- schedules and release observations ---------------------------------
+    # Registered on the same rule as everything above it.
+    if schedule_service is None:
+        return app
+
+    @app.post("/projects/{projectId}/evaluation-schedules", status_code=201)
+    def create_evaluation_schedule(body: EvaluationScheduleIn,
+                                   projectId: str = Path(...),
+                                   principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        _require_ulid(body.suiteVersionId, "suiteVersionId")
+        trigger = body.trigger or "schedule"
+        _require_enum(trigger, "ScheduleTrigger", "trigger")
+        try:
+            return schedule_service.create_schedule(
+                organization_id=principal.organization_id, project_id=projectId,
+                suite_version_id=body.suiteVersionId, cadence=body.cadence,
+                budget=(body.budget.limit, body.budget.currency),
+                candidates=[c.model_dump() for c in body.candidates],
+                trigger=trigger,
+                gate_policy_version_id=body.gatePolicyVersionId,
+                baseline_id=body.baselineId, actor_id=principal.subject)
+        except (CadenceError, ScheduleError) as e:
+            # 422 rather than 500: a cadence nothing can read is a request the
+            # platform understood and refused, and refusing it here is what
+            # stops a standing order that silently never fires.
+            raise HTTPException(status_code=422, detail=str(e))
+
+    @app.post("/evaluation-schedules/{scheduleId}/pause")
+    def pause_evaluation_schedule(scheduleId: str = Path(...),
+                                  principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(scheduleId, "scheduleId")
+        paused = schedule_service.pause_schedule(
+            organization_id=principal.organization_id, schedule_id=scheduleId,
+            actor_id=principal.subject)
+        if paused is None:
+            raise HTTPException(status_code=404, detail="no such schedule")
+        return paused
+
+    @app.post("/projects/{projectId}/release-observations", status_code=201)
+    def record_release_observation(body: ReleaseObservationIn,
+                                   projectId: str = Path(...),
+                                   principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        _require_ulid(body.runId, "runId")
+        # Only a trigger describing a system that is already live. A manual or
+        # pull-request run is an evaluation before release, not an observation
+        # of one after it, and the store refuses the row either way.
+        if body.trigger not in ("post_deployment", "canary"):
+            raise HTTPException(
+                status_code=422,
+                detail="trigger must be post_deployment or canary; an "
+                       "observation describes a system that is already live")
+        try:
+            observation = schedule_service.record_observation(
+                organization_id=principal.organization_id, project_id=projectId,
+                run_id=body.runId, trigger=body.trigger,
+                gate_decision_id=body.gateDecisionId, actor_id=principal.subject)
+        except ReleaseObservationError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        if observation is None:
+            raise HTTPException(status_code=404,
+                                detail="no such run or gate decision")
+        return observation
 
     return app
 
