@@ -137,3 +137,15 @@ An earlier run of the same 28 checks against `d8839bc` produced the identical
 summary. This one is recorded because recording evidence changes the tree, and
 a gate result that predates the tree it describes is a result about something
 else.
+
+## At finalization
+
+Re-run against the accepted tree at `1c47876` before Phase 11 began:
+[`finalization-output.txt`](finalization-output.txt), 28 checks,
+`OBSERVED_EXIT=0`. The self-test was re-run first and caught 21 of 21.
+
+Two lines differ from the recorded run, both of them this evidence and the
+branch created at the phase tip: `P-20` scans 259 files rather than 258, and
+`P-23` scans 14 refs rather than 13. Every figure that carries meaning —
+undisclosed secrets, attribution matches, and all three canonical-document
+reachability counts — is unchanged at zero.
