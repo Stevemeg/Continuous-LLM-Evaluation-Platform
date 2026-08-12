@@ -899,7 +899,7 @@ try:
     empty = Distribution(measured=0, minimum=None, maximum=None,
                          quantiles={q: None for q in (Decimal("0.5"),
                                                       Decimal("0.95"))})
-    card = _scorecard.Scorecard(
+    built = dict(
         project_id="01ARZ3NDEKTSV4RRFFQ69G5FAV", suite_version_id=None,
         window_days=7, generated_at=_dt(2026, 8, 11, tzinfo=_tz.utc),
         trend=(TrendPoint(run_id="01ARZ3NDEKTSV4RRFFQ69G5FAV", metric_key="m",
@@ -926,7 +926,25 @@ try:
             tool_success_rate=None, samples_with_loops=0,
             samples_with_retries=0, trajectory_failures=0, by_tool=(),
             run_ids=(), completeness=incomplete))(),
+        rag=type("R", (), dict(
+            claims_analysed=0, claims_not_analysable=0, findings={},
+            attribution_stages={}, retrieved_contexts=0, cited_contexts=0,
+            samples_with_retrieval=0, required_contexts_missing=0,
+            run_ids=(), completeness=incomplete))(),
         drift=(), alerts=(), alert_rules=0)
+
+    # Named rather than inferred, and checked: a section added to the scorecard
+    # without being fixtured here would otherwise fail with a TypeError whose
+    # message says nothing about what the check is for.
+    import dataclasses as _dataclasses
+
+    absent = {f.name for f in _dataclasses.fields(_scorecard.Scorecard)} - set(built)
+    if absent:
+        scorecard_defects.append(
+            f"this check does not exercise {sorted(absent)}; a scorecard "
+            f"section that is not rendered here is a section whose "
+            f"qualifications nothing verifies")
+    card = _scorecard.Scorecard(**built)
 
     text = _scorecard.human_readable(card)
     machine = _scorecard.machine_readable(card)
