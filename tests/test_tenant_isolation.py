@@ -66,19 +66,54 @@ TENANT_SCOPED = [
     # alert rule is their statement of what is worth knowing, and a firing is
     # evidence about their systems.
     "evaluation_schedule_candidate", "alert_rule", "alert_event",
+    # Phase 12. A credential, a role binding and a tenant's governance policy
+    # are the records that decide who may read everything above; an invocation
+    # is the record of untrusted code having run against one tenant's sample.
+    "membership", "service_account", "api_key", "role_binding",
+    "retention_policy", "usage_limit", "quota_consumption",
+    "evaluator_invocation",
 ]
 
+#: The enumerated global exception of ADR-010 rule 4, as data-model.md P-4 lists
+#: it. These carry no `organization_id`, so no policy compares one — but they
+#: still take ENABLE and FORCE, and are still checked below.
+#:
+#: The two entries are not the same kind of global. `role` and `role_permission`
+#: are the case rule 4 describes: a catalogue every tenant may read and none may
+#: write. `app_user` is global only in its IDENTITY, because one person holds
+#: memberships in several organizations; its visibility is scoped by membership,
+#: which is why it also appears in a cross-tenant test below.
+GLOBAL = ["app_user", "role", "role_permission"]
 
-def test_the_list_above_is_every_tenant_scoped_table_in_the_live_catalogue():
-    """The list is parametrised, so a table missing from it is a table nobody
-    tests. Derived from the catalogue rather than trusted."""
+
+def test_the_lists_above_are_every_table_in_the_live_catalogue():
+    """The lists are parametrised, so a table missing from them is a table
+    nobody tests. Derived from the catalogue rather than trusted."""
     import re
     from pathlib import Path
     root = Path(__file__).resolve().parents[1]
     sql = "\n".join(p.read_text(encoding="utf-8")
                     for p in sorted((root / "docs/data/schema").glob("*.sql")))
     declared = set(re.findall(r"CREATE TABLE clep\.(\w+)\s*\(", sql))
-    assert declared - {"organization"} == set(TENANT_SCOPED)
+    assert declared - {"organization"} == set(TENANT_SCOPED) | set(GLOBAL)
+
+
+def test_no_table_called_tenant_scoped_is_quietly_missing_its_tenant_column():
+    """P-1, checked against the catalogue rather than against the list.
+
+    A table moved into `TENANT_SCOPED` without an `organization_id` would pass
+    every other test here — the row-level security checks read `pg_class`, which
+    does not care what a policy compares — and would isolate nothing.
+    """
+    import re
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    sql = "\n".join(p.read_text(encoding="utf-8")
+                    for p in sorted((root / "docs/data/schema").glob("*.sql")))
+    bodies = dict(re.findall(r"CREATE TABLE clep\.(\w+)\s*\((.*?)\n\);", sql, re.S))
+    missing = [t for t in TENANT_SCOPED
+               if not re.search(r"^\s+organization_id\s+uuid", bodies.get(t, ""), re.M)]
+    assert missing == [], f"tenant-scoped tables with no organization_id: {missing}"
 
 
 def test_the_four_adr_012_conditions_hold_for_the_connected_role(migrated_database):
@@ -94,7 +129,7 @@ def test_the_four_adr_012_conditions_hold_for_the_connected_role(migrated_databa
     assert problems == [], f"isolation preconditions violated: {problems}"
 
 
-@pytest.mark.parametrize("table", TENANT_SCOPED)
+@pytest.mark.parametrize("table", TENANT_SCOPED + GLOBAL)
 def test_every_tenant_scoped_table_has_both_enable_and_force(migrated_database, table):
     with psycopg.connect(migrated_database) as conn:
         row = conn.execute(

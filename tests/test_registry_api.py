@@ -9,11 +9,10 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from clep.api.app import create_app
 from clep.api.registry_service import RegistryService, actor_uuid
 from clep.api.service import RunService
 from clep.identity import is_ulid, new_ulid
-from tests.conftest import requires_postgres
+from tests.conftest import api_app, requires_postgres
 
 pytestmark = [pytest.mark.integration, requires_postgres]
 
@@ -23,13 +22,19 @@ def client(migrated_database, seeded):
     run_service = RunService(
         migrated_database,
         dataset_version_resolver=lambda org, suite: seeded["dataset_version"])
-    return TestClient(create_app(run_service, RegistryService(migrated_database)),
+    return TestClient(api_app(migrated_database, run_service, RegistryService(migrated_database)),
                       raise_server_exceptions=False)
 
 
 @pytest.fixture
-def auth(seeded):
-    return {"Authorization": f"Bearer {seeded['organization']}:tester"}
+def auth(seeded, owner_headers):
+    """A credential the store verified, not a token naming a tenant.
+
+    Phase 12 replaced the string that used to be here. Every test in
+    this file now passes through authentication and authorization on
+    its way to whatever it was written to check.
+    """
+    return owner_headers
 
 
 def create_version(client, auth, seeded, body="Answer briefly."):
@@ -72,12 +77,20 @@ def test_publishing_makes_the_version_immutable_and_is_idempotent(client, auth,
     assert again.status_code == 200, "a retried publish is not a failure"
 
 
-def test_a_version_is_readable_and_carries_its_actor(client, auth, seeded):
-    """REQ-F-01-6: who changed the prompt, and when."""
+def test_a_version_is_readable_and_carries_its_actor(client, auth, seeded,
+                                                     owner_credential):
+    """REQ-F-01-6: who changed the prompt, and when.
+
+    The actor is now the principal the credential resolved to, rather than
+    whatever subject the caller wrote after the colon. That is the difference
+    Phase 12 makes to every audit column in the product: the name in it is one
+    the store verified.
+    """
     _, version = create_version(client, auth, seeded)
     fetched = client.get(f"/prompt-versions/{version['id']}", headers=auth)
     assert fetched.status_code == 200
-    assert fetched.json()["createdBy"] == str(actor_uuid("tester"))
+    assert fetched.json()["createdBy"] == \
+        str(actor_uuid(owner_credential["userId"]))
     assert fetched.json()["createdAt"] is not None
 
 
@@ -96,9 +109,9 @@ def test_the_change_is_recorded_in_the_audit_trail(client, auth, seeded,
 
 
 def test_another_tenant_cannot_read_a_prompt_version(client, auth, seeded,
-                                                     second_organization):
+                                                     second_organization, intruder_headers):
     _, version = create_version(client, auth, seeded)
-    intruder = {"Authorization": f"Bearer {second_organization}:other"}
+    intruder = intruder_headers
     assert client.get(f"/prompt-versions/{version['id']}",
                       headers=intruder).status_code == 404
 
@@ -180,9 +193,9 @@ def test_a_run_naming_a_configuration_that_does_not_exist_is_refused(client, aut
 
 
 def test_another_tenant_cannot_read_a_runs_identity(client, auth, seeded,
-                                                    second_organization):
+                                                    second_organization, intruder_headers):
     run = _create_run(client, auth, seeded, key="identity-isolation").json()
-    intruder = {"Authorization": f"Bearer {second_organization}:other"}
+    intruder = intruder_headers
     assert client.get(f"/runs/{run['id']}/identity",
                       headers=intruder).status_code == 404
 

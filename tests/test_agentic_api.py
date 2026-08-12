@@ -16,7 +16,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from clep.api.agentic_service import AgenticService
-from clep.api.app import create_app
 from clep.api.gate_service import GateService
 from clep.api.registry_service import RegistryService
 from clep.api.service import RunService
@@ -24,7 +23,7 @@ from clep.identity import is_ulid, new_ulid, ulid_to_uuid
 from clep.judges.consensus import Ensemble, reach_consensus
 from clep.judges.repository import JudgeRepository
 from clep.judges.sdk import JudgeVersion, Vote
-from tests.conftest import MIGRATION_DSN, requires_postgres
+from tests.conftest import MIGRATION_DSN, api_app, requires_postgres
 from tests.test_regression import (BASELINE_SCORES, approved_baseline,  # noqa: F401
                                    build_run, examples, _slug)
 
@@ -39,15 +38,22 @@ def client(migrated_database, seeded):
         migrated_database,
         dataset_version_resolver=lambda org, suite: seeded["dataset_version"])
     return TestClient(
-        create_app(run_service, RegistryService(migrated_database),
-                   GateService(migrated_database),
-                   AgenticService(migrated_database)),
+        api_app(migrated_database, run_service,
+                RegistryService(migrated_database),
+                GateService(migrated_database),
+                AgenticService(migrated_database)),
         raise_server_exceptions=False)
 
 
 @pytest.fixture
-def auth(seeded):
-    return {"Authorization": f"Bearer {seeded['organization']}:tester"}
+def auth(seeded, owner_headers):
+    """A credential the store verified, not a token naming a tenant.
+
+    Phase 12 replaced the string that used to be here. Every test in this file
+    now passes through authentication and authorization on its way to whatever
+    it was testing.
+    """
+    return owner_headers
 
 
 @pytest.fixture

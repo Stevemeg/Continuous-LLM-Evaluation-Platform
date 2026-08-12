@@ -13,10 +13,9 @@ import uuid
 import pytest
 from fastapi.testclient import TestClient
 
-from clep.api.app import create_app
 from clep.api.service import RunService, identity_digest
 from clep.identity import new_ulid
-from tests.conftest import requires_postgres
+from tests.conftest import api_app, requires_postgres
 
 pytestmark = [pytest.mark.integration, requires_postgres]
 
@@ -26,12 +25,18 @@ def client(migrated_database, seeded):
     service = RunService(
         migrated_database,
         dataset_version_resolver=lambda org, suite: seeded["dataset_version"])
-    return TestClient(create_app(service), raise_server_exceptions=False)
+    return TestClient(api_app(migrated_database, service), raise_server_exceptions=False)
 
 
 @pytest.fixture
-def auth(seeded):
-    return {"Authorization": f"Bearer {seeded['organization']}:tester"}
+def auth(seeded, owner_headers):
+    """A credential the store verified, not a token naming a tenant.
+
+    Phase 12 replaced the string that used to be here. Every test in
+    this file now passes through authentication and authorization on
+    its way to whatever it was written to check.
+    """
+    return owner_headers
 
 
 def create(client, auth, seeded, key="e2e-1", **extra):
@@ -85,14 +90,22 @@ def test_run_identity_is_derived_and_stable():
     assert identity_digest("p", "s", "d", "full", "m2") != a
 
 
-def test_another_tenant_cannot_read_the_run_through_the_api(client, auth, seeded):
+def test_another_tenant_cannot_read_the_run_through_the_api(
+        client, auth, seeded, intruder_headers):
     """The end-to-end version of the isolation tests: the tenant comes from the
-    credential, reaches the session, and row-level security does the rest."""
+    credential, reaches the session, and row-level security does the rest.
+
+    Phase 12 made this test mean what it always claimed. The intruder used to
+    present a token naming a tenant, which proved the store filtered rows and
+    nothing about an attacker. This intruder holds a credential the store
+    verified, and a genuine `owner` role in their own organization — the
+    strongest position an outsider can occupy — and still sees a 404.
+    """
     body = create(client, auth, seeded, key="e2e-iso").json()
-    intruder = {"Authorization": f"Bearer {uuid.uuid4()}:intruder"}
-    assert client.get(f"/runs/{body['id']}", headers=intruder).status_code == 404
+    assert client.get(f"/runs/{body['id']}",
+                      headers=intruder_headers).status_code == 404
     assert client.get(f"/runs/{body['id']}/samples",
-                      headers=intruder).status_code == 404
+                      headers=intruder_headers).status_code == 404
 
 
 def test_cancelling_through_the_api_persists_the_reason(client, auth, seeded):

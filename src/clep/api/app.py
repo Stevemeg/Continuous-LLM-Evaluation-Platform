@@ -40,6 +40,8 @@ from clep.judges.repository import (EscalationAlreadyReviewed,
 from clep.orchestration.releases import ReleaseObservationError
 from clep.orchestration.schedules import CadenceError, ScheduleError
 from clep.regression.repository import PolicyNotPublished
+from clep.security.erasure import BaselinePinned, ErasureError
+from clep.security.repository import SecurityError
 
 PROBLEM_TYPE = "https://clep.invalid/problems/"
 
@@ -136,29 +138,56 @@ class EscalationReviewIn(BaseModel):
 
 
 class TenantPrincipal(BaseModel):
+    """What a handler sees. Constructed only from a verified credential.
+
+    Phase 5 fixed the *shape* of this — the organization derived from the
+    credential and from nothing the caller can vary per request — and left
+    issuance and verification to Phase 12. Until Phase 12 the derivation was a
+    string split, so the shape was right and the tenant was whatever the caller
+    typed. `authenticator` is what closed that.
+    """
     organization_id: str
     subject: str
+    kind: str = "user"
+    api_key_id: str = ""
 
 
-def principal_from_authorization(
-    authorization: str | None = Header(default=None),
-) -> TenantPrincipal:
-    """Establish tenant context at the boundary, once.
+class ServiceAccountIn(BaseModel):
+    slug: str = Field(min_length=1, max_length=64)
+    displayName: str = Field(min_length=1)
 
-    A bearer token is required by the contract's security scheme. Token issuance
-    and verification are a Phase 12 concern; what Phase 5 fixes now is the
-    *shape* — the organization is derived from the credential and from nothing
-    the caller can vary per request.
-    """
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="bearer credential required")
-    token = authorization.split(" ", 1)[1].strip()
-    org, _, subject = token.partition(":")
-    try:
-        uuid.UUID(org)
-    except ValueError:
-        raise HTTPException(status_code=401, detail="credential is not bound to a tenant")
-    return TenantPrincipal(organization_id=org, subject=subject or "unknown")
+
+class ApiKeyIn(BaseModel):
+    principalKind: str
+    subjectId: str
+    displayName: str = Field(min_length=1)
+    expiresAt: datetime | None = None
+
+
+class RoleBindingIn(BaseModel):
+    role: str = Field(min_length=1)
+    principalKind: str
+    subjectId: str
+    scope: str
+    projectId: str | None = None
+
+
+class RetentionPolicyIn(BaseModel):
+    decisionRetentionDays: int = Field(ge=1)
+    contentRetentionDays: int = Field(ge=1)
+    auditRetentionDays: int = Field(ge=1)
+
+
+class UsageLimitIn(BaseModel):
+    requestsPerMinute: int = Field(ge=1)
+    runsPerPeriod: int = Field(ge=1)
+    periodDays: int = Field(ge=1)
+
+
+class ErasureRequestIn(BaseModel):
+    exampleContentDigests: list[str] = Field(min_length=1)
+    justification: str = Field(min_length=10)
+    overrideBaselinePin: bool = False
 
 
 class PromptIn(BaseModel):
@@ -255,16 +284,116 @@ PLANNING_BOUNDS = Bounds(max_iterations=4, budget=Decimal("0.50"),
 
 def create_app(run_service, registry_service=None, gate_service=None,
                agentic_service=None, schedule_service=None,
-               analytics_service=None) -> FastAPI:
+               analytics_service=None, *, authenticator=None,
+               security_service=None, limiter=None) -> FastAPI:
     """`run_service` supplies persistence and execution.
 
     Injected rather than imported so the contract tests can drive every path
     without a database, and so nothing in this module can reach the store
     directly and forget the tenant context on the way.
+
+    `authenticator` turns a presented credential into
+    `(Principal, Authorization)` and is **required**: an application built
+    without one would authenticate nothing, and a default that accepted anything
+    is the shape of every authentication bypass. It is a callable rather than a
+    module import for the same reason the services are — so that the contract
+    tests can drive every path, and so that nothing in this module can reach the
+    credential store directly.
     """
+    if authenticator is None:
+        raise ValueError(
+            "create_app requires an authenticator; an application that cannot "
+            "verify a credential must not start, because the alternative is one "
+            "that serves every request as whoever it claims to be")
     app = FastAPI(title=contract.load()["info"]["title"],
                   version=contract.load()["info"]["version"],
                   openapi_url=None)
+    app.state.limiter = limiter
+
+    def _guard(method: str, path: str):
+        """The one enforcement point (ADR-020 rules 6 and 7).
+
+        Authenticate, then meter, then authorize — in that order, because a
+        request that cannot be attributed to a tenant cannot be metered against
+        one, and a request refused by the meter must not have been evaluated for
+        authority it may not have.
+
+        The permission is read from the contract rather than passed in.
+        `operation_for` already refuses a route the contract does not declare;
+        this refuses one the contract declares without a permission. Neither is
+        expressible as an oversight: both fail at import.
+        """
+        operation = contract.operation_for(method, path)
+        permission = operation.get("x-permission")
+        if not permission:
+            raise contract.ContractError(
+                f"{operation['operationId']} declares no x-permission. Every "
+                f"operation states the authority it requires in the contract; "
+                f"a route with none would be a surface nobody attached a rule "
+                f"to, which is the failure ADR-020 exists to make impossible.")
+
+        def dependency(request: Request,
+                       authorization: str | None = Header(default=None)):
+            principal, granted = _authenticate(request, authorization)
+            _meter(request, principal)
+            project_id = request.path_params.get("projectId")
+            if not granted.allows(permission, project_id):
+                _record_denial(principal, permission, request)
+                # Indistinguishable from "the object is not yours", for the
+                # reason the run surface already returns an indistinguishable
+                # 404: a response that separated them would tell a caller which
+                # objects exist (ADR-020 rule 8).
+                raise HTTPException(status_code=403, detail="not permitted")
+            return principal
+
+        #: What the import-time closure below looks for. A route registered
+        #: without this dependency is a route with no authorization, and naming
+        #: the attribute is how that is detected structurally rather than by
+        #: reading the source.
+        dependency.__clep_permission__ = permission
+        dependency.__clep_operation__ = operation["operationId"]
+        return dependency
+
+    def _authenticate(request, authorization: str | None):
+        if not authorization or not authorization.lower().startswith("bearer "):
+            raise HTTPException(status_code=401,
+                                detail="bearer credential required")
+        try:
+            principal, granted = authenticator(
+                authorization.split(" ", 1)[1].strip())
+        except Exception as exc:  # noqa: BLE001 - see below
+            # Every rejection reason collapses to one response (ADR-019 rule
+            # 11). The specific reason is the operator's, through the audit
+            # trail; distinguishing them here would be an oracle for
+            # enumerating valid identifiers. The broad except is deliberate and
+            # bounded: `authenticator` is injected, so its exception types are
+            # not knowable here, and any failure to verify is a failure to
+            # authenticate.
+            _record_authentication_failure(request, exc)
+            raise HTTPException(status_code=401, detail="credential rejected")
+        return principal, granted
+
+    def _meter(request, principal):
+        if app.state.limiter is None:
+            return
+        verdict = app.state.limiter.check(principal.organization_id)
+        if not verdict.allowed:
+            raise HTTPException(status_code=429, detail=verdict.detail)
+
+    def _record_denial(principal, permission, request):
+        if security_service is None:
+            return
+        security_service.record_denial(
+            organization_id=principal.organization_id,
+            actor_id=principal.subject, permission=permission,
+            target=request.url.path)
+
+    def _record_authentication_failure(request, exc):
+        if security_service is None:
+            return
+        security_service.record_authentication_failure(
+            reason=getattr(exc, "reason", type(exc).__name__),
+            target=request.url.path)
 
     # Fail at import time if any route drifts from the contract.
     for method, path in (("POST", "/projects/{projectId}/runs"),
@@ -313,7 +442,23 @@ def create_app(run_service, registry_service=None, gate_service=None,
                          ("GET", "/projects/{projectId}/alert-rules"),
                          ("POST", "/alert-rules/{alertRuleId}/pause"),
                          ("POST", "/runs/{runId}/alert-evaluations"),
-                         ("GET", "/projects/{projectId}/alert-events")):
+                         ("GET", "/projects/{projectId}/alert-events"),
+                         # Phase 12.
+                         ("POST", "/service-accounts"),
+                         ("POST", "/api-keys"),
+                         ("GET", "/api-keys"),
+                         ("POST", "/api-keys/{apiKeyId}/rotation"),
+                         ("POST", "/api-keys/{apiKeyId}/revocation"),
+                         ("GET", "/roles"),
+                         ("POST", "/role-bindings"),
+                         ("GET", "/role-bindings"),
+                         ("POST", "/role-bindings/{roleBindingId}/revocation"),
+                         ("GET", "/retention-policy"),
+                         ("PUT", "/retention-policy"),
+                         ("GET", "/usage-limit"),
+                         ("PUT", "/usage-limit"),
+                         ("GET", "/projects/{projectId}/audit-events"),
+                         ("POST", "/erasure-requests")):
         contract.operation_for(method, path)
 
     @app.exception_handler(HTTPException)
@@ -326,7 +471,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/projects/{projectId}/runs", status_code=202)
     def create_run(body: RunRequestIn, projectId: str = Path(...),
-                   principal: TenantPrincipal = Depends(principal_from_authorization),
+                   principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/runs")),
                    idempotency_key: str | None = Header(default=None,
                                                         alias="Idempotency-Key")):
         _require_ulid(projectId, "projectId")
@@ -353,7 +498,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.get("/runs/{runId}")
     def get_run(runId: str = Path(...),
-                principal: TenantPrincipal = Depends(principal_from_authorization)):
+                principal: TenantPrincipal = Depends(_guard("GET", "/runs/{runId}"))):
         _require_ulid(runId, "runId")
         run = run_service.get_run(principal.organization_id, runId)
         if run is None:
@@ -364,7 +509,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/runs/{runId}/cancel", status_code=202)
     def cancel_run(runId: str = Path(...),
-                   principal: TenantPrincipal = Depends(principal_from_authorization)):
+                   principal: TenantPrincipal = Depends(_guard("POST", "/runs/{runId}/cancel"))):
         _require_ulid(runId, "runId")
         cancelled = run_service.cancel_run(principal.organization_id, runId)
         if cancelled is None:
@@ -374,7 +519,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
     @app.get("/runs/{runId}/samples")
     def list_run_samples(runId: str = Path(...), limit: int = Query(50, ge=1, le=200),
                          offset: int = Query(0, ge=0),
-                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+                         principal: TenantPrincipal = Depends(_guard("GET", "/runs/{runId}/samples"))):
         _require_ulid(runId, "runId")
         page = run_service.list_samples(principal.organization_id, runId, limit, offset)
         if page is None:
@@ -383,7 +528,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.get("/runs/{runId}/identity")
     def get_run_identity(runId: str = Path(...),
-                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+                         principal: TenantPrincipal = Depends(_guard("GET", "/runs/{runId}/identity"))):
         _require_ulid(runId, "runId")
         identity = run_service.run_identity(principal.organization_id, runId)
         if identity is None:
@@ -399,7 +544,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/projects/{projectId}/prompts", status_code=201)
     def create_prompt(body: PromptIn, projectId: str = Path(...),
-                      principal: TenantPrincipal = Depends(principal_from_authorization)):
+                      principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/prompts"))):
         _require_ulid(projectId, "projectId")
         return registry_service.create_prompt(
             organization_id=principal.organization_id, project_id=projectId,
@@ -408,7 +553,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/prompts/{promptId}/versions", status_code=201)
     def add_prompt_version(body: PromptVersionIn, promptId: str = Path(...),
-                           principal: TenantPrincipal = Depends(principal_from_authorization)):
+                           principal: TenantPrincipal = Depends(_guard("POST", "/prompts/{promptId}/versions"))):
         _require_ulid(promptId, "promptId")
         version = registry_service.add_prompt_version(
             organization_id=principal.organization_id, prompt_id=promptId,
@@ -419,7 +564,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.get("/prompt-versions/{promptVersionId}")
     def get_prompt_version(promptVersionId: str = Path(...),
-                           principal: TenantPrincipal = Depends(principal_from_authorization)):
+                           principal: TenantPrincipal = Depends(_guard("GET", "/prompt-versions/{promptVersionId}"))):
         _require_ulid(promptVersionId, "promptVersionId")
         version = registry_service.get_prompt_version(principal.organization_id,
                                                       promptVersionId)
@@ -429,7 +574,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/prompt-versions/{promptVersionId}/publish")
     def publish_prompt_version(promptVersionId: str = Path(...),
-                               principal: TenantPrincipal = Depends(principal_from_authorization)):
+                               principal: TenantPrincipal = Depends(_guard("POST", "/prompt-versions/{promptVersionId}/publish"))):
         _require_ulid(promptVersionId, "promptVersionId")
         version = registry_service.publish_prompt_version(
             organization_id=principal.organization_id,
@@ -440,7 +585,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/projects/{projectId}/experiments", status_code=201)
     def create_experiment(body: ExperimentIn, projectId: str = Path(...),
-                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+                          principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/experiments"))):
         _require_ulid(projectId, "projectId")
         return registry_service.create_experiment(
             organization_id=principal.organization_id, project_id=projectId,
@@ -449,7 +594,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/runs/{runId}/reproductions", status_code=201)
     def reproduce_run(runId: str = Path(...),
-                      principal: TenantPrincipal = Depends(principal_from_authorization)):
+                      principal: TenantPrincipal = Depends(_guard("POST", "/runs/{runId}/reproductions"))):
         _require_ulid(runId, "runId")
         attempt = registry_service.reproduce_run(
             organization_id=principal.organization_id, run_id=runId,
@@ -465,7 +610,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/projects/{projectId}/baselines", status_code=201)
     def create_baseline(body: BaselineIn, projectId: str = Path(...),
-                        principal: TenantPrincipal = Depends(principal_from_authorization)):
+                        principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/baselines"))):
         _require_ulid(projectId, "projectId")
         _require_ulid(body.runId, "runId")
         baseline = gate_service.create_baseline(
@@ -482,7 +627,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/baselines/{baselineId}/approval")
     def approve_baseline(baselineId: str = Path(...),
-                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+                         principal: TenantPrincipal = Depends(_guard("POST", "/baselines/{baselineId}/approval"))):
         _require_ulid(baselineId, "baselineId")
         baseline = gate_service.approve_baseline(
             organization_id=principal.organization_id, baseline_id=baselineId,
@@ -493,7 +638,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/projects/{projectId}/gate-policies", status_code=201)
     def create_gate_policy(body: GatePolicyIn, projectId: str = Path(...),
-                           principal: TenantPrincipal = Depends(principal_from_authorization)):
+                           principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/gate-policies"))):
         _require_ulid(projectId, "projectId")
         return gate_service.create_gate_policy(
             organization_id=principal.organization_id, project_id=projectId,
@@ -503,7 +648,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
     @app.post("/gate-policies/{gatePolicyId}/versions", status_code=201)
     def add_gate_policy_version(body: GatePolicyVersionIn,
                                 gatePolicyId: str = Path(...),
-                                principal: TenantPrincipal = Depends(principal_from_authorization)):
+                                principal: TenantPrincipal = Depends(_guard("POST", "/gate-policies/{gatePolicyId}/versions"))):
         _require_ulid(gatePolicyId, "gatePolicyId")
         for criterion in body.criteria:
             _require_enum(criterion.dimension, "CriterionDimension", "dimension")
@@ -526,7 +671,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/gate-policy-versions/{gatePolicyVersionId}/publish")
     def publish_gate_policy_version(gatePolicyVersionId: str = Path(...),
-                                    principal: TenantPrincipal = Depends(principal_from_authorization)):
+                                    principal: TenantPrincipal = Depends(_guard("POST", "/gate-policy-versions/{gatePolicyVersionId}/publish"))):
         _require_ulid(gatePolicyVersionId, "gatePolicyVersionId")
         version = gate_service.publish_policy_version(
             organization_id=principal.organization_id,
@@ -538,7 +683,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/projects/{projectId}/gate-evaluations")
     def evaluate_gate(body: GateEvaluationIn, projectId: str = Path(...),
-                      principal: TenantPrincipal = Depends(principal_from_authorization)):
+                      principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/gate-evaluations"))):
         _require_ulid(projectId, "projectId")
         _require_ulid(body.candidateRunId, "candidateRunId")
         _require_ulid(body.gatePolicyVersionId, "gatePolicyVersionId")
@@ -562,7 +707,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
     @app.get("/gate-decisions/{gateDecisionId}")
     def get_gate_decision(gateDecisionId: str = Path(...),
                           accept: str = Header(default="application/json"),
-                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+                          principal: TenantPrincipal = Depends(_guard("GET", "/gate-decisions/{gateDecisionId}"))):
         """One decision, two representations (`REQ-F-09-4`).
 
         Negotiated rather than split across two operations: two operations would
@@ -585,7 +730,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
     @app.post("/gate-decisions/{gateDecisionId}/exceptions", status_code=201)
     def create_policy_exception(body: PolicyExceptionIn,
                                 gateDecisionId: str = Path(...),
-                                principal: TenantPrincipal = Depends(principal_from_authorization)):
+                                principal: TenantPrincipal = Depends(_guard("POST", "/gate-decisions/{gateDecisionId}/exceptions"))):
         _require_ulid(gateDecisionId, "gateDecisionId")
         exception = gate_service.create_exception(
             organization_id=principal.organization_id,
@@ -598,7 +743,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
     # ================================================================ Phase 8
     @app.post("/projects/{projectId}/judges", status_code=201)
     def create_judge(body: JudgeIn, projectId: str = Path(...),
-                     principal: TenantPrincipal = Depends(principal_from_authorization)):
+                     principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/judges"))):
         _require_ulid(projectId, "projectId")
         return agentic_service.create_judge(
             organization_id=principal.organization_id, project_id=projectId,
@@ -607,7 +752,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/judges/{judgeId}/versions", status_code=201)
     def add_judge_version(body: JudgeVersionIn, judgeId: str = Path(...),
-                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+                          principal: TenantPrincipal = Depends(_guard("POST", "/judges/{judgeId}/versions"))):
         _require_ulid(judgeId, "judgeId")
         _require_ulid(body.modelConfigurationId, "modelConfigurationId")
         return agentic_service.add_judge_version(
@@ -617,7 +762,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/judge-versions/{judgeVersionId}/publish")
     def publish_judge_version(judgeVersionId: str = Path(...),
-                              principal: TenantPrincipal = Depends(principal_from_authorization)):
+                              principal: TenantPrincipal = Depends(_guard("POST", "/judge-versions/{judgeVersionId}/publish"))):
         _require_ulid(judgeVersionId, "judgeVersionId")
         version = agentic_service.publish_judge_version(
             organization_id=principal.organization_id,
@@ -628,7 +773,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/projects/{projectId}/judge-ensembles", status_code=201)
     def create_judge_ensemble(body: JudgeEnsembleIn, projectId: str = Path(...),
-                              principal: TenantPrincipal = Depends(principal_from_authorization)):
+                              principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/judge-ensembles"))):
         """A composition ADR-017 forbids is a caller error, not a platform one.
 
         An ensemble that cannot disagree with itself would agree on everything,
@@ -650,7 +795,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.get("/judge-ensembles/{judgeEnsembleId}")
     def get_judge_ensemble(judgeEnsembleId: str = Path(...),
-                           principal: TenantPrincipal = Depends(principal_from_authorization)):
+                           principal: TenantPrincipal = Depends(_guard("GET", "/judge-ensembles/{judgeEnsembleId}"))):
         _require_ulid(judgeEnsembleId, "judgeEnsembleId")
         ensemble = agentic_service.get_ensemble(
             organization_id=principal.organization_id,
@@ -661,7 +806,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.post("/projects/{projectId}/evaluation-plans", status_code=201)
     def create_evaluation_plan(body: EvaluationPlanIn, projectId: str = Path(...),
-                               principal: TenantPrincipal = Depends(principal_from_authorization)):
+                               principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/evaluation-plans"))):
         _require_ulid(projectId, "projectId")
         _require_ulid(body.suiteVersionId, "suiteVersionId")
         if body.integrationTier:
@@ -684,7 +829,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
 
     @app.get("/evaluation-plans/{evaluationPlanId}")
     def get_evaluation_plan(evaluationPlanId: str = Path(...),
-                            principal: TenantPrincipal = Depends(principal_from_authorization)):
+                            principal: TenantPrincipal = Depends(_guard("GET", "/evaluation-plans/{evaluationPlanId}"))):
         _require_ulid(evaluationPlanId, "evaluationPlanId")
         plan = agentic_service.get_plan(
             organization_id=principal.organization_id, plan_id=evaluationPlanId)
@@ -695,7 +840,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
     @app.post("/evaluation-plans/{evaluationPlanId}/amendments")
     def amend_evaluation_plan(body: PlanAmendmentIn,
                               evaluationPlanId: str = Path(...),
-                              principal: TenantPrincipal = Depends(principal_from_authorization)):
+                              principal: TenantPrincipal = Depends(_guard("POST", "/evaluation-plans/{evaluationPlanId}/amendments"))):
         _require_ulid(evaluationPlanId, "evaluationPlanId")
         try:
             plan = agentic_service.amend_plan(
@@ -711,7 +856,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
     @app.post("/evaluation-plans/{evaluationPlanId}/acceptance")
     def accept_evaluation_plan(body: PlanAcceptanceIn,
                                evaluationPlanId: str = Path(...),
-                               principal: TenantPrincipal = Depends(principal_from_authorization)):
+                               principal: TenantPrincipal = Depends(_guard("POST", "/evaluation-plans/{evaluationPlanId}/acceptance"))):
         _require_ulid(evaluationPlanId, "evaluationPlanId")
         try:
             plan = agentic_service.accept_plan(
@@ -727,7 +872,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
     @app.get("/projects/{projectId}/escalations")
     def list_escalations(projectId: str = Path(...),
                          state: str | None = Query(default=None),
-                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+                         principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/escalations"))):
         _require_ulid(projectId, "projectId")
         if state:
             _require_enum(state, "EscalationState", "state")
@@ -738,7 +883,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
     @app.post("/escalations/{escalationId}/review")
     def record_escalation_review(body: EscalationReviewIn,
                                  escalationId: str = Path(...),
-                                 principal: TenantPrincipal = Depends(principal_from_authorization)):
+                                 principal: TenantPrincipal = Depends(_guard("POST", "/escalations/{escalationId}/review"))):
         _require_ulid(escalationId, "escalationId")
         try:
             reviewed = agentic_service.review_escalation(
@@ -754,7 +899,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
     @app.get("/projects/{projectId}/evaluation-memory")
     def get_evaluation_memory(projectId: str = Path(...),
                               windowDays: int | None = Query(default=None, ge=1),
-                              principal: TenantPrincipal = Depends(principal_from_authorization)):
+                              principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/evaluation-memory"))):
         _require_ulid(projectId, "projectId")
         return agentic_service.evaluation_memory(
             organization_id=principal.organization_id, project_id=projectId,
@@ -763,12 +908,41 @@ def create_app(run_service, registry_service=None, gate_service=None,
     # Each block registers only when its own service is supplied. Chained
     # early returns did this before, which meant a deployment wanting
     # analytics but not schedules silently lost the analytics routes.
-    _register_schedule_routes(app, schedule_service)
-    _register_analytics_routes(app, analytics_service)
+    _register_schedule_routes(app, schedule_service, _guard)
+    _register_analytics_routes(app, analytics_service, _guard)
+    _register_governance_routes(app, security_service, _guard)
+    _assert_every_route_is_guarded(app)
     return app
 
 
-def _register_schedule_routes(app, schedule_service) -> None:
+def _assert_every_route_is_guarded(app) -> None:
+    """ADR-020 rule 6, checked structurally at import.
+
+    Not by reading the source — nine checks in this project have been lost to
+    text matching. This walks the routes FastAPI actually registered and looks
+    for the guard's own marker on one of each route's dependencies. A route
+    added without `Depends(_guard(...))` has no marker, no permission, and no
+    authorization, and it does not start.
+    """
+    unguarded = []
+    for route in app.routes:
+        dependant = getattr(route, "dependant", None)
+        if dependant is None or not getattr(route, "methods", None):
+            continue  # the default docs and openapi routes, which carry none
+        marked = any(
+            hasattr(sub.call, "__clep_permission__")
+            for sub in dependant.dependencies if sub.call is not None)
+        if not marked:
+            unguarded.append(f"{sorted(route.methods)} {route.path}")
+    if unguarded:
+        raise contract.ContractError(
+            f"{len(unguarded)} route(s) carry no authorization guard: "
+            f"{unguarded}. Every route declares the permission it requires "
+            f"through Depends(_guard(...)); a route that declares none is a "
+            f"surface nobody attached a rule to.")
+
+
+def _register_schedule_routes(app, schedule_service, _guard) -> None:
     """Registered only when the service is supplied. A route that exists and
     cannot work is worse than one that does not exist: the first is a 500 a
     client discovers in production, the second is a 404 it discovers at once."""
@@ -778,7 +952,7 @@ def _register_schedule_routes(app, schedule_service) -> None:
     @app.post("/projects/{projectId}/evaluation-schedules", status_code=201)
     def create_evaluation_schedule(body: EvaluationScheduleIn,
                                    projectId: str = Path(...),
-                                   principal: TenantPrincipal = Depends(principal_from_authorization)):
+                                   principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/evaluation-schedules"))):
         _require_ulid(projectId, "projectId")
         _require_ulid(body.suiteVersionId, "suiteVersionId")
         trigger = body.trigger or "schedule"
@@ -800,7 +974,7 @@ def _register_schedule_routes(app, schedule_service) -> None:
 
     @app.post("/evaluation-schedules/{scheduleId}/pause")
     def pause_evaluation_schedule(scheduleId: str = Path(...),
-                                  principal: TenantPrincipal = Depends(principal_from_authorization)):
+                                  principal: TenantPrincipal = Depends(_guard("POST", "/evaluation-schedules/{scheduleId}/pause"))):
         _require_ulid(scheduleId, "scheduleId")
         paused = schedule_service.pause_schedule(
             organization_id=principal.organization_id, schedule_id=scheduleId,
@@ -812,7 +986,7 @@ def _register_schedule_routes(app, schedule_service) -> None:
     @app.post("/projects/{projectId}/release-observations", status_code=201)
     def record_release_observation(body: ReleaseObservationIn,
                                    projectId: str = Path(...),
-                                   principal: TenantPrincipal = Depends(principal_from_authorization)):
+                                   principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/release-observations"))):
         _require_ulid(projectId, "projectId")
         _require_ulid(body.runId, "runId")
         # Only a trigger describing a system that is already live. A manual or
@@ -836,7 +1010,7 @@ def _register_schedule_routes(app, schedule_service) -> None:
         return observation
 
 
-def _register_analytics_routes(app, analytics_service) -> None:
+def _register_analytics_routes(app, analytics_service, _guard) -> None:
     """Registered only when the service is supplied. A route that exists and
     cannot work is worse than one that does not exist: the first is a 500 a
     client discovers in production, the second is a 404 it discovers at once."""
@@ -849,7 +1023,7 @@ def _register_analytics_routes(app, analytics_service) -> None:
                           metricKey: str | None = Query(default=None),
                           windowDays: int | None = Query(default=None, ge=1),
                           limit: int = Query(100, ge=1, le=500),
-                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+                          principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/analytics/quality-trend"))):
         _require_ulid(projectId, "projectId")
         if suiteVersionId:
             _require_ulid(suiteVersionId, "suiteVersionId")
@@ -862,7 +1036,7 @@ def _register_analytics_routes(app, analytics_service) -> None:
     def get_benchmark_leaderboard(projectId: str = Path(...),
                                   suiteVersionId: str = Query(...),
                                   windowDays: int | None = Query(default=None, ge=1),
-                                  principal: TenantPrincipal = Depends(principal_from_authorization)):
+                                  principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/analytics/leaderboard"))):
         # Required by the signature, not merely by convention. REQ-F-11-2
         # forbids a global ranking, and an optional benchmark is a global
         # ranking with extra steps.
@@ -879,7 +1053,7 @@ def _register_analytics_routes(app, analytics_service) -> None:
     def get_operational_analytics(projectId: str = Path(...),
                                   suiteVersionId: str | None = Query(default=None),
                                   windowDays: int | None = Query(default=None, ge=1),
-                                  principal: TenantPrincipal = Depends(principal_from_authorization)):
+                                  principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/analytics/operational"))):
         _require_ulid(projectId, "projectId")
         if suiteVersionId:
             _require_ulid(suiteVersionId, "suiteVersionId")
@@ -890,7 +1064,7 @@ def _register_analytics_routes(app, analytics_service) -> None:
     @app.get("/projects/{projectId}/analytics/judges")
     def get_judge_analytics(projectId: str = Path(...),
                             windowDays: int | None = Query(default=None, ge=1),
-                            principal: TenantPrincipal = Depends(principal_from_authorization)):
+                            principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/analytics/judges"))):
         _require_ulid(projectId, "projectId")
         return analytics_service.judges(
             organization_id=principal.organization_id, project_id=projectId,
@@ -900,7 +1074,7 @@ def _register_analytics_routes(app, analytics_service) -> None:
     def get_agent_analytics(projectId: str = Path(...),
                             suiteVersionId: str | None = Query(default=None),
                             windowDays: int | None = Query(default=None, ge=1),
-                            principal: TenantPrincipal = Depends(principal_from_authorization)):
+                            principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/analytics/agents"))):
         _require_ulid(projectId, "projectId")
         if suiteVersionId:
             _require_ulid(suiteVersionId, "suiteVersionId")
@@ -912,7 +1086,7 @@ def _register_analytics_routes(app, analytics_service) -> None:
     def get_rag_analytics(projectId: str = Path(...),
                           suiteVersionId: str | None = Query(default=None),
                           windowDays: int | None = Query(default=None, ge=1),
-                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+                          principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/analytics/rag"))):
         _require_ulid(projectId, "projectId")
         if suiteVersionId:
             _require_ulid(suiteVersionId, "suiteVersionId")
@@ -926,7 +1100,7 @@ def _register_analytics_routes(app, analytics_service) -> None:
                           runId: str = Query(...), metricKey: str = Query(...),
                           minimumHistory: int | None = Query(default=None, ge=2),
                           tolerance: str | None = Query(default=None),
-                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+                          principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/analytics/drift"))):
         for name, value in (("projectId", projectId),
                             ("suiteVersionId", suiteVersionId),
                             ("runId", runId)):
@@ -950,7 +1124,7 @@ def _register_analytics_routes(app, analytics_service) -> None:
                               format: str = Query("json"),
                               minimumHistory: int | None = Query(default=None, ge=2),
                               tolerance: str | None = Query(default=None),
-                              principal: TenantPrincipal = Depends(principal_from_authorization)):
+                              principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/scorecard"))):
         _require_ulid(projectId, "projectId")
         if suiteVersionId:
             _require_ulid(suiteVersionId, "suiteVersionId")
@@ -969,7 +1143,7 @@ def _register_analytics_routes(app, analytics_service) -> None:
 
     @app.post("/projects/{projectId}/alert-rules", status_code=201)
     def create_alert_rule(body: AlertRuleIn, projectId: str = Path(...),
-                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+                          principal: TenantPrincipal = Depends(_guard("POST", "/projects/{projectId}/alert-rules"))):
         _require_ulid(projectId, "projectId")
         _require_enum(body.dimension, "AlertDimension", "dimension")
         _require_enum(body.direction, "MetricDirection", "direction")
@@ -986,14 +1160,14 @@ def _register_analytics_routes(app, analytics_service) -> None:
 
     @app.get("/projects/{projectId}/alert-rules")
     def list_alert_rules(projectId: str = Path(...),
-                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+                         principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/alert-rules"))):
         _require_ulid(projectId, "projectId")
         return analytics_service.list_alert_rules(
             organization_id=principal.organization_id, project_id=projectId)
 
     @app.post("/alert-rules/{alertRuleId}/pause")
     def pause_alert_rule(alertRuleId: str = Path(...),
-                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+                         principal: TenantPrincipal = Depends(_guard("POST", "/alert-rules/{alertRuleId}/pause"))):
         _require_ulid(alertRuleId, "alertRuleId")
         paused = analytics_service.pause_alert_rule(
             organization_id=principal.organization_id, rule_id=alertRuleId,
@@ -1004,7 +1178,7 @@ def _register_analytics_routes(app, analytics_service) -> None:
 
     @app.post("/runs/{runId}/alert-evaluations", status_code=201)
     def evaluate_alerts(runId: str = Path(...),
-                        principal: TenantPrincipal = Depends(principal_from_authorization)):
+                        principal: TenantPrincipal = Depends(_guard("POST", "/runs/{runId}/alert-evaluations"))):
         _require_ulid(runId, "runId")
         try:
             evaluated = analytics_service.evaluate_alerts(
@@ -1019,11 +1193,221 @@ def _register_analytics_routes(app, analytics_service) -> None:
     @app.get("/projects/{projectId}/alert-events")
     def list_alert_events(projectId: str = Path(...),
                           limit: int = Query(50, ge=1, le=200),
-                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+                          principal: TenantPrincipal = Depends(_guard("GET", "/projects/{projectId}/alert-events"))):
         _require_ulid(projectId, "projectId")
         return analytics_service.list_alert_events(
             organization_id=principal.organization_id, project_id=projectId,
             limit=limit)
+
+
+def _register_governance_routes(app, security_service, _guard) -> None:
+    """The Phase 12 surface: credentials, bindings, policy, audit and erasure.
+
+    No operation here names an organization in its path. The tenant comes from
+    the verified credential (ADR-010 rule 3), so a caller cannot ask for another
+    tenant's credentials by asking politely — which is the same rule every
+    earlier route follows and the one that matters most on these.
+    """
+    if security_service is None:
+        return
+
+    @app.post("/service-accounts", status_code=201)
+    def create_service_account(
+            body: ServiceAccountIn,
+            principal: TenantPrincipal = Depends(
+                _guard("POST", "/service-accounts"))):
+        try:
+            return security_service.create_service_account(
+                organization_id=principal.organization_id, slug=body.slug,
+                display_name=body.displayName, actor_id=principal.subject)
+        except SecurityError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+    @app.post("/api-keys", status_code=201)
+    def issue_api_key(
+            body: ApiKeyIn,
+            principal: TenantPrincipal = Depends(_guard("POST", "/api-keys"))):
+        _require_enum(body.principalKind, "PrincipalKind", "principalKind")
+        _require_ulid(body.subjectId, "subjectId")
+        try:
+            return security_service.issue_api_key(
+                organization_id=principal.organization_id,
+                principal_kind=body.principalKind, subject_id=body.subjectId,
+                display_name=body.displayName, expires_at=body.expiresAt,
+                actor_id=principal.subject)
+        except SecurityError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+    @app.get("/api-keys")
+    def list_api_keys(
+            principal: TenantPrincipal = Depends(_guard("GET", "/api-keys"))):
+        return security_service.list_api_keys(
+            organization_id=principal.organization_id)
+
+    @app.post("/api-keys/{apiKeyId}/rotation", status_code=201)
+    def rotate_api_key(
+            apiKeyId: str = Path(...),
+            principal: TenantPrincipal = Depends(
+                _guard("POST", "/api-keys/{apiKeyId}/rotation"))):
+        _require_ulid(apiKeyId, "apiKeyId")
+        try:
+            rotated = security_service.rotate_api_key(
+                organization_id=principal.organization_id, key_id=apiKeyId,
+                actor_id=principal.subject)
+        except SecurityError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        if rotated is None:
+            raise HTTPException(status_code=404, detail="no such api key")
+        return rotated
+
+    @app.post("/api-keys/{apiKeyId}/revocation")
+    def revoke_api_key(
+            apiKeyId: str = Path(...),
+            principal: TenantPrincipal = Depends(
+                _guard("POST", "/api-keys/{apiKeyId}/revocation"))):
+        _require_ulid(apiKeyId, "apiKeyId")
+        revoked = security_service.revoke_api_key(
+            organization_id=principal.organization_id, key_id=apiKeyId,
+            actor_id=principal.subject)
+        if revoked is None:
+            raise HTTPException(status_code=404, detail="no such api key")
+        return revoked
+
+    @app.get("/roles")
+    def list_roles(
+            principal: TenantPrincipal = Depends(_guard("GET", "/roles"))):
+        return security_service.list_roles(
+            organization_id=principal.organization_id)
+
+    @app.post("/role-bindings", status_code=201)
+    def create_role_binding(
+            body: RoleBindingIn,
+            principal: TenantPrincipal = Depends(
+                _guard("POST", "/role-bindings"))):
+        _require_enum(body.principalKind, "PrincipalKind", "principalKind")
+        _require_enum(body.scope, "BindingScope", "scope")
+        _require_ulid(body.subjectId, "subjectId")
+        if body.projectId:
+            _require_ulid(body.projectId, "projectId")
+        try:
+            return security_service.create_role_binding(
+                organization_id=principal.organization_id, role=body.role,
+                principal_kind=body.principalKind, subject_id=body.subjectId,
+                scope=body.scope, project_id=body.projectId,
+                actor_id=principal.subject)
+        except SecurityError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+    @app.get("/role-bindings")
+    def list_role_bindings(
+            principal: TenantPrincipal = Depends(
+                _guard("GET", "/role-bindings"))):
+        return security_service.list_role_bindings(
+            organization_id=principal.organization_id)
+
+    @app.post("/role-bindings/{roleBindingId}/revocation")
+    def revoke_role_binding(
+            roleBindingId: str = Path(...),
+            principal: TenantPrincipal = Depends(
+                _guard("POST", "/role-bindings/{roleBindingId}/revocation"))):
+        _require_ulid(roleBindingId, "roleBindingId")
+        try:
+            revoked = security_service.revoke_role_binding(
+                organization_id=principal.organization_id,
+                binding_id=roleBindingId, actor_id=principal.subject)
+        except SecurityError as e:
+            # I-4 speaking through the store. A 422 rather than a 500: the
+            # request was understood and refused, and the reason is something
+            # the caller can act on by granting someone else first.
+            raise HTTPException(status_code=422, detail=str(e))
+        if revoked is None:
+            raise HTTPException(status_code=404, detail="no such role binding")
+        return revoked
+
+    @app.get("/retention-policy")
+    def get_retention_policy(
+            principal: TenantPrincipal = Depends(
+                _guard("GET", "/retention-policy"))):
+        return security_service.retention_policy(
+            organization_id=principal.organization_id)
+
+    @app.put("/retention-policy")
+    def set_retention_policy(
+            body: RetentionPolicyIn,
+            principal: TenantPrincipal = Depends(
+                _guard("PUT", "/retention-policy"))):
+        try:
+            return security_service.set_retention_policy(
+                organization_id=principal.organization_id,
+                decision_days=body.decisionRetentionDays,
+                content_days=body.contentRetentionDays,
+                audit_days=body.auditRetentionDays,
+                actor_id=principal.subject)
+        except SecurityError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+    @app.get("/usage-limit")
+    def get_usage_limit(
+            principal: TenantPrincipal = Depends(
+                _guard("GET", "/usage-limit"))):
+        return security_service.usage_limit(
+            organization_id=principal.organization_id)
+
+    @app.put("/usage-limit")
+    def set_usage_limit(
+            body: UsageLimitIn,
+            principal: TenantPrincipal = Depends(
+                _guard("PUT", "/usage-limit"))):
+        try:
+            return security_service.set_usage_limit(
+                organization_id=principal.organization_id,
+                requests_per_minute=body.requestsPerMinute,
+                runs_per_period=body.runsPerPeriod,
+                period_days=body.periodDays, actor_id=principal.subject)
+        except SecurityError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+    @app.get("/projects/{projectId}/audit-events")
+    def list_audit_events(
+            projectId: str = Path(...),
+            cursor: str | None = Query(default=None),
+            limit: int = Query(50, ge=1, le=200),
+            principal: TenantPrincipal = Depends(
+                _guard("GET", "/projects/{projectId}/audit-events"))):
+        """`REQ-N-COMP-1`: what evidence supported a decision, and who approved.
+
+        Project-addressed although the audit trail is tenant-scoped. That is
+        deliberate: an audit event names a target rather than a project, so the
+        filter is over the targets reachable from this project. An event whose
+        target belongs to no project — a credential, a role binding — is
+        tenant-wide and is returned for every project in the tenant, because
+        hiding it would make the trail incomplete exactly where it matters.
+        """
+        _require_ulid(projectId, "projectId")
+        return security_service.list_audit_events(
+            organization_id=principal.organization_id, project_id=projectId,
+            cursor=cursor, limit=limit)
+
+    @app.post("/erasure-requests", status_code=202)
+    def create_erasure_request(
+            body: ErasureRequestIn,
+            principal: TenantPrincipal = Depends(
+                _guard("POST", "/erasure-requests"))):
+        try:
+            accepted = security_service.request_erasure(
+                organization_id=principal.organization_id,
+                digests=body.exampleContentDigests,
+                justification=body.justification,
+                override_baseline_pin=body.overrideBaselinePin,
+                actor_id=principal.subject)
+        except BaselinePinned as e:
+            # 409 as the contract declares: an active baseline pins the target
+            # and an audited override is required. Not a 422, because the
+            # request is well formed and would be accepted with the override.
+            raise HTTPException(status_code=409, detail=str(e))
+        except ErasureError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        return accepted
 
 
 def _require_enum(value: str, schema_name: str, field: str) -> None:

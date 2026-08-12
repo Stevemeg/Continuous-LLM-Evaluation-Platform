@@ -14,12 +14,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from clep.api.analytics_service import AnalyticsService
-from clep.api.app import create_app
 from clep.api.gate_service import GateService
 from clep.api.registry_service import RegistryService
 from clep.api.service import RunService
 from clep.identity import new_ulid
-from tests.conftest import requires_postgres
+from tests.conftest import api_app, requires_postgres
 from tests.test_regression import build_run, examples, _slug  # noqa: F401
 
 pytestmark = [pytest.mark.integration, requires_postgres]
@@ -35,15 +34,21 @@ def client(migrated_database, seeded):
         migrated_database,
         dataset_version_resolver=lambda org, suite: seeded["dataset_version"])
     return TestClient(
-        create_app(run_service, RegistryService(migrated_database),
+        api_app(migrated_database, run_service, RegistryService(migrated_database),
                    GateService(migrated_database), None, None,
                    AnalyticsService(migrated_database)),
         raise_server_exceptions=False)
 
 
 @pytest.fixture
-def auth(seeded):
-    return {"Authorization": f"Bearer {seeded['organization']}:tester"}
+def auth(seeded, owner_headers):
+    """A credential the store verified, not a token naming a tenant.
+
+    Phase 12 replaced the string that used to be here. Every test in
+    this file now passes through authentication and authorization on
+    its way to whatever it was written to check.
+    """
+    return owner_headers
 
 
 # ------------------------------------------------------------------- trends
@@ -293,16 +298,19 @@ def test_alerting_on_a_run_still_in_flight_is_refused(client, auth,
 
 
 def test_alerting_about_a_run_that_does_not_exist_is_a_404(client, auth):
-    response = client.post(f"/runs/{new_ulid()}/alert-evaluations",
-                           headers={**{"Authorization": "Bearer "
-                                       "00000000-0000-0000-0000-000000000000:t"}})
-    assert response.status_code in (404, 401, 403)
+    """A verified caller asking about a run that is not there.
+
+    This used to present an unverifiable token and accept 401, 403 or 404,
+    which meant it passed whether or not the route worked. With a real
+    credential there is one right answer.
+    """
+    response = client.post(f"/runs/{new_ulid()}/alert-evaluations", headers=auth)
+    assert response.status_code == 404
 
 
-def test_another_tenant_sees_none_of_it(client, migrated_database, seeded,
-                                        second_organization, examples):
-    auth = {"Authorization": f"Bearer {seeded['organization']}:tester"}
-    intruder = {"Authorization": f"Bearer {second_organization}:tester"}
+def test_another_tenant_sees_none_of_it(client, migrated_database, seeded, auth,
+                                        second_organization, intruder_headers, examples):
+    intruder = intruder_headers
     run_id = build_run(migrated_database, seeded, examples, POOR, key="api-iso")
     a_rule(client, auth, seeded)
     client.post(f"/runs/{run_id}/alert-evaluations", headers=auth)

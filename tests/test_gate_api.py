@@ -13,12 +13,11 @@ from decimal import Decimal
 import pytest
 from fastapi.testclient import TestClient
 
-from clep.api.app import create_app
 from clep.api.gate_service import GateService
 from clep.api.registry_service import RegistryService
 from clep.api.service import RunService
 from clep.identity import is_ulid
-from tests.conftest import requires_postgres
+from tests.conftest import api_app, requires_postgres
 from tests.test_regression import (BASELINE_SCORES, approved_baseline, build_run,
                                    examples, _slug)  # noqa: F401
 
@@ -31,14 +30,20 @@ def client(migrated_database, seeded):
         migrated_database,
         dataset_version_resolver=lambda org, suite: seeded["dataset_version"])
     return TestClient(
-        create_app(run_service, RegistryService(migrated_database),
+        api_app(migrated_database, run_service, RegistryService(migrated_database),
                    GateService(migrated_database)),
         raise_server_exceptions=False)
 
 
 @pytest.fixture
-def auth(seeded):
-    return {"Authorization": f"Bearer {seeded['organization']}:tester"}
+def auth(seeded, owner_headers):
+    """A credential the store verified, not a token naming a tenant.
+
+    Phase 12 replaced the string that used to be here. Every test in
+    this file now passes through authentication and authorization on
+    its way to whatever it was written to check.
+    """
+    return owner_headers
 
 
 def published_policy(client, auth, seeded, **overrides):
@@ -309,7 +314,7 @@ def test_an_expired_exception_stops_applying_without_anything_running(
 
 # ------------------------------------------------------------------- tenancy
 def test_another_tenants_decision_is_not_found(client, auth, migrated_database,
-                                               seeded, second_organization,
+                                               seeded, second_organization, intruder_headers,
                                                examples):
     run_id = build_run(migrated_database, seeded, examples, BASELINE_SCORES,
                        key="api-i1")
@@ -319,7 +324,7 @@ def test_another_tenants_decision_is_not_found(client, auth, migrated_database,
                            headers=auth,
                            json={"candidateRunId": run_id,
                                  "gatePolicyVersionId": version["id"]}).json()
-    other = {"Authorization": f"Bearer {second_organization}:intruder"}
+    other = intruder_headers
     response = client.get(f"/gate-decisions/{decision['id']}", headers=other)
     assert response.status_code == 404, "indistinguishable from a decision that " \
                                         "never existed"

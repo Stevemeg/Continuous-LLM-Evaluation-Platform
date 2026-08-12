@@ -11,13 +11,12 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from clep.api.app import create_app
 from clep.api.gate_service import GateService
 from clep.api.registry_service import RegistryService
 from clep.api.schedule_service import ScheduleService
 from clep.api.service import RunService
 from clep.identity import is_ulid, new_ulid
-from tests.conftest import requires_postgres
+from tests.conftest import api_app, requires_postgres
 from tests.test_regression import (BASELINE_SCORES, build_run,  # noqa: F401
                                    examples)
 
@@ -30,15 +29,21 @@ def client(migrated_database, seeded):
         migrated_database,
         dataset_version_resolver=lambda org, suite: seeded["dataset_version"])
     return TestClient(
-        create_app(run_service, RegistryService(migrated_database),
+        api_app(migrated_database, run_service, RegistryService(migrated_database),
                    GateService(migrated_database), None,
                    ScheduleService(migrated_database)),
         raise_server_exceptions=False)
 
 
 @pytest.fixture
-def auth(seeded):
-    return {"Authorization": f"Bearer {seeded['organization']}:tester"}
+def auth(seeded, owner_headers):
+    """A credential the store verified, not a token naming a tenant.
+
+    Phase 12 replaced the string that used to be here. Every test in
+    this file now passes through authentication and authorization on
+    its way to whatever it was written to check.
+    """
+    return owner_headers
 
 
 def a_schedule(client, auth, seeded, **overrides):
@@ -100,12 +105,10 @@ def test_pausing_a_schedule_that_does_not_exist_is_a_404(client, auth):
     assert absent.status_code == 404
 
 
-def test_another_tenant_cannot_see_or_pause_a_schedule(client, seeded,
-                                                       second_organization):
-    schedule_id = a_schedule(
-        client, {"Authorization": f"Bearer {seeded['organization']}:tester"},
-        seeded).json()["id"]
-    intruder = {"Authorization": f"Bearer {second_organization}:tester"}
+def test_another_tenant_cannot_see_or_pause_a_schedule(client, seeded, auth,
+                                                       second_organization, intruder_headers):
+    schedule_id = a_schedule(client, auth, seeded).json()["id"]
+    intruder = intruder_headers
     denied = client.post(f"/evaluation-schedules/{schedule_id}/pause",
                          headers=intruder)
     # Indistinguishable from a schedule that does not exist, on purpose.

@@ -81,802 +81,854 @@
     }
   ],
   "paths": {
-      "/projects/{projectId}/analytics/rag": {
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/projectId"
-          }
-        ],
-        "get": {
-          "operationId": "getRagAnalytics",
-          "summary": "Hallucination, faithfulness, groundedness and citation behaviour",
-          "description": "REQ-F-11-1 and canonical \u00a712. These are not evaluator scores: a hallucination finding is a categorical verdict about one claim and a stage attribution says which part of the pipeline a failure belongs to, so neither can be recovered from a mean and neither is folded into the quality trend. What is reported is how many claims fell into each category and how many could not be analysed at all \u2014 never a hallucination rate, because the support and contradiction thresholds behind a finding are configured rather than calibrated.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-1",
-            "REQ-F-11-6",
-            "REQ-F-11-7"
-          ],
-          "parameters": [
-            {
-              "name": "suiteVersionId",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "$ref": "#/components/schemas/Ulid"
-              },
-              "description": "Restrict to one benchmark suite version."
-            },
-            {
-              "name": "windowDays",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "description": "Narrow the figures to this many days."
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "The retrieval and grounding figures.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/RagAnalytics"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            }
-          }
+    "/projects/{projectId}/analytics/rag": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
         }
-      },
-      "/projects/{projectId}/analytics/quality-trend": {
+      ],
+      "get": {
+        "operationId": "getRagAnalytics",
+        "summary": "Hallucination, faithfulness, groundedness and citation behaviour",
+        "description": "REQ-F-11-1 and canonical §12. These are not evaluator scores: a hallucination finding is a categorical verdict about one claim and a stage attribution says which part of the pipeline a failure belongs to, so neither can be recovered from a mean and neither is folded into the quality trend. What is reported is how many claims fell into each category and how many could not be analysed at all — never a hallucination rate, because the support and contradiction thresholds behind a finding are configured rather than calibrated.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-1",
+          "REQ-F-11-6",
+          "REQ-F-11-7"
+        ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/projectId"
-          }
-        ],
-        "get": {
-          "operationId": "getQualityTrend",
-          "summary": "Quality over time, with baselines flagged",
-          "description": "REQ-F-11-1. One point per run per metric, oldest first, with approved baselines flagged in the same series so a baseline-versus-candidate reading needs no second call. Every point names the run it came from and the observations behind it (REQ-F-11-6) and is marked where its evidence was incomplete (REQ-F-11-7).",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-1",
-            "REQ-F-11-6",
-            "REQ-F-11-7"
-          ],
-          "responses": {
-            "200": {
-              "description": "The series.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/QualityTrend"
-                  }
-                }
-              }
+            "name": "suiteVersionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
             },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            }
+            "description": "Restrict to one benchmark suite version."
           },
-          "parameters": [
-            {
-              "name": "suiteVersionId",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "$ref": "#/components/schemas/Ulid"
-              },
-              "description": "Restrict to one benchmark suite version."
-            },
-            {
-              "name": "metricKey",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "string"
-              },
-              "description": "Restrict to one evaluator definition's slug."
-            },
-            {
-              "name": "windowDays",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "description": "Narrow the figures to this many days. Omitted means all recorded history."
-            },
-            {
-              "name": "limit",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 500
-              },
-              "description": "Maximum points to return."
-            }
-          ]
-        }
-      },
-      "/projects/{projectId}/analytics/leaderboard": {
-        "parameters": [
           {
-            "$ref": "#/components/parameters/projectId"
+            "name": "windowDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Narrow the figures to this many days."
           }
         ],
-        "get": {
-          "operationId": "getBenchmarkLeaderboard",
-          "summary": "Model and provider standings within one benchmark",
-          "description": "REQ-F-11-2. `suiteVersionId` is required and there is no code path that omits it: a ranking without a stated benchmark is the decontextualised comparison canonical \u00a725 rejects.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-2",
-            "REQ-F-11-6",
-            "REQ-F-11-7"
-          ],
-          "responses": {
-            "200": {
-              "description": "The standings, within the named benchmark.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Leaderboard"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            },
-            "422": {
-              "$ref": "#/components/responses/Unprocessable"
-            }
-          },
-          "parameters": [
-            {
-              "name": "suiteVersionId",
-              "in": "query",
-              "required": true,
-              "schema": {
-                "$ref": "#/components/schemas/Ulid"
-              },
-              "description": "The benchmark this ranking is about. Required."
-            },
-            {
-              "name": "windowDays",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "description": "Narrow the figures to this many days. Omitted means all recorded history."
-            }
-          ]
-        }
-      },
-      "/projects/{projectId}/analytics/operational": {
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/projectId"
-          }
-        ],
-        "get": {
-          "operationId": "getOperationalAnalytics",
-          "summary": "Latency distributions, tokens and cost per successful task",
-          "description": "REQ-F-11-3. Two latencies are reported and named apart: the provider call, measured at the gateway, and the time the evaluators took. Cost and tokens are divided by tasks that succeeded, because dividing by every attempt makes a run that failed half its calls look cheaper per task.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-3",
-            "REQ-F-11-6",
-            "REQ-F-11-7"
-          ],
-          "responses": {
-            "200": {
-              "description": "The operational figures.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/OperationalAnalytics"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            }
-          },
-          "parameters": [
-            {
-              "name": "suiteVersionId",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "$ref": "#/components/schemas/Ulid"
-              },
-              "description": "Restrict to one benchmark suite version."
-            },
-            {
-              "name": "windowDays",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "description": "Narrow the figures to this many days. Omitted means all recorded history."
-            }
-          ]
-        }
-      },
-      "/projects/{projectId}/analytics/judges": {
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/projectId"
-          }
-        ],
-        "get": {
-          "operationId": "getJudgeAnalytics",
-          "summary": "Judge agreement, disagreement, calibration and failure rates",
-          "description": "REQ-F-11-4. Calibration is the same figure the evaluation memory reports, read from the same definition rather than recomputed: two definitions of how far a judge sits from its ensemble is how a dashboard and an escalation come to disagree.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-4",
-            "REQ-F-11-6",
-            "REQ-F-11-7"
-          ],
-          "responses": {
-            "200": {
-              "description": "The judge figures.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/JudgeAnalytics"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            }
-          },
-          "parameters": [
-            {
-              "name": "windowDays",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "description": "Narrow the figures to this many days. Omitted means all recorded history."
-            }
-          ]
-        }
-      },
-      "/projects/{projectId}/analytics/agents": {
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/projectId"
-          }
-        ],
-        "get": {
-          "operationId": "getAgentAnalytics",
-          "summary": "Tool success, trajectory failures, loops, retries, completion",
-          "description": "REQ-F-11-5. A loop is an identical call repeated back to back \u2014 the shape that cannot be productive \u2014 and a retry is any repeated call signature. Both are the definitions the agent evaluators use, so a dashboard and a score mean the same thing by each word.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-5",
-            "REQ-F-11-6",
-            "REQ-F-11-7"
-          ],
-          "responses": {
-            "200": {
-              "description": "The agent figures.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/AgentAnalytics"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            }
-          },
-          "parameters": [
-            {
-              "name": "suiteVersionId",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "$ref": "#/components/schemas/Ulid"
-              },
-              "description": "Restrict to one benchmark suite version."
-            },
-            {
-              "name": "windowDays",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "description": "Narrow the figures to this many days. Omitted means all recorded history."
-            }
-          ]
-        }
-      },
-      "/projects/{projectId}/analytics/drift": {
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/projectId"
-          }
-        ],
-        "get": {
-          "operationId": "getQualityDrift",
-          "summary": "Drift against baseline history, never against a single prior run",
-          "description": "REQ-F-10-4. The comparison is against every baseline that has held the scope, including superseded ones, because a superseded baseline is history rather than a mistake. The verdict is withheld with a reason unless a minimum history and a tolerance are supplied: a threshold invented by the platform would be a calibrated-looking number nobody calibrated.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-10-4",
-            "REQ-F-11-6",
-            "REQ-F-11-7"
-          ],
-          "responses": {
-            "200": {
-              "description": "What the history says about this run.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/DriftAnalysis"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            },
-            "422": {
-              "$ref": "#/components/responses/Unprocessable"
-            }
-          },
-          "parameters": [
-            {
-              "name": "suiteVersionId",
-              "in": "query",
-              "required": true,
-              "schema": {
-                "$ref": "#/components/schemas/Ulid"
-              },
-              "description": "The benchmark whose baseline history is being read. Required."
-            },
-            {
-              "name": "runId",
-              "in": "query",
-              "required": true,
-              "schema": {
-                "$ref": "#/components/schemas/Ulid"
-              },
-              "description": "The run being assessed."
-            },
-            {
-              "name": "metricKey",
-              "in": "query",
-              "required": true,
-              "schema": {
-                "type": "string"
-              },
-              "description": "The evaluator definition's slug."
-            },
-            {
-              "name": "minimumHistory",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 2
-              },
-              "description": "How many baselines must exist before a verdict is given. Below two is refused: a history of one is the single prior run REQ-F-10-4 forbids."
-            },
-            {
-              "name": "tolerance",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "$ref": "#/components/schemas/Decimal"
-              },
-              "description": "How far from the historical median counts as drift. Supplied by the caller; the platform declines to invent it."
-            }
-          ]
-        }
-      },
-      "/projects/{projectId}/scorecard": {
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/projectId"
-          }
-        ],
-        "get": {
-          "operationId": "getProjectScorecard",
-          "summary": "An executive scorecard, with its qualifications intact",
-          "description": "REQ-F-11-8. Suitable for a non-specialist reader, and the second half of that requirement is the load-bearing one: every figure keeps the observation count behind it, every incomplete figure says so in a sentence rather than a footnote, and what the platform has not calibrated is stated rather than omitted.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-8",
-            "REQ-F-11-6",
-            "REQ-F-11-7"
-          ],
-          "responses": {
-            "200": {
-              "description": "The scorecard, machine-readable or as Markdown.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Scorecard"
-                  }
-                },
-                "text/markdown": {
-                  "schema": {
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            }
-          },
-          "parameters": [
-            {
-              "name": "suiteVersionId",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "$ref": "#/components/schemas/Ulid"
-              },
-              "description": "Restrict to one benchmark suite version."
-            },
-            {
-              "name": "windowDays",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "description": "Narrow the figures to this many days. Omitted means all recorded history."
-            },
-            {
-              "name": "format",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "string",
-                "enum": [
-                  "json",
-                  "markdown"
-                ]
-              },
-              "description": "Representation. Both carry the same qualifications."
-            },
-            {
-              "name": "minimumHistory",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 2
-              },
-              "description": "Passed through to the drift analysis."
-            },
-            {
-              "name": "tolerance",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "$ref": "#/components/schemas/Decimal"
-              },
-              "description": "Passed through to the drift analysis."
-            }
-          ]
-        }
-      },
-      "/projects/{projectId}/alert-rules": {
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/projectId"
-          }
-        ],
-        "post": {
-          "operationId": "createAlertRule",
-          "summary": "Define an alert condition",
-          "description": "REQ-F-11-9. A rule states which way is bad and how many observations it needs before it will fire. There is no delivery target: REQ-F-10-3 forbids the product from acting, and a rule that named an endpoint would be the first step towards it.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9"
-          ],
-          "responses": {
-            "201": {
-              "description": "The rule.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/AlertRule"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            },
-            "422": {
-              "$ref": "#/components/responses/Unprocessable"
-            }
-          },
-          "requestBody": {
-            "required": true,
+        "responses": {
+          "200": {
+            "description": "The retrieval and grounding figures.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AlertRuleRequest"
+                  "$ref": "#/components/schemas/RagAnalytics"
                 }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "x-permission": "analytics:read"
+      }
+    },
+    "/projects/{projectId}/analytics/quality-trend": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "getQualityTrend",
+        "summary": "Quality over time, with baselines flagged",
+        "description": "REQ-F-11-1. One point per run per metric, oldest first, with approved baselines flagged in the same series so a baseline-versus-candidate reading needs no second call. Every point names the run it came from and the observations behind it (REQ-F-11-6) and is marked where its evidence was incomplete (REQ-F-11-7).",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-1",
+          "REQ-F-11-6",
+          "REQ-F-11-7"
+        ],
+        "responses": {
+          "200": {
+            "description": "The series.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QualityTrend"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "parameters": [
+          {
+            "name": "suiteVersionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "description": "Restrict to one benchmark suite version."
+          },
+          {
+            "name": "metricKey",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Restrict to one evaluator definition's slug."
+          },
+          {
+            "name": "windowDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Narrow the figures to this many days. Omitted means all recorded history."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            },
+            "description": "Maximum points to return."
+          }
+        ],
+        "x-permission": "analytics:read"
+      }
+    },
+    "/projects/{projectId}/analytics/leaderboard": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "getBenchmarkLeaderboard",
+        "summary": "Model and provider standings within one benchmark",
+        "description": "REQ-F-11-2. `suiteVersionId` is required and there is no code path that omits it: a ranking without a stated benchmark is the decontextualised comparison canonical §25 rejects.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-2",
+          "REQ-F-11-6",
+          "REQ-F-11-7"
+        ],
+        "responses": {
+          "200": {
+            "description": "The standings, within the named benchmark.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Leaderboard"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "parameters": [
+          {
+            "name": "suiteVersionId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "description": "The benchmark this ranking is about. Required."
+          },
+          {
+            "name": "windowDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Narrow the figures to this many days. Omitted means all recorded history."
+          }
+        ],
+        "x-permission": "analytics:read"
+      }
+    },
+    "/projects/{projectId}/analytics/operational": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "getOperationalAnalytics",
+        "summary": "Latency distributions, tokens and cost per successful task",
+        "description": "REQ-F-11-3. Two latencies are reported and named apart: the provider call, measured at the gateway, and the time the evaluators took. Cost and tokens are divided by tasks that succeeded, because dividing by every attempt makes a run that failed half its calls look cheaper per task.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-3",
+          "REQ-F-11-6",
+          "REQ-F-11-7"
+        ],
+        "responses": {
+          "200": {
+            "description": "The operational figures.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalAnalytics"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "parameters": [
+          {
+            "name": "suiteVersionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "description": "Restrict to one benchmark suite version."
+          },
+          {
+            "name": "windowDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Narrow the figures to this many days. Omitted means all recorded history."
+          }
+        ],
+        "x-permission": "analytics:read"
+      }
+    },
+    "/projects/{projectId}/analytics/judges": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "getJudgeAnalytics",
+        "summary": "Judge agreement, disagreement, calibration and failure rates",
+        "description": "REQ-F-11-4. Calibration is the same figure the evaluation memory reports, read from the same definition rather than recomputed: two definitions of how far a judge sits from its ensemble is how a dashboard and an escalation come to disagree.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-4",
+          "REQ-F-11-6",
+          "REQ-F-11-7"
+        ],
+        "responses": {
+          "200": {
+            "description": "The judge figures.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JudgeAnalytics"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "parameters": [
+          {
+            "name": "windowDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Narrow the figures to this many days. Omitted means all recorded history."
+          }
+        ],
+        "x-permission": "analytics:read"
+      }
+    },
+    "/projects/{projectId}/analytics/agents": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "getAgentAnalytics",
+        "summary": "Tool success, trajectory failures, loops, retries, completion",
+        "description": "REQ-F-11-5. A loop is an identical call repeated back to back — the shape that cannot be productive — and a retry is any repeated call signature. Both are the definitions the agent evaluators use, so a dashboard and a score mean the same thing by each word.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-5",
+          "REQ-F-11-6",
+          "REQ-F-11-7"
+        ],
+        "responses": {
+          "200": {
+            "description": "The agent figures.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentAnalytics"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "parameters": [
+          {
+            "name": "suiteVersionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "description": "Restrict to one benchmark suite version."
+          },
+          {
+            "name": "windowDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Narrow the figures to this many days. Omitted means all recorded history."
+          }
+        ],
+        "x-permission": "analytics:read"
+      }
+    },
+    "/projects/{projectId}/analytics/drift": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "getQualityDrift",
+        "summary": "Drift against baseline history, never against a single prior run",
+        "description": "REQ-F-10-4. The comparison is against every baseline that has held the scope, including superseded ones, because a superseded baseline is history rather than a mistake. The verdict is withheld with a reason unless a minimum history and a tolerance are supplied: a threshold invented by the platform would be a calibrated-looking number nobody calibrated.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-10-4",
+          "REQ-F-11-6",
+          "REQ-F-11-7"
+        ],
+        "responses": {
+          "200": {
+            "description": "What the history says about this run.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftAnalysis"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "parameters": [
+          {
+            "name": "suiteVersionId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "description": "The benchmark whose baseline history is being read. Required."
+          },
+          {
+            "name": "runId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "description": "The run being assessed."
+          },
+          {
+            "name": "metricKey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The evaluator definition's slug."
+          },
+          {
+            "name": "minimumHistory",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "description": "How many baselines must exist before a verdict is given. Below two is refused: a history of one is the single prior run REQ-F-10-4 forbids."
+          },
+          {
+            "name": "tolerance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Decimal"
+            },
+            "description": "How far from the historical median counts as drift. Supplied by the caller; the platform declines to invent it."
+          }
+        ],
+        "x-permission": "analytics:read"
+      }
+    },
+    "/projects/{projectId}/scorecard": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "getProjectScorecard",
+        "summary": "An executive scorecard, with its qualifications intact",
+        "description": "REQ-F-11-8. Suitable for a non-specialist reader, and the second half of that requirement is the load-bearing one: every figure keeps the observation count behind it, every incomplete figure says so in a sentence rather than a footnote, and what the platform has not calibrated is stated rather than omitted.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-8",
+          "REQ-F-11-6",
+          "REQ-F-11-7"
+        ],
+        "responses": {
+          "200": {
+            "description": "The scorecard, machine-readable or as Markdown.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scorecard"
+                }
+              },
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "parameters": [
+          {
+            "name": "suiteVersionId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "description": "Restrict to one benchmark suite version."
+          },
+          {
+            "name": "windowDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Narrow the figures to this many days. Omitted means all recorded history."
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "markdown"
+              ]
+            },
+            "description": "Representation. Both carry the same qualifications."
+          },
+          {
+            "name": "minimumHistory",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "description": "Passed through to the drift analysis."
+          },
+          {
+            "name": "tolerance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Decimal"
+            },
+            "description": "Passed through to the drift analysis."
+          }
+        ],
+        "x-permission": "analytics:read"
+      }
+    },
+    "/projects/{projectId}/alert-rules": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "post": {
+        "operationId": "createAlertRule",
+        "summary": "Define an alert condition",
+        "description": "REQ-F-11-9. A rule states which way is bad and how many observations it needs before it will fire. There is no delivery target: REQ-F-10-3 forbids the product from acting, and a rule that named an endpoint would be the first step towards it.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9"
+        ],
+        "responses": {
+          "201": {
+            "description": "The rule.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertRule"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertRuleRequest"
               }
             }
           }
         },
-        "get": {
-          "operationId": "listAlertRules",
-          "summary": "List the alert rules on a project",
-          "description": "REQ-F-11-9. Paused rules are listed too: a rule that was switched off is part of why nothing fired.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9"
-          ],
-          "responses": {
-            "200": {
-              "description": "The rules.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/AlertRulePage"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            }
-          }
-        }
+        "x-permission": "alert:configure"
       },
-      "/alert-rules/{alertRuleId}/pause": {
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/alertRuleId"
-          }
+      "get": {
+        "operationId": "listAlertRules",
+        "summary": "List the alert rules on a project",
+        "description": "REQ-F-11-9. Paused rules are listed too: a rule that was switched off is part of why nothing fired.",
+        "tags": [
+          "analytics"
         ],
-        "post": {
-          "operationId": "pauseAlertRule",
-          "summary": "Pause an alert rule",
-          "description": "Paused rather than deleted, so a later reader can explain a quiet period rather than guessing at one.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9"
-          ],
-          "responses": {
-            "200": {
-              "description": "The paused rule.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/AlertRule"
-                  }
+        "x-requirements": [
+          "REQ-F-11-9"
+        ],
+        "responses": {
+          "200": {
+            "description": "The rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertRulePage"
                 }
               }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            }
-          }
-        }
-      },
-      "/runs/{runId}/alert-evaluations": {
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/runId"
-          }
-        ],
-        "post": {
-          "operationId": "evaluateAlerts",
-          "summary": "Evaluate the alert rules against one run",
-          "description": "REQ-F-11-9. Every active rule is reported on, whether or not it fired, and a rule that could not be evaluated says why rather than being silently absent. One firing per rule per run is guaranteed by the store, so evaluating a run twice cannot produce a second alert about the same evidence.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9",
-            "REQ-F-11-7"
-          ],
-          "responses": {
-            "201": {
-              "description": "What each rule decided.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/AlertEvaluation"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
-            },
-            "422": {
-              "$ref": "#/components/responses/Unprocessable"
-            }
-          }
-        }
-      },
-      "/projects/{projectId}/alert-events": {
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/projectId"
-          }
-        ],
-        "get": {
-          "operationId": "listAlertEvents",
-          "summary": "List alert firings on a project",
-          "description": "REQ-F-11-9. A firing records the condition that held, the value that held it, and the completeness of the evidence behind it (REQ-F-11-7). It records no notification and no action.",
-          "tags": [
-            "analytics"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9",
-            "REQ-F-11-7"
-          ],
-          "responses": {
-            "200": {
-              "description": "The firings.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/AlertEventPage"
-                  }
-                }
-              }
-            },
-            "401": {
-              "$ref": "#/components/responses/Unauthorized"
-            },
-            "403": {
-              "$ref": "#/components/responses/Forbidden"
-            },
-            "404": {
-              "$ref": "#/components/responses/NotFound"
             }
           },
-          "parameters": [
-            {
-              "name": "limit",
-              "in": "query",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 200
-              },
-              "description": "Maximum firings to return."
-            }
-          ]
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "x-permission": "alert:read"
+      }
+    },
+    "/alert-rules/{alertRuleId}/pause": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/alertRuleId"
         }
-      },
+      ],
+      "post": {
+        "operationId": "pauseAlertRule",
+        "summary": "Pause an alert rule",
+        "description": "Paused rather than deleted, so a later reader can explain a quiet period rather than guessing at one.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9"
+        ],
+        "responses": {
+          "200": {
+            "description": "The paused rule.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertRule"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "x-permission": "alert:configure"
+      }
+    },
+    "/runs/{runId}/alert-evaluations": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ],
+      "post": {
+        "operationId": "evaluateAlerts",
+        "summary": "Evaluate the alert rules against one run",
+        "description": "REQ-F-11-9. Every active rule is reported on, whether or not it fired, and a rule that could not be evaluated says why rather than being silently absent. One firing per rule per run is guaranteed by the store, so evaluating a run twice cannot produce a second alert about the same evidence.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9",
+          "REQ-F-11-7"
+        ],
+        "responses": {
+          "201": {
+            "description": "What each rule decided.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertEvaluation"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "x-permission": "alert:evaluate"
+      }
+    },
+    "/projects/{projectId}/alert-events": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/projectId"
+        }
+      ],
+      "get": {
+        "operationId": "listAlertEvents",
+        "summary": "List alert firings on a project",
+        "description": "REQ-F-11-9. A firing records the condition that held, the value that held it, and the completeness of the evidence behind it (REQ-F-11-7). It records no notification and no action.",
+        "tags": [
+          "analytics"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9",
+          "REQ-F-11-7"
+        ],
+        "responses": {
+          "200": {
+            "description": "The firings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertEventPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "description": "Maximum firings to return."
+          }
+        ],
+        "x-permission": "alert:read"
+      }
+    },
     "/projects/{projectId}/runs": {
       "parameters": [
         {
@@ -947,8 +999,12 @@
           },
           "503": {
             "$ref": "#/components/responses/PlatformFailure"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "run:create"
       }
     },
     "/runs/{runId}": {
@@ -987,8 +1043,12 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "run:read"
       }
     },
     "/runs/{runId}/cancel": {
@@ -1034,8 +1094,12 @@
                 }
               }
             }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "run:cancel"
       }
     },
     "/runs/{runId}/samples": {
@@ -1081,8 +1145,12 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "run:read"
       }
     },
     "/projects/{projectId}/gate-evaluations": {
@@ -1152,8 +1220,12 @@
           },
           "503": {
             "$ref": "#/components/responses/PlatformFailure"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "gate:evaluate"
       }
     },
     "/gate-decisions/{gateDecisionId}": {
@@ -1196,8 +1268,12 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "gate:read"
       }
     },
     "/gate-decisions/{gateDecisionId}/exceptions": {
@@ -1248,8 +1324,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "gate:except"
       }
     },
     "/projects/{projectId}/datasets/{datasetId}/versions": {
@@ -1295,8 +1375,12 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "dataset:read"
       },
       "post": {
         "operationId": "createDatasetVersion",
@@ -1346,8 +1430,12 @@
                 }
               }
             }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "dataset:write"
       }
     },
     "/dataset-versions/{datasetVersionId}/approval": {
@@ -1406,8 +1494,12 @@
                 }
               }
             }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "dataset:approve"
       }
     },
     "/projects/{projectId}/baselines": {
@@ -1457,8 +1549,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "baseline:create"
       }
     },
     "/erasure-requests": {
@@ -1511,8 +1607,12 @@
                 }
               }
             }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "dataset:erase"
       }
     },
     "/projects/{projectId}/audit-events": {
@@ -1558,8 +1658,12 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "audit:read"
       }
     },
     "/projects/{projectId}/prompts": {
@@ -1609,8 +1713,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "prompt:write"
       }
     },
     "/prompts/{promptId}/versions": {
@@ -1661,8 +1769,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "prompt:write"
       }
     },
     "/prompt-versions/{promptVersionId}": {
@@ -1702,8 +1814,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "prompt:read"
       }
     },
     "/prompt-versions/{promptVersionId}/publish": {
@@ -1743,8 +1859,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "prompt:publish"
       }
     },
     "/projects/{projectId}/experiments": {
@@ -1794,8 +1914,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "experiment:write"
       }
     },
     "/runs/{runId}/identity": {
@@ -1836,8 +1960,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "run:read"
       }
     },
     "/runs/{runId}/reproductions": {
@@ -1877,8 +2005,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "run:reproduce"
       }
     },
     "/projects/{projectId}/gate-policies": {
@@ -1928,8 +2060,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "gate:configure"
       }
     },
     "/gate-policies/{gatePolicyId}/versions": {
@@ -1987,8 +2123,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "gate:configure"
       }
     },
     "/gate-policy-versions/{gatePolicyVersionId}/publish": {
@@ -2034,8 +2174,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "gate:configure"
       }
     },
     "/baselines/{baselineId}/approval": {
@@ -2094,8 +2238,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "baseline:approve"
       }
     },
     "/projects/{projectId}/judges": {
@@ -2145,8 +2293,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "judge:configure"
       }
     },
     "/judges/{judgeId}/versions": {
@@ -2197,8 +2349,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "judge:configure"
       }
     },
     "/judge-versions/{judgeVersionId}/publish": {
@@ -2240,8 +2396,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "judge:configure"
       }
     },
     "/projects/{projectId}/judge-ensembles": {
@@ -2253,7 +2413,7 @@
       "post": {
         "operationId": "createJudgeEnsemble",
         "summary": "Configure a judge ensemble",
-        "description": "Composition is validated here: an ensemble that cannot disagree with itself is refused rather than accepted and quietly agreeable (ADR-017 \u00a72).",
+        "description": "Composition is validated here: an ensemble that cannot disagree with itself is refused rather than accepted and quietly agreeable (ADR-017 §2).",
         "tags": [
           "judges"
         ],
@@ -2293,8 +2453,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "judge:configure"
       }
     },
     "/judge-ensembles/{judgeEnsembleId}": {
@@ -2334,8 +2498,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "judge:read"
       }
     },
     "/projects/{projectId}/evaluation-plans": {
@@ -2388,8 +2556,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "plan:draft"
       }
     },
     "/evaluation-plans/{evaluationPlanId}": {
@@ -2430,8 +2602,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "plan:read"
       }
     },
     "/evaluation-plans/{evaluationPlanId}/amendments": {
@@ -2482,8 +2658,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "plan:draft"
       }
     },
     "/evaluation-plans/{evaluationPlanId}/acceptance": {
@@ -2535,8 +2715,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "plan:accept"
       }
     },
     "/projects/{projectId}/escalations": {
@@ -2586,8 +2770,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "judge:read"
       }
     },
     "/escalations/{escalationId}/review": {
@@ -2639,8 +2827,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "escalation:review"
       }
     },
     "/projects/{projectId}/evaluation-memory": {
@@ -2694,8 +2886,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "memory:read"
       }
     },
     "/run-samples/{runSampleId}/analysis": {
@@ -2739,8 +2935,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "run:read"
       }
     },
     "/projects/{projectId}/evaluation-schedules": {
@@ -2782,6 +2982,9 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
         },
         "requestBody": {
@@ -2793,7 +2996,8 @@
               }
             }
           }
-        }
+        },
+        "x-permission": "schedule:write"
       }
     },
     "/evaluation-schedules/{scheduleId}/pause": {
@@ -2834,8 +3038,12 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
-        }
+        },
+        "x-permission": "schedule:write"
       }
     },
     "/projects/{projectId}/release-observations": {
@@ -2877,6 +3085,9 @@
           },
           "422": {
             "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
         },
         "requestBody": {
@@ -2888,6 +3099,559 @@
               }
             }
           }
+        },
+        "x-permission": "release:observe"
+      }
+    },
+    "/service-accounts": {
+      "post": {
+        "operationId": "createServiceAccount",
+        "summary": "Create a non-human principal",
+        "description": "A pipeline needs an identity of its own so that what it did is attributable to it rather than to whoever set it up. The tenant is taken from the verified credential and never from the path (ADR-010 rule 3), which is why no operation here names an organization.",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-3",
+          "REQ-X-5"
+        ],
+        "x-permission": "credential:manage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The service account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceAccount"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/api-keys": {
+      "post": {
+        "operationId": "issueApiKey",
+        "summary": "Issue a scoped credential",
+        "description": "The response carries the secret exactly once. Nothing stores it and no operation returns it again (I-2). The tenant is taken from the verified credential and never from the path (ADR-010 rule 3), which is why no operation here names an organization.",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-3",
+          "REQ-N-SEC-5",
+          "REQ-X-5"
+        ],
+        "x-permission": "credential:manage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The credential, once.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyIssued"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listApiKeys",
+        "summary": "List this tenant's credentials",
+        "description": "Metadata only. No secret and no verifier appears in this response, because neither is recoverable.",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-3",
+          "REQ-N-SEC-5"
+        ],
+        "x-permission": "credential:manage",
+        "responses": {
+          "200": {
+            "description": "The credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/api-keys/{apiKeyId}/rotation": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/apiKeyId"
+        }
+      ],
+      "post": {
+        "operationId": "rotateApiKey",
+        "summary": "Replace a credential",
+        "description": "Issues a new key and revokes the old one in one transaction. Rotation is never a change of secret under the same identifier: that would make every audit record ambiguous about which credential acted (ADR-019 rule 8).",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-3",
+          "REQ-X-5"
+        ],
+        "x-permission": "credential:manage",
+        "responses": {
+          "201": {
+            "description": "The replacement, once.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyIssued"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/api-keys/{apiKeyId}/revocation": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/apiKeyId"
+        }
+      ],
+      "post": {
+        "operationId": "revokeApiKey",
+        "summary": "Revoke a credential",
+        "description": "State, never deletion (I-3): the audit trail of what the credential did outlives it.",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-3",
+          "REQ-X-5"
+        ],
+        "x-permission": "credential:manage",
+        "responses": {
+          "200": {
+            "description": "The revoked credential.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKey"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/roles": {
+      "get": {
+        "operationId": "listRoles",
+        "summary": "The role catalogue and what each role may do",
+        "description": "Global and read-only. A tenant cannot mint a role, because a role carrying permissions nobody reviewed is an authority nobody reviewed (ADR-020).",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-2"
+        ],
+        "x-permission": "role:grant",
+        "responses": {
+          "200": {
+            "description": "Every role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolePage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/role-bindings": {
+      "post": {
+        "operationId": "createRoleBinding",
+        "summary": "Grant a role to a principal within a scope",
+        "description": "Deny by default: a principal with no binding may do nothing (ADR-020 rule 5). The tenant is taken from the verified credential and never from the path (ADR-010 rule 3), which is why no operation here names an organization.",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-2",
+          "REQ-X-5"
+        ],
+        "x-permission": "role:grant",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleBindingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The binding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleBinding"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listRoleBindings",
+        "summary": "Who holds what, in this tenant",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-2",
+          "REQ-N-COMP-1"
+        ],
+        "x-permission": "role:grant",
+        "responses": {
+          "200": {
+            "description": "The bindings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleBindingPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/role-bindings/{roleBindingId}/revocation": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/roleBindingId"
+        }
+      ],
+      "post": {
+        "operationId": "revokeRoleBinding",
+        "summary": "Withdraw a role",
+        "description": "Refused by the store when it is the last binding able to grant a role in the organization (I-4): an organization with no such principal cannot be recovered by any operation this API offers.",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-2",
+          "REQ-X-5"
+        ],
+        "x-permission": "role:grant",
+        "responses": {
+          "200": {
+            "description": "The revoked binding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleBinding"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/retention-policy": {
+      "get": {
+        "operationId": "getRetentionPolicy",
+        "summary": "This tenant's retention policy and the audit floor",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-6",
+          "REQ-N-COMP-3"
+        ],
+        "x-permission": "governance:configure",
+        "responses": {
+          "200": {
+            "description": "The policy in force.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionPolicy"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      },
+      "put": {
+        "operationId": "setRetentionPolicy",
+        "summary": "Set this tenant's retention policy",
+        "description": "Audit retention may be raised and never lowered below the platform floor; the store refuses it, not the service (I-34).",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-F-12-6",
+          "REQ-N-COMP-3",
+          "REQ-X-5"
+        ],
+        "x-permission": "governance:configure",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetentionPolicy"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The policy now in force.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionPolicy"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/usage-limit": {
+      "get": {
+        "operationId": "getUsageLimit",
+        "summary": "This tenant's rate limit and evaluation quota",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-N-SEC-9",
+          "REQ-N-SCALE-2"
+        ],
+        "x-permission": "governance:configure",
+        "responses": {
+          "200": {
+            "description": "The limits in force.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageLimit"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      },
+      "put": {
+        "operationId": "setUsageLimit",
+        "summary": "Set this tenant's rate limit and evaluation quota",
+        "tags": [
+          "governance"
+        ],
+        "x-requirements": [
+          "REQ-N-SEC-9",
+          "REQ-X-5"
+        ],
+        "x-permission": "governance:configure",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageLimit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The limits now in force.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageLimit"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
         }
       }
     }
@@ -2897,18 +3661,18 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Scoped credential. Every authorization decision is enforced server-side."
+        "description": "A scoped credential of the form `clep_<organization>_<key>_<secret>`, presented as a bearer token. Verified against a stored derivation, never against a stored secret (ADR-019). Every authorization decision is enforced server-side, and every operation declares the permission it requires in `x-permission`."
       }
     },
     "parameters": {
-        "alertRuleId": {
-          "name": "alertRuleId",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "$ref": "#/components/schemas/Ulid"
-          }
-        },
+      "alertRuleId": {
+        "name": "alertRuleId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
       "projectId": {
         "name": "projectId",
         "in": "path",
@@ -3072,6 +3836,22 @@
         "schema": {
           "$ref": "#/components/schemas/Ulid"
         }
+      },
+      "apiKeyId": {
+        "name": "apiKeyId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
+      },
+      "roleBindingId": {
+        "name": "roleBindingId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Ulid"
+        }
       }
     },
     "responses": {
@@ -3124,784 +3904,348 @@
             }
           }
         }
+      },
+      "TooManyRequests": {
+        "description": "A per-tenant rate limit or quota is exhausted. States which control was reached and when it resets, so the caller can act on it rather than retry blindly (REQ-N-USE-3).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
       }
     },
     "schemas": {
-        "RagAnalytics": {
-          "type": "object",
-          "description": "Retrieval and grounding behaviour over a window. Counts, never rates: a rate implies a denominator the platform can defend, and the thresholds behind a hallucination finding are configured rather than calibrated.",
-          "required": [
-            "claimsAnalysed",
-            "claimsNotAnalysable",
-            "findings",
-            "completeness"
-          ],
-          "x-requirements": [
-            "REQ-F-11-1",
-            "REQ-F-11-6",
-            "REQ-F-11-7"
-          ],
-          "properties": {
-            "claimsAnalysed": {
+      "RagAnalytics": {
+        "type": "object",
+        "description": "Retrieval and grounding behaviour over a window. Counts, never rates: a rate implies a denominator the platform can defend, and the thresholds behind a hallucination finding are configured rather than calibrated.",
+        "required": [
+          "claimsAnalysed",
+          "claimsNotAnalysable",
+          "findings",
+          "completeness"
+        ],
+        "x-requirements": [
+          "REQ-F-11-1",
+          "REQ-F-11-6",
+          "REQ-F-11-7"
+        ],
+        "properties": {
+          "claimsAnalysed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "claimsNotAnalysable": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Claims the platform declined to judge. Reported separately rather than counted as supported, which is the distinction REQ-F-08-4 exists to keep."
+          },
+          "findings": {
+            "type": "object",
+            "additionalProperties": {
               "type": "integer",
               "minimum": 0
             },
-            "claimsNotAnalysable": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Claims the platform declined to judge. Reported separately rather than counted as supported, which is the distinction REQ-F-08-4 exists to keep."
-            },
-            "findings": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "description": "Claim counts keyed by HallucinationFinding."
-            },
-            "attributionStages": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "description": "Sample counts keyed by AttributionStage: which part of the pipeline a failure belongs to."
-            },
-            "retrievedContexts": {
+            "description": "Claim counts keyed by HallucinationFinding."
+          },
+          "attributionStages": {
+            "type": "object",
+            "additionalProperties": {
               "type": "integer",
               "minimum": 0
             },
-            "citedContexts": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "samplesWithRetrieval": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "requiredContextsMissing": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Passages the dataset says retrieval was supposed to find and did not. The one figure that cannot be inferred from the passages that were returned."
-            },
-            "runIds": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Ulid"
-              }
-            },
-            "completeness": {
-              "$ref": "#/components/schemas/EvidenceCompleteness"
-            }
-          }
-        },
-        "EvidenceCompleteness": {
-          "type": "object",
-          "description": "Whether a figure may be read at face value. REQ-F-11-7 requires a figure computed from incomplete data to be marked in every view and export it appears in, so this travels with the figure rather than being a property of some responses.",
-          "required": [
-            "state",
-            "contributingRuns",
-            "incompleteRuns",
-            "observations",
-            "unresolvedObservations"
-          ],
-          "x-requirements": [
-            "REQ-F-11-7"
-          ],
-          "properties": {
-            "state": {
-              "type": "string",
-              "enum": [
-                "complete",
-                "incomplete"
-              ]
-            },
-            "contributingRuns": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "incompleteRuns": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Contributing runs that did not finish `complete`. Four of the five completeness states are not success."
-            },
-            "observations": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Scored observations behind the figure. A sample that was not scored contributes nothing and never a zero."
-            },
-            "unresolvedObservations": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "reason": {
-              "type": "string",
-              "description": "A sentence a non-specialist can act on. Present exactly when the state is incomplete."
-            }
-          }
-        },
-        "QualityTrendPoint": {
-          "type": "object",
-          "required": [
-            "runId",
-            "metricKey",
-            "observations",
-            "completeness"
-          ],
-          "x-requirements": [
-            "REQ-F-11-1",
-            "REQ-F-11-6"
-          ],
-          "properties": {
-            "runId": {
-              "$ref": "#/components/schemas/Ulid"
-            },
-            "metricKey": {
-              "type": "string"
-            },
-            "meanScore": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "observations": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "unresolved": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "trigger": {
-              "$ref": "#/components/schemas/RunTrigger"
-            },
-            "runCompleteness": {
-              "$ref": "#/components/schemas/Completeness"
-            },
-            "isBaseline": {
-              "type": "boolean"
-            },
-            "createdAt": {
-              "$ref": "#/components/schemas/Instant"
-            },
-            "completeness": {
-              "$ref": "#/components/schemas/EvidenceCompleteness"
-            }
-          }
-        },
-        "QualityTrend": {
-          "type": "object",
-          "required": [
-            "items"
-          ],
-          "x-requirements": [
-            "REQ-F-11-1"
-          ],
-          "properties": {
+            "description": "Sample counts keyed by AttributionStage: which part of the pipeline a failure belongs to."
+          },
+          "retrievedContexts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "citedContexts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "samplesWithRetrieval": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "requiredContextsMissing": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Passages the dataset says retrieval was supposed to find and did not. The one figure that cannot be inferred from the passages that were returned."
+          },
+          "runIds": {
+            "type": "array",
             "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/QualityTrendPoint"
-              }
-            },
-            "windowDays": {
-              "oneOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "suiteVersionId": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Ulid"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          }
-        },
-        "LeaderboardEntry": {
-          "type": "object",
-          "required": [
-            "modelConfigurationId",
-            "metricKey",
-            "observations",
-            "runIds",
-            "completeness"
-          ],
-          "x-requirements": [
-            "REQ-F-11-2",
-            "REQ-F-11-6"
-          ],
-          "properties": {
-            "modelConfigurationId": {
               "$ref": "#/components/schemas/Ulid"
-            },
-            "modelIdentifier": {
-              "type": "string"
-            },
-            "providerSlug": {
-              "type": "string"
-            },
-            "metricKey": {
-              "type": "string"
-            },
-            "meanScore": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "observations": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "unresolved": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "runIds": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Ulid"
-              }
-            },
-            "completeness": {
-              "$ref": "#/components/schemas/EvidenceCompleteness"
             }
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/EvidenceCompleteness"
           }
-        },
-        "Leaderboard": {
-          "type": "object",
-          "description": "Standings within one named benchmark. REQ-F-11-2: never a global ranking, so `suiteVersionId` is required and always present in the response.",
-          "required": [
-            "suiteVersionId",
-            "items"
-          ],
-          "x-requirements": [
-            "REQ-F-11-2"
-          ],
-          "properties": {
-            "suiteVersionId": {
-              "$ref": "#/components/schemas/Ulid"
-            },
-            "windowDays": {
-              "oneOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/LeaderboardEntry"
-              }
-            }
+        }
+      },
+      "EvidenceCompleteness": {
+        "type": "object",
+        "description": "Whether a figure may be read at face value. REQ-F-11-7 requires a figure computed from incomplete data to be marked in every view and export it appears in, so this travels with the figure rather than being a property of some responses.",
+        "required": [
+          "state",
+          "contributingRuns",
+          "incompleteRuns",
+          "observations",
+          "unresolvedObservations"
+        ],
+        "x-requirements": [
+          "REQ-F-11-7"
+        ],
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "complete",
+              "incomplete"
+            ]
+          },
+          "contributingRuns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "incompleteRuns": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Contributing runs that did not finish `complete`. Four of the five completeness states are not success."
+          },
+          "observations": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Scored observations behind the figure. A sample that was not scored contributes nothing and never a zero."
+          },
+          "unresolvedObservations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "description": "A sentence a non-specialist can act on. Present exactly when the state is incomplete."
           }
-        },
-        "LatencyDistribution": {
-          "type": "object",
-          "description": "Quantiles reported with the count they were taken over. The tail is not optional: a median published without a 95th percentile beside it is the figure that makes a system with a slow tail look healthy.",
-          "required": [
-            "measured",
-            "quantiles"
-          ],
-          "x-requirements": [
-            "REQ-F-11-3"
-          ],
-          "properties": {
-            "measured": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "minimum": {
-              "oneOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "maximum": {
-              "oneOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "quantiles": {
-              "type": "object",
-              "additionalProperties": {
-                "oneOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+        }
+      },
+      "QualityTrendPoint": {
+        "type": "object",
+        "required": [
+          "runId",
+          "metricKey",
+          "observations",
+          "completeness"
+        ],
+        "x-requirements": [
+          "REQ-F-11-1",
+          "REQ-F-11-6"
+        ],
+        "properties": {
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "metricKey": {
+            "type": "string"
+          },
+          "meanScore": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
               },
-              "description": "Keyed by quantile. Discrete: each value is an observation that happened, never an interpolation between two that did not."
-            }
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unresolved": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/RunTrigger"
+          },
+          "runCompleteness": {
+            "$ref": "#/components/schemas/Completeness"
+          },
+          "isBaseline": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/Instant"
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/EvidenceCompleteness"
           }
-        },
-        "OperationalAnalytics": {
-          "type": "object",
-          "required": [
-            "modelLatencyMs",
-            "evaluatorLatencyMs",
-            "successfulTasks",
-            "completeness"
-          ],
-          "x-requirements": [
-            "REQ-F-11-3",
-            "REQ-F-11-6"
-          ],
-          "properties": {
-            "modelLatencyMs": {
-              "$ref": "#/components/schemas/LatencyDistribution"
-            },
-            "evaluatorLatencyMs": {
-              "$ref": "#/components/schemas/LatencyDistribution"
-            },
-            "successfulTasks": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "promptTokens": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "completionTokens": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "costTotal": {
-              "$ref": "#/components/schemas/Decimal"
-            },
-            "costCurrency": {
-              "oneOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "tokensPerSuccessfulTask": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "costPerSuccessfulTask": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "runIds": {
-              "type": "array",
-              "items": {
+        }
+      },
+      "QualityTrend": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "x-requirements": [
+          "REQ-F-11-1"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualityTrendPoint"
+            }
+          },
+          "windowDays": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "suiteVersionId": {
+            "oneOf": [
+              {
                 "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
               }
-            },
-            "completeness": {
-              "$ref": "#/components/schemas/EvidenceCompleteness"
-            }
+            ]
           }
-        },
-        "JudgeAnalytics": {
-          "type": "object",
-          "required": [
-            "judgements",
-            "consensusResults",
-            "completeness"
-          ],
-          "x-requirements": [
-            "REQ-F-11-4",
-            "REQ-F-11-6"
-          ],
-          "properties": {
-            "judgements": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "scored": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "abstained": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "failed": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "consensusResults": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "agreed": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "escalated": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "disagreementMeasured": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Verdicts where disagreement could be measured. An unmeasured one holds the maximum as a floor on ignorance and is excluded from the mean, so an absence of evidence never reads as agreement."
-            },
-            "meanDisagreement": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "escalationReasons": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "integer",
-                "minimum": 0
+        }
+      },
+      "LeaderboardEntry": {
+        "type": "object",
+        "required": [
+          "modelConfigurationId",
+          "metricKey",
+          "observations",
+          "runIds",
+          "completeness"
+        ],
+        "x-requirements": [
+          "REQ-F-11-2",
+          "REQ-F-11-6"
+        ],
+        "properties": {
+          "modelConfigurationId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "modelIdentifier": {
+            "type": "string"
+          },
+          "providerSlug": {
+            "type": "string"
+          },
+          "metricKey": {
+            "type": "string"
+          },
+          "meanScore": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
               }
-            },
-            "calibration": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/JudgeCalibration"
-              }
-            },
-            "runIds": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Ulid"
-              }
-            },
-            "completeness": {
-              "$ref": "#/components/schemas/EvidenceCompleteness"
-            }
-          }
-        },
-        "AgentToolSummary": {
-          "type": "object",
-          "required": [
-            "tool",
-            "calls",
-            "failed"
-          ],
-          "x-requirements": [
-            "REQ-F-11-5"
-          ],
-          "properties": {
-            "tool": {
-              "type": "string"
-            },
-            "calls": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "failed": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "successRate": {
-              "$ref": "#/components/schemas/Decimal"
-            }
-          }
-        },
-        "AgentAnalytics": {
-          "type": "object",
-          "required": [
-            "samplesWithTrajectory",
-            "toolCalls",
-            "completeness"
-          ],
-          "x-requirements": [
-            "REQ-F-11-5",
-            "REQ-F-11-6"
-          ],
-          "properties": {
-            "samplesWithTrajectory": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "completedTasks": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "truncatedTrajectories": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Trajectories cut at the ingest bound. They cannot be read as finished: the run may have ended on the next step or looped for a thousand more."
-            },
-            "toolCalls": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "failedToolCalls": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "toolSuccessRate": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "samplesWithLoops": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Samples where an identical call was repeated back to back \u2014 the shape that cannot be productive."
-            },
-            "samplesWithRetries": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Samples where any call signature repeated. Not a fault on its own: an agent may legitimately re-read a file after writing it."
-            },
-            "trajectoryFailures": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "byTool": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/AgentToolSummary"
-              }
-            },
-            "runIds": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Ulid"
-              }
-            },
-            "completeness": {
-              "$ref": "#/components/schemas/EvidenceCompleteness"
-            }
-          }
-        },
-        "DriftVerdict": {
-          "type": "string",
-          "enum": [
-            "drifted",
-            "stable",
-            "insufficient_history",
-            "insufficient_configuration",
-            "not_measured"
-          ],
-          "description": "`insufficient_configuration` is the abstention that keeps this honest: without a caller-supplied tolerance and minimum history, drift cannot be distinguished from ordinary variation, and the platform declines to invent the value rather than guessing it.",
-          "x-requirements": [
-            "REQ-F-10-4"
-          ]
-        },
-        "DriftPosition": {
-          "type": "string",
-          "enum": [
-            "below_observed_range",
-            "within_observed_range",
-            "above_observed_range"
-          ],
-          "description": "Where the current value sits relative to the range the baseline history actually spanned. An observation, not a threshold: it costs no calibration and is reported even when no verdict can be given.",
-          "x-requirements": [
-            "REQ-F-10-4"
-          ]
-        },
-        "DriftHistoryPoint": {
-          "type": "object",
-          "required": [
-            "runId",
-            "baselineId",
-            "meanScore",
-            "observations"
-          ],
-          "x-requirements": [
-            "REQ-F-10-4",
-            "REQ-F-11-6"
-          ],
-          "properties": {
-            "runId": {
+            ]
+          },
+          "observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unresolved": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "runIds": {
+            "type": "array",
+            "items": {
               "$ref": "#/components/schemas/Ulid"
-            },
-            "baselineId": {
-              "$ref": "#/components/schemas/Ulid"
-            },
-            "baselineState": {
-              "type": "string",
-              "enum": [
-                "approved",
-                "superseded"
-              ]
-            },
-            "meanScore": {
-              "$ref": "#/components/schemas/Decimal"
-            },
-            "observations": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "approvedAt": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Instant"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+            }
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/EvidenceCompleteness"
+          }
+        }
+      },
+      "Leaderboard": {
+        "type": "object",
+        "description": "Standings within one named benchmark. REQ-F-11-2: never a global ranking, so `suiteVersionId` is required and always present in the response.",
+        "required": [
+          "suiteVersionId",
+          "items"
+        ],
+        "x-requirements": [
+          "REQ-F-11-2"
+        ],
+        "properties": {
+          "suiteVersionId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "windowDays": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntry"
             }
           }
-        },
-        "DriftAnalysis": {
-          "type": "object",
-          "required": [
-            "metricKey",
-            "runId",
-            "verdict",
-            "detail",
-            "historySize",
-            "history"
-          ],
-          "x-requirements": [
-            "REQ-F-10-4",
-            "REQ-F-11-6"
-          ],
-          "properties": {
-            "metricKey": {
-              "type": "string"
-            },
-            "runId": {
-              "$ref": "#/components/schemas/Ulid"
-            },
-            "currentValue": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "currentObservations": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "verdict": {
-              "$ref": "#/components/schemas/DriftVerdict"
-            },
-            "detail": {
-              "type": "string",
-              "minLength": 1
-            },
-            "position": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/DriftPosition"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "historySize": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "historicalMinimum": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "historicalMedian": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "historicalMaximum": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "deviationFromMedian": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "tolerance": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "minimumHistory": {
+        }
+      },
+      "LatencyDistribution": {
+        "type": "object",
+        "description": "Quantiles reported with the count they were taken over. The tail is not optional: a median published without a 95th percentile beside it is the figure that makes a system with a slow tail look healthy.",
+        "required": [
+          "measured",
+          "quantiles"
+        ],
+        "x-requirements": [
+          "REQ-F-11-3"
+        ],
+        "properties": {
+          "measured": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minimum": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maximum": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantiles": {
+            "type": "object",
+            "additionalProperties": {
               "oneOf": [
                 {
                   "type": "integer"
@@ -3911,382 +4255,828 @@
                 }
               ]
             },
-            "history": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/DriftHistoryPoint"
-              }
-            }
+            "description": "Keyed by quantile. Discrete: each value is an observation that happened, never an interpolation between two that did not."
           }
-        },
-        "Scorecard": {
-          "type": "object",
-          "description": "An executive summary that keeps its qualifications. `notEstablished` is not decoration and is never empty: judge accuracy, statistical calibration and hosted-provider behaviour are open questions in this product, and a scorecard that omitted them would invite a decision the evidence does not support.",
-          "required": [
-            "projectId",
-            "generatedAt",
-            "qualityTrend",
-            "operational",
-            "judges",
-            "agents",
-            "notEstablished"
-          ],
-          "x-requirements": [
-            "REQ-F-11-8",
-            "REQ-F-11-6",
-            "REQ-F-11-7"
-          ],
-          "properties": {
-            "projectId": {
-              "$ref": "#/components/schemas/Ulid"
-            },
-            "suiteVersionId": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Ulid"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "windowDays": {
-              "oneOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "generatedAt": {
-              "$ref": "#/components/schemas/Instant"
-            },
-            "qualityTrend": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/QualityTrendPoint"
-              }
-            },
-            "leaderboard": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/LeaderboardEntry"
-              }
-            },
-            "operational": {
-              "$ref": "#/components/schemas/OperationalAnalytics"
-            },
-            "judges": {
-              "$ref": "#/components/schemas/JudgeAnalytics"
-            },
-            "agents": {
-              "$ref": "#/components/schemas/AgentAnalytics"
-            },
-            "drift": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/DriftAnalysis"
-              }
-            },
-            "alerts": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/AlertEvent"
-              }
-            },
-            "alertRules": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "notEstablished": {
-              "type": "array",
-              "minItems": 1,
-              "items": {
+        }
+      },
+      "OperationalAnalytics": {
+        "type": "object",
+        "required": [
+          "modelLatencyMs",
+          "evaluatorLatencyMs",
+          "successfulTasks",
+          "completeness"
+        ],
+        "x-requirements": [
+          "REQ-F-11-3",
+          "REQ-F-11-6"
+        ],
+        "properties": {
+          "modelLatencyMs": {
+            "$ref": "#/components/schemas/LatencyDistribution"
+          },
+          "evaluatorLatencyMs": {
+            "$ref": "#/components/schemas/LatencyDistribution"
+          },
+          "successfulTasks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "promptTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completionTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "costTotal": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "costCurrency": {
+            "oneOf": [
+              {
                 "type": "string"
               },
-              "description": "What this report does not tell you. Present on every scorecard."
-            }
-          }
-        },
-        "AlertDimension": {
-          "type": "string",
-          "enum": [
-            "quality",
-            "cost",
-            "latency"
-          ],
-          "description": "The three dimensions REQ-F-11-9 names.",
-          "x-requirements": [
-            "REQ-F-11-9"
-          ]
-        },
-        "AlertRuleRequest": {
-          "type": "object",
-          "required": [
-            "slug",
-            "displayName",
-            "dimension",
-            "metricKey",
-            "direction",
-            "threshold",
-            "minimumSampleSize"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9"
-          ],
-          "properties": {
-            "slug": {
-              "type": "string",
-              "minLength": 1
-            },
-            "displayName": {
-              "type": "string",
-              "minLength": 1
-            },
-            "dimension": {
-              "$ref": "#/components/schemas/AlertDimension"
-            },
-            "metricKey": {
-              "type": "string",
-              "minLength": 1,
-              "description": "An evaluator definition's slug for a quality rule; one of the figures the platform computes for a cost or latency rule. A rule on a figure that does not exist never fires and never says why, so it is refused at creation."
-            },
-            "direction": {
-              "$ref": "#/components/schemas/MetricDirection"
-            },
-            "threshold": {
-              "$ref": "#/components/schemas/Decimal"
-            },
-            "minimumSampleSize": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "REQ-F-08-3 applied to alerting: a rule with no minimum fires on noise."
-            }
-          }
-        },
-        "AlertRule": {
-          "type": "object",
-          "description": "A standing statement that a figure is worth knowing about. There is deliberately no delivery target: REQ-F-10-3 forbids the product from acting.",
-          "required": [
-            "id",
-            "slug",
-            "dimension",
-            "metricKey",
-            "direction",
-            "threshold",
-            "minimumSampleSize",
-            "state"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9",
-            "REQ-F-10-3"
-          ],
-          "properties": {
-            "id": {
-              "$ref": "#/components/schemas/Ulid"
-            },
-            "projectId": {
-              "$ref": "#/components/schemas/Ulid"
-            },
-            "slug": {
-              "type": "string"
-            },
-            "displayName": {
-              "type": "string"
-            },
-            "dimension": {
-              "$ref": "#/components/schemas/AlertDimension"
-            },
-            "metricKey": {
-              "type": "string"
-            },
-            "direction": {
-              "$ref": "#/components/schemas/MetricDirection"
-            },
-            "threshold": {
-              "$ref": "#/components/schemas/Decimal"
-            },
-            "minimumSampleSize": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "state": {
-              "$ref": "#/components/schemas/ScheduleState"
-            }
-          }
-        },
-        "AlertRulePage": {
-          "type": "object",
-          "required": [
-            "items"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9"
-          ],
-          "properties": {
-            "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/AlertRule"
+              {
+                "type": "null"
               }
-            }
-          }
-        },
-        "AlertEvent": {
-          "type": "object",
-          "description": "The condition held, at this value, over this many observations, against evidence of this completeness. There is no field recording a notification sent or an action taken.",
-          "required": [
-            "id",
-            "alertRuleId",
-            "runId",
-            "observedValue",
-            "threshold",
-            "sampleSize",
-            "evidenceCompleteness",
-            "detail"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9",
-            "REQ-F-11-7",
-            "REQ-F-10-3"
-          ],
-          "properties": {
-            "id": {
-              "$ref": "#/components/schemas/Ulid"
-            },
-            "alertRuleId": {
-              "$ref": "#/components/schemas/Ulid"
-            },
-            "runId": {
-              "$ref": "#/components/schemas/Ulid"
-            },
-            "observedValue": {
-              "$ref": "#/components/schemas/Decimal"
-            },
-            "threshold": {
-              "$ref": "#/components/schemas/Decimal"
-            },
-            "sampleSize": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "evidenceCompleteness": {
-              "$ref": "#/components/schemas/Completeness"
-            },
-            "detail": {
-              "type": "string",
-              "minLength": 1
-            },
-            "firedAt": {
-              "$ref": "#/components/schemas/Instant"
-            }
-          }
-        },
-        "AlertEventPage": {
-          "type": "object",
-          "required": [
-            "items"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9"
-          ],
-          "properties": {
-            "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/AlertEvent"
+            ]
+          },
+          "tokensPerSuccessfulTask": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
               }
-            }
-          }
-        },
-        "AlertOutcomeKind": {
-          "type": "string",
-          "enum": [
-            "fired",
-            "within_threshold",
-            "not_measured",
-            "below_minimum_sample",
-            "already_recorded"
-          ],
-          "description": "What one rule decided about one run. A rule that could not be evaluated reports why rather than being silently absent from the result.",
-          "x-requirements": [
-            "REQ-F-11-9"
-          ]
-        },
-        "AlertOutcome": {
-          "type": "object",
-          "required": [
-            "alertRuleId",
-            "slug",
-            "outcome",
-            "detail"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9"
-          ],
-          "properties": {
-            "alertRuleId": {
+            ]
+          },
+          "costPerSuccessfulTask": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runIds": {
+            "type": "array",
+            "items": {
               "$ref": "#/components/schemas/Ulid"
-            },
-            "slug": {
-              "type": "string"
-            },
-            "outcome": {
-              "$ref": "#/components/schemas/AlertOutcomeKind"
-            },
-            "observedValue": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Decimal"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "sampleSize": {
+            }
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/EvidenceCompleteness"
+          }
+        }
+      },
+      "JudgeAnalytics": {
+        "type": "object",
+        "required": [
+          "judgements",
+          "consensusResults",
+          "completeness"
+        ],
+        "x-requirements": [
+          "REQ-F-11-4",
+          "REQ-F-11-6"
+        ],
+        "properties": {
+          "judgements": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "scored": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "abstained": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "consensusResults": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "agreed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "escalated": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "disagreementMeasured": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Verdicts where disagreement could be measured. An unmeasured one holds the maximum as a floor on ignorance and is excluded from the mean, so an absence of evidence never reads as agreement."
+          },
+          "meanDisagreement": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "escalationReasons": {
+            "type": "object",
+            "additionalProperties": {
               "type": "integer",
               "minimum": 0
-            },
-            "alertEventId": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/Ulid"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "detail": {
-              "type": "string",
-              "minLength": 1
             }
-          }
-        },
-        "AlertEvaluation": {
-          "type": "object",
-          "required": [
-            "runId",
-            "items"
-          ],
-          "x-requirements": [
-            "REQ-F-11-9"
-          ],
-          "properties": {
-            "runId": {
-              "$ref": "#/components/schemas/Ulid"
-            },
+          },
+          "calibration": {
+            "type": "array",
             "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/AlertOutcome"
+              "$ref": "#/components/schemas/JudgeCalibration"
+            }
+          },
+          "runIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/EvidenceCompleteness"
+          }
+        }
+      },
+      "AgentToolSummary": {
+        "type": "object",
+        "required": [
+          "tool",
+          "calls",
+          "failed"
+        ],
+        "x-requirements": [
+          "REQ-F-11-5"
+        ],
+        "properties": {
+          "tool": {
+            "type": "string"
+          },
+          "calls": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "successRate": {
+            "$ref": "#/components/schemas/Decimal"
+          }
+        }
+      },
+      "AgentAnalytics": {
+        "type": "object",
+        "required": [
+          "samplesWithTrajectory",
+          "toolCalls",
+          "completeness"
+        ],
+        "x-requirements": [
+          "REQ-F-11-5",
+          "REQ-F-11-6"
+        ],
+        "properties": {
+          "samplesWithTrajectory": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completedTasks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "truncatedTrajectories": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Trajectories cut at the ingest bound. They cannot be read as finished: the run may have ended on the next step or looped for a thousand more."
+          },
+          "toolCalls": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failedToolCalls": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "toolSuccessRate": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
               }
+            ]
+          },
+          "samplesWithLoops": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Samples where an identical call was repeated back to back — the shape that cannot be productive."
+          },
+          "samplesWithRetries": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Samples where any call signature repeated. Not a fault on its own: an agent may legitimately re-read a file after writing it."
+          },
+          "trajectoryFailures": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "byTool": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentToolSummary"
+            }
+          },
+          "runIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ulid"
+            }
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/EvidenceCompleteness"
+          }
+        }
+      },
+      "DriftVerdict": {
+        "type": "string",
+        "enum": [
+          "drifted",
+          "stable",
+          "insufficient_history",
+          "insufficient_configuration",
+          "not_measured"
+        ],
+        "description": "`insufficient_configuration` is the abstention that keeps this honest: without a caller-supplied tolerance and minimum history, drift cannot be distinguished from ordinary variation, and the platform declines to invent the value rather than guessing it.",
+        "x-requirements": [
+          "REQ-F-10-4"
+        ]
+      },
+      "DriftPosition": {
+        "type": "string",
+        "enum": [
+          "below_observed_range",
+          "within_observed_range",
+          "above_observed_range"
+        ],
+        "description": "Where the current value sits relative to the range the baseline history actually spanned. An observation, not a threshold: it costs no calibration and is reported even when no verdict can be given.",
+        "x-requirements": [
+          "REQ-F-10-4"
+        ]
+      },
+      "DriftHistoryPoint": {
+        "type": "object",
+        "required": [
+          "runId",
+          "baselineId",
+          "meanScore",
+          "observations"
+        ],
+        "x-requirements": [
+          "REQ-F-10-4",
+          "REQ-F-11-6"
+        ],
+        "properties": {
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "baselineId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "baselineState": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "superseded"
+            ]
+          },
+          "meanScore": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "observations": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "approvedAt": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Instant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "DriftAnalysis": {
+        "type": "object",
+        "required": [
+          "metricKey",
+          "runId",
+          "verdict",
+          "detail",
+          "historySize",
+          "history"
+        ],
+        "x-requirements": [
+          "REQ-F-10-4",
+          "REQ-F-11-6"
+        ],
+        "properties": {
+          "metricKey": {
+            "type": "string"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "currentValue": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currentObservations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/DriftVerdict"
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          },
+          "position": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DriftPosition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "historySize": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "historicalMinimum": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "historicalMedian": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "historicalMaximum": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deviationFromMedian": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tolerance": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minimumHistory": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DriftHistoryPoint"
             }
           }
-        },
+        }
+      },
+      "Scorecard": {
+        "type": "object",
+        "description": "An executive summary that keeps its qualifications. `notEstablished` is not decoration and is never empty: judge accuracy, statistical calibration and hosted-provider behaviour are open questions in this product, and a scorecard that omitted them would invite a decision the evidence does not support.",
+        "required": [
+          "projectId",
+          "generatedAt",
+          "qualityTrend",
+          "operational",
+          "judges",
+          "agents",
+          "notEstablished"
+        ],
+        "x-requirements": [
+          "REQ-F-11-8",
+          "REQ-F-11-6",
+          "REQ-F-11-7"
+        ],
+        "properties": {
+          "projectId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "suiteVersionId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "windowDays": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generatedAt": {
+            "$ref": "#/components/schemas/Instant"
+          },
+          "qualityTrend": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualityTrendPoint"
+            }
+          },
+          "leaderboard": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntry"
+            }
+          },
+          "operational": {
+            "$ref": "#/components/schemas/OperationalAnalytics"
+          },
+          "judges": {
+            "$ref": "#/components/schemas/JudgeAnalytics"
+          },
+          "agents": {
+            "$ref": "#/components/schemas/AgentAnalytics"
+          },
+          "drift": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DriftAnalysis"
+            }
+          },
+          "alerts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlertEvent"
+            }
+          },
+          "alertRules": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "notEstablished": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "What this report does not tell you. Present on every scorecard."
+          }
+        }
+      },
+      "AlertDimension": {
+        "type": "string",
+        "enum": [
+          "quality",
+          "cost",
+          "latency"
+        ],
+        "description": "The three dimensions REQ-F-11-9 names.",
+        "x-requirements": [
+          "REQ-F-11-9"
+        ]
+      },
+      "AlertRuleRequest": {
+        "type": "object",
+        "required": [
+          "slug",
+          "displayName",
+          "dimension",
+          "metricKey",
+          "direction",
+          "threshold",
+          "minimumSampleSize"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dimension": {
+            "$ref": "#/components/schemas/AlertDimension"
+          },
+          "metricKey": {
+            "type": "string",
+            "minLength": 1,
+            "description": "An evaluator definition's slug for a quality rule; one of the figures the platform computes for a cost or latency rule. A rule on a figure that does not exist never fires and never says why, so it is refused at creation."
+          },
+          "direction": {
+            "$ref": "#/components/schemas/MetricDirection"
+          },
+          "threshold": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "minimumSampleSize": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "REQ-F-08-3 applied to alerting: a rule with no minimum fires on noise."
+          }
+        }
+      },
+      "AlertRule": {
+        "type": "object",
+        "description": "A standing statement that a figure is worth knowing about. There is deliberately no delivery target: REQ-F-10-3 forbids the product from acting.",
+        "required": [
+          "id",
+          "slug",
+          "dimension",
+          "metricKey",
+          "direction",
+          "threshold",
+          "minimumSampleSize",
+          "state"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9",
+          "REQ-F-10-3"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "dimension": {
+            "$ref": "#/components/schemas/AlertDimension"
+          },
+          "metricKey": {
+            "type": "string"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/MetricDirection"
+          },
+          "threshold": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "minimumSampleSize": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "state": {
+            "$ref": "#/components/schemas/ScheduleState"
+          }
+        }
+      },
+      "AlertRulePage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlertRule"
+            }
+          }
+        }
+      },
+      "AlertEvent": {
+        "type": "object",
+        "description": "The condition held, at this value, over this many observations, against evidence of this completeness. There is no field recording a notification sent or an action taken.",
+        "required": [
+          "id",
+          "alertRuleId",
+          "runId",
+          "observedValue",
+          "threshold",
+          "sampleSize",
+          "evidenceCompleteness",
+          "detail"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9",
+          "REQ-F-11-7",
+          "REQ-F-10-3"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "alertRuleId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "observedValue": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "threshold": {
+            "$ref": "#/components/schemas/Decimal"
+          },
+          "sampleSize": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "evidenceCompleteness": {
+            "$ref": "#/components/schemas/Completeness"
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          },
+          "firedAt": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "AlertEventPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlertEvent"
+            }
+          }
+        }
+      },
+      "AlertOutcomeKind": {
+        "type": "string",
+        "enum": [
+          "fired",
+          "within_threshold",
+          "not_measured",
+          "below_minimum_sample",
+          "already_recorded"
+        ],
+        "description": "What one rule decided about one run. A rule that could not be evaluated reports why rather than being silently absent from the result.",
+        "x-requirements": [
+          "REQ-F-11-9"
+        ]
+      },
+      "AlertOutcome": {
+        "type": "object",
+        "required": [
+          "alertRuleId",
+          "slug",
+          "outcome",
+          "detail"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9"
+        ],
+        "properties": {
+          "alertRuleId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/AlertOutcomeKind"
+          },
+          "observedValue": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sampleSize": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "alertEventId": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "AlertEvaluation": {
+        "type": "object",
+        "required": [
+          "runId",
+          "items"
+        ],
+        "x-requirements": [
+          "REQ-F-11-9"
+        ],
+        "properties": {
+          "runId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlertOutcome"
+            }
+          }
+        }
+      },
       "Ulid": {
         "type": "string",
         "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
@@ -4738,7 +5528,7 @@
       },
       "ConsensusResult": {
         "type": "object",
-        "description": "Always carries a disagreement measure. A verdict without one is not representable (I-22). The measure is the range of the scoring votes (ADR-017 \u00a71); when fewer than two judges scored it is reported at its maximum with `disagreementMeasured` false, so an absence of evidence never reads as agreement.",
+        "description": "Always carries a disagreement measure. A verdict without one is not representable (I-22). The measure is the range of the scoring votes (ADR-017 §1); when fewer than two judges scored it is reported at its maximum with `disagreementMeasured` false, so an absence of evidence never reads as agreement.",
         "x-requirements": [
           "REQ-F-AG-2",
           "REQ-F-AG-3",
@@ -4781,7 +5571,7 @@
               "number",
               "null"
             ],
-            "description": "1 \u2212 disagreement. A transformation of the measure, not a probability (ADR-017 \u00a76)."
+            "description": "1 − disagreement. A transformation of the measure, not a probability (ADR-017 §6)."
           },
           "escalationReason": {
             "oneOf": [
@@ -5078,7 +5868,7 @@
           },
           "evaluatedOutcome": {
             "$ref": "#/components/schemas/GateOutcome",
-            "description": "What the evidence produced. Immutable. `outcome` may differ from it only by `exception_applied`, and only while an exception is in force \u2014 an exception never edits a decision (ADR-016)."
+            "description": "What the evidence produced. Immutable. `outcome` may differ from it only by `exception_applied`, and only while an exception is in force — an exception never edits a decision (ADR-016)."
           },
           "criterionResults": {
             "type": "array",
@@ -6237,7 +7027,7 @@
           "no_threshold_configured",
           "insufficient_scoring_votes"
         ],
-        "description": "Why a judgement went to a human. `no_threshold_configured` is the ADR-017 \u00a73 abstention: the platform declines to invent the value ADR-004 left unset.",
+        "description": "Why a judgement went to a human. `no_threshold_configured` is the ADR-017 §3 abstention: the platform declines to invent the value ADR-004 left unset.",
         "x-requirements": [
           "REQ-F-AG-4"
         ]
@@ -6394,7 +7184,7 @@
       },
       "JudgeEnsemble": {
         "type": "object",
-        "description": "A configured ensemble. Composition is validated at creation (ADR-017 \u00a72): at least two judges, at least two distinct model configurations, and no configuration holding a majority of the seats.",
+        "description": "A configured ensemble. Composition is validated at creation (ADR-017 §2): at least two judges, at least two distinct model configurations, and no configuration holding a majority of the seats.",
         "required": [
           "id",
           "judgeVersionIds"
@@ -6426,7 +7216,7 @@
                 "type": "null"
               }
             ],
-            "description": "Null until calibrated. An ensemble with no threshold escalates every judgement rather than guessing (ADR-017 \u00a73)."
+            "description": "Null until calibrated. An ensemble with no threshold escalates every judgement rather than guessing (ADR-017 §3)."
           },
           "minimumScoringVotes": {
             "type": [
@@ -6859,7 +7649,7 @@
       },
       "JudgeCalibration": {
         "type": "object",
-        "description": "Per judge version, accumulated across judgements: how far it sits from the ensemble median, and how often it fails to answer. The bias and variance signals canonical \u00a78 asks the ensemble to expose.",
+        "description": "Per judge version, accumulated across judgements: how far it sits from the ensemble median, and how often it fails to answer. The bias and variance signals canonical §8 asks the ensemble to expose.",
         "required": [
           "judgeVersionId",
           "judgements"
@@ -7463,7 +8253,7 @@
       },
       "ReleaseObservation": {
         "type": "object",
-        "description": "A post-deployment or canary evaluation of a system that is already live, and what the platform recommends about it \u2014 recommends, never does.",
+        "description": "A post-deployment or canary evaluation of a system that is already live, and what the platform recommends about it — recommends, never does.",
         "required": [
           "id",
           "trigger",
@@ -7517,6 +8307,462 @@
           },
           "gateDecisionId": {
             "$ref": "#/components/schemas/Ulid"
+          }
+        }
+      },
+      "Permission": {
+        "type": "string",
+        "description": "A governed action on a resource class, never on a route (ADR-020 rule 2). This enum is the authoritative vocabulary: the store refuses a role_permission row outside it and the application mirrors it.",
+        "x-requirements": [
+          "REQ-F-12-2",
+          "REQ-N-SEC-1"
+        ],
+        "enum": [
+          "run:create",
+          "run:read",
+          "run:cancel",
+          "run:reproduce",
+          "dataset:read",
+          "dataset:write",
+          "dataset:approve",
+          "dataset:erase",
+          "prompt:read",
+          "prompt:write",
+          "prompt:publish",
+          "experiment:write",
+          "baseline:create",
+          "baseline:approve",
+          "gate:configure",
+          "gate:evaluate",
+          "gate:read",
+          "gate:except",
+          "judge:configure",
+          "judge:read",
+          "escalation:review",
+          "plan:read",
+          "plan:draft",
+          "plan:accept",
+          "memory:read",
+          "schedule:write",
+          "release:observe",
+          "analytics:read",
+          "alert:configure",
+          "alert:read",
+          "alert:evaluate",
+          "audit:read",
+          "credential:manage",
+          "role:grant",
+          "governance:configure"
+        ]
+      },
+      "PrincipalKind": {
+        "type": "string",
+        "description": "Whether a person or a pipeline acted. Carried because an auditor reading an action needs to know which.",
+        "x-requirements": [
+          "REQ-F-12-3",
+          "REQ-F-12-4"
+        ],
+        "enum": [
+          "user",
+          "service_account"
+        ]
+      },
+      "BindingScope": {
+        "type": "string",
+        "description": "Two levels and no tree (ADR-020 rule 4).",
+        "x-requirements": [
+          "REQ-F-12-2"
+        ],
+        "enum": [
+          "organization",
+          "project"
+        ]
+      },
+      "CredentialState": {
+        "type": "string",
+        "description": "Revocation and expiry are distinct states with the same effect and different causes (ADR-019 rule 7).",
+        "x-requirements": [
+          "REQ-F-12-3"
+        ],
+        "enum": [
+          "active",
+          "revoked",
+          "expired"
+        ]
+      },
+      "ServiceAccountRequest": {
+        "type": "object",
+        "required": [
+          "slug",
+          "displayName"
+        ],
+        "x-requirements": [
+          "REQ-F-12-3"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "ServiceAccount": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "displayName",
+          "state"
+        ],
+        "x-requirements": [
+          "REQ-F-12-3"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "revoked"
+            ]
+          }
+        }
+      },
+      "ApiKeyRequest": {
+        "type": "object",
+        "required": [
+          "principalKind",
+          "subjectId",
+          "displayName"
+        ],
+        "x-requirements": [
+          "REQ-F-12-3"
+        ],
+        "properties": {
+          "principalKind": {
+            "$ref": "#/components/schemas/PrincipalKind"
+          },
+          "subjectId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expiresAt": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "ApiKey": {
+        "type": "object",
+        "description": "A credential's metadata. There is no secret property, and no operation returns one: I-2 makes the secret unretrievable after issue.",
+        "required": [
+          "id",
+          "displayName",
+          "principalKind",
+          "subject",
+          "state",
+          "createdAt"
+        ],
+        "x-requirements": [
+          "REQ-F-12-3",
+          "REQ-N-SEC-5"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "principalKind": {
+            "$ref": "#/components/schemas/PrincipalKind"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CredentialState"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/Instant"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revocationReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "revoked",
+              "rotated",
+              null
+            ]
+          },
+          "rotatedTo": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ApiKeyIssued": {
+        "type": "object",
+        "description": "The one response that carries a secret. It is not stored, not logged, and not recoverable: a caller who loses it rotates the key (ADR-019 rules 1 and 8).",
+        "required": [
+          "apiKey",
+          "credential"
+        ],
+        "x-requirements": [
+          "REQ-F-12-3",
+          "REQ-N-SEC-5"
+        ],
+        "properties": {
+          "apiKey": {
+            "$ref": "#/components/schemas/ApiKey"
+          },
+          "credential": {
+            "type": "string",
+            "description": "Present exactly once, in this response."
+          }
+        }
+      },
+      "ApiKeyPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiKey"
+            }
+          }
+        }
+      },
+      "Role": {
+        "type": "object",
+        "required": [
+          "slug",
+          "displayName",
+          "description",
+          "permissions"
+        ],
+        "x-requirements": [
+          "REQ-F-12-2"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
+          }
+        }
+      },
+      "RolePage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            }
+          }
+        }
+      },
+      "RoleBindingRequest": {
+        "type": "object",
+        "required": [
+          "role",
+          "principalKind",
+          "subjectId",
+          "scope"
+        ],
+        "x-requirements": [
+          "REQ-F-12-2",
+          "REQ-X-5"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "principalKind": {
+            "$ref": "#/components/schemas/PrincipalKind"
+          },
+          "subjectId": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/BindingScope"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        }
+      },
+      "RoleBinding": {
+        "type": "object",
+        "required": [
+          "id",
+          "role",
+          "principalKind",
+          "subject",
+          "scope",
+          "state"
+        ],
+        "x-requirements": [
+          "REQ-F-12-2",
+          "REQ-X-5"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Ulid"
+          },
+          "role": {
+            "type": "string"
+          },
+          "principalKind": {
+            "$ref": "#/components/schemas/PrincipalKind"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/BindingScope"
+          },
+          "projectId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "revoked"
+            ]
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "RoleBindingPage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleBinding"
+            }
+          }
+        }
+      },
+      "RetentionPolicy": {
+        "type": "object",
+        "description": "Per-tenant retention, subordinate to the audit floor. The floor is reported alongside the policy so a caller can see why a value was refused (REQ-N-COMP-3, I-34).",
+        "required": [
+          "decisionRetentionDays",
+          "contentRetentionDays",
+          "auditRetentionDays"
+        ],
+        "x-requirements": [
+          "REQ-F-12-6",
+          "REQ-N-COMP-3"
+        ],
+        "properties": {
+          "decisionRetentionDays": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "contentRetentionDays": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "auditRetentionDays": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "auditRetentionFloorDays": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/Instant"
+          }
+        }
+      },
+      "UsageLimit": {
+        "type": "object",
+        "description": "Per-tenant rate limit and evaluation quota (ADR-021). There is no value meaning unlimited.",
+        "required": [
+          "requestsPerMinute",
+          "runsPerPeriod",
+          "periodDays"
+        ],
+        "x-requirements": [
+          "REQ-N-SEC-9",
+          "REQ-N-SCALE-2"
+        ],
+        "properties": {
+          "requestsPerMinute": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "runsPerPeriod": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "periodDays": {
+            "type": "integer",
+            "minimum": 1
           }
         }
       }

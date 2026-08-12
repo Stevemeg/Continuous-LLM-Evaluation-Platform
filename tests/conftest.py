@@ -115,6 +115,66 @@ def second_organization(migrated_database):
 
 
 @pytest.fixture
+def owner_credential(migrated_database, organization):
+    """A real credential for a real principal holding the `owner` role.
+
+    Phase 12 deliberately did not give the API tests a fake authenticator. They
+    already run against PostgreSQL, so they can present a credential the store
+    verifies — which means every one of them now exercises the authentication
+    and authorization path as well as whatever it was written for. A fake here
+    would have made 96 tests pass while proving nothing about the boundary that
+    phase exists to build.
+    """
+    import psycopg
+
+    from clep.db import provision
+    with psycopg.connect(MIGRATION_DSN, autocommit=True) as conn:
+        user_id, presented = provision.bootstrap_organization(
+            conn, organization, external_subject=f"owner-{organization}")
+    return {"organization": organization, "userId": user_id,
+            "credential": presented}
+
+
+@pytest.fixture
+def owner_headers(owner_credential):
+    return {"Authorization": f"Bearer {owner_credential['credential']}"}
+
+
+@pytest.fixture
+def intruder_headers(migrated_database, second_organization):
+    """A verified principal of ANOTHER tenant.
+
+    The important word is *verified*. Before Phase 12 a cross-tenant test
+    presented a token naming someone else's organization, which proved that the
+    store filtered rows; it could not prove anything about a real attacker,
+    because the token was not a credential. This one is: the intruder holds a
+    genuine `owner` role, in their own organization, and still sees nothing.
+    """
+    import psycopg
+
+    from clep.db import provision
+    with psycopg.connect(MIGRATION_DSN, autocommit=True) as conn:
+        _user_id, presented = provision.bootstrap_organization(
+            conn, second_organization,
+            external_subject=f"intruder-{second_organization}")
+    return {"Authorization": f"Bearer {presented}"}
+
+
+def api_app(runtime_dsn, *services, **kwargs):
+    """Build the application the way a deployment does.
+
+    One helper so that a change to how the application is wired is one edit
+    rather than seven, and so no test can accidentally build an application
+    whose authenticator is not the real one.
+    """
+    from clep.api.app import create_app
+    from clep.api.security_service import SecurityService
+    security = SecurityService(runtime_dsn)
+    return create_app(*services, authenticator=security.authenticator(),
+                      security_service=security, **kwargs)
+
+
+@pytest.fixture
 def seeded(migrated_database, organization):
     """A project, dataset version and suite version for one tenant.
 

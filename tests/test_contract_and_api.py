@@ -58,9 +58,40 @@ class FakeRunService:
         return {"items": [], "limit": limit, "offset": offset}
 
 
+def fake_authenticator(presented: str):
+    """A test double for the credential store, and nothing more.
+
+    This file's subject is the contract — that every declared route exists, that
+    a Problem is shaped correctly, that a quality failure is never a Problem —
+    and it runs without a database on purpose. Verifying a credential needs one.
+
+    So the double parses the old `organization:subject` form and grants every
+    permission. What that costs is stated plainly: these tests prove nothing
+    about authentication or authorization. Those are proved in
+    `test_identity_and_access.py`, against the real store, with real
+    credentials, including the case this double cannot express — a credential
+    that does not verify.
+    """
+    from clep.security.rbac import PERMISSIONS, Authorization, Grant
+    from clep.security.repository import AuthenticationError, Principal
+    org, _, subject = presented.partition(":")
+    try:
+        uuid.UUID(org)
+    except ValueError:
+        raise AuthenticationError("not the form this double accepts")
+    return (Principal(organization_id=org, subject=subject or "unknown",
+                      kind="user", api_key_id=new_ulid()),
+            Authorization(grants=(Grant(role_slug="owner",
+                                        scope_kind="organization",
+                                        project_id=None,
+                                        permissions=frozenset(PERMISSIONS)),)))
+
+
 @pytest.fixture
 def client():
-    return TestClient(create_app(FakeRunService()), raise_server_exceptions=False)
+    return TestClient(create_app(FakeRunService(),
+                                 authenticator=fake_authenticator),
+                      raise_server_exceptions=False)
 
 
 # ------------------------------------------------------------------- contract
@@ -74,9 +105,11 @@ def test_every_implemented_route_is_declared_in_the_contract(client):
 
 
 def test_the_phase_implements_its_operations_and_says_so_by_omission():
-    """Phase 11 adds the analytics, scorecard and alerting surface.
-    The rest belong to phases that have not run and are absent, not stubbed: a
-    501 is still a route a client can find and build against."""
+    """Phase 12 adds credentials, role bindings, governance policy, the audit
+    surface and erasure. What remains absent is dataset management and sample
+    analysis, which belong to capability phases rather than to this one — absent
+    rather than stubbed, because a 501 is still a route a client can find and
+    build against."""
     ids = {contract.operation_id(m, p) for m, p in contract.operations()}
     assert {"createRun", "getRun", "cancelRun", "listRunSamples",
             "createPrompt", "addPromptVersion", "getPromptVersion",
@@ -96,8 +129,53 @@ def test_the_phase_implements_its_operations_and_says_so_by_omission():
             "getOperationalAnalytics", "getJudgeAnalytics", "getAgentAnalytics",
             "getQualityDrift", "getProjectScorecard", "createAlertRule",
             "listAlertRules", "pauseAlertRule", "evaluateAlerts",
-            "listAlertEvents", "getRagAnalytics"} <= ids
-    assert len(ids) == 53
+            "listAlertEvents", "getRagAnalytics",
+            "createServiceAccount", "issueApiKey", "listApiKeys",
+            "rotateApiKey", "revokeApiKey", "listRoles", "createRoleBinding",
+            "listRoleBindings", "revokeRoleBinding", "getRetentionPolicy",
+            "setRetentionPolicy", "getUsageLimit", "setUsageLimit",
+            "listAuditEvents", "createErasureRequest"} <= ids
+    assert len(ids) == 66
+    # Still absent, and named so the omission is a statement rather than a gap.
+    assert {"listDatasetVersions", "createDatasetVersion",
+            "approveDatasetVersion", "getSampleAnalysis"} <= ids
+    implemented_by_phase_12 = {"listAuditEvents", "createErasureRequest"}
+    assert implemented_by_phase_12 <= ids
+
+
+def test_every_operation_declares_the_permission_it_requires():
+    """ADR-020 rule 1 and rule 6, at the contract rather than at the code.
+
+    A route reads its permission from here, so an operation with none is a route
+    that cannot start. Checking it at the contract as well means the omission is
+    caught before anyone tries to implement the operation.
+    """
+    from clep.security.rbac import PERMISSIONS
+    missing, unknown = [], []
+    for (method, path), operation in contract.operations().items():
+        declared = operation.get("x-permission")
+        if not declared:
+            missing.append(f"{method} {path}")
+        elif declared not in PERMISSIONS:
+            unknown.append(f"{operation['operationId']} requires {declared!r}")
+    assert not missing, f"operations with no x-permission: {missing}"
+    assert not unknown, f"operations requiring an unknown permission: {unknown}"
+
+
+def test_the_permission_vocabulary_is_one_vocabulary():
+    """Three artifacts, compared as sets: the contract enum, the code, and the
+    CHECK constraint the store enforces. Compared rather than searched for —
+    a substring match would pass while the store enforced a different set."""
+    import re
+    from pathlib import Path
+
+    from clep.security.rbac import PERMISSIONS
+    root = Path(__file__).resolve().parents[1]
+    sql = (root / "docs/data/schema/12-identity-and-access.sql").read_text("utf-8")
+    body = re.search(r"ck_role_permission__vocabulary CHECK \(permission IN \((.*?)\)\)",
+                     sql, re.S).group(1)
+    stored = set(re.findall(r"'([a-z_]+:[a-z_]+)'", body))
+    assert set(PERMISSIONS) == set(contract.enum_of("Permission")) == stored
 
 
 def test_every_identifier_a_request_accepts_can_be_created_through_the_contract():
@@ -126,6 +204,12 @@ def test_every_identifier_a_request_accepts_can_be_created_through_the_contract(
         "promptId": "createPrompt",
         "runSampleId": None,
         "scheduleId": None,
+        # Phase 12. A service account is created through the contract; a user is
+        # not, and that is a decision rather than a gap. Minting a global
+        # identity from inside one tenant is a surface no requirement asks for,
+        # so membership arrives through provisioning alongside creating the
+        # tenant root itself.
+        "subjectId": None,
     }
     schemas = contract.load()["components"]["schemas"]
     cited = set()
