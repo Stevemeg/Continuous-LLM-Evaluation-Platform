@@ -4,6 +4,16 @@ version = "0.1.0"
 description = "Continuous LLM Evaluation & Regression Testing Platform — core evaluation harness"
 requires-python = ">=3.11"
 
+# Proprietary, all rights reserved. Stated here as well as in LICENSE because
+# package metadata travels with an installed distribution and LICENSE does not:
+# `pip show clep` in a deployed environment would otherwise report no licence at
+# all, which reads as unstated rather than reserved. The table form is used
+# rather than a bare SPDX string because the SPDX form requires setuptools 77,
+# and the build requirement below is 68 — declaring one and requiring the other
+# is how a build breaks on somebody else's machine.
+license = { text = "Proprietary - All Rights Reserved. See LICENSE." }
+classifiers = ["License :: Other/Proprietary License"]
+
 # Every dependency here is either named in the canonical technology baseline or
 # required by an accepted ADR. The justification for each, and the reason for
 # each rejected alternative, is in docs/dependencies.md — REQ-N-MAINT-5 requires

@@ -11,7 +11,7 @@ An isolated venv and a clean git clone on this machine. No hosted CI service ran
 [OK  ] package resolves inside the environment: clep.__file__ = <venv>/Lib/site-packages/clep/__init__.py
 [OK  ] console script resolves on PATH: `clep` -> <venv>/Scripts/clep.EXE
 [OK  ] console script runs by name: `clep --help` from workspace (exit 0)
-[OK  ] database prepared: schema applied, tenant 4da98de9…, 10 examples
+[OK  ] database prepared: schema applied, tenant 309b9c18…, 10 examples
 [OK  ] successful evaluation: exit 0 (expected 0); the pipeline continues
 [OK  ] blocking evaluation: exit 1 (expected 1); the pipeline stops
 [OK  ] abstention blocks: exit 70 (expected 70); the pipeline stops
@@ -20,42 +20,42 @@ An isolated venv and a clean git clone on this machine. No hosted CI service ran
 
 Pipeline steps
 ------------------------------------------------------------------------------
-$ clep gate --project 01KZV12Z1VZ9AS1BJB1V443ZZT --run 01KZV12ZBKKKRE60YV81678DWB --policy 01KZV12ZKVTMY7J7V3F5P8V9TS --baseline 01KZV12ZA4D2QENBD6AM8KME35
+$ clep gate --project 01KZV2D1FHXDVDG27EVFGDQ2E7 --run 01KZV2D1MG3QF65Q8T0R40KWMJ --policy 01KZV2D1Q5CY569W2C6H7B6XKH --baseline 01KZV2D1KSGYVVDM4ESVBD6W9C
   gate: pass
-  decision: 01KZV1309W3WRYCH53DD7Z1QEK
-  evidence: sha256:17c57458cf655459ed936d7d2bb3f8c72f3ad290e4aba079d9a8a85739c1cc56
-    exact_match_ci_6xmyska9: no_change (n=10)
+  decision: 01KZV2D23WQ730VB8E81X831PM
+  evidence: sha256:4cf73ec304dd7c29845133cb69e1ee9f03f1e41eb3d2584ad6531af09ee7b656
+    exact_match_ci_as8tn21c: no_change (n=10)
   exit 0 -> the pipeline continues
 
-$ clep gate --project 01KZV12Z1VZ9AS1BJB1V443ZZT --run 01KZV12ZEWKH7X1ZBGM27395K8 --policy 01KZV12ZKVTMY7J7V3F5P8V9TS --baseline 01KZV12ZA4D2QENBD6AM8KME35
+$ clep gate --project 01KZV2D1FHXDVDG27EVFGDQ2E7 --run 01KZV2D1NNXHJJTRY1G1QGSF02 --policy 01KZV2D1Q5CY569W2C6H7B6XKH --baseline 01KZV2D1KSGYVVDM4ESVBD6W9C
   gate: hard_fail
-  decision: 01KZV13112XGT31GY2PRPC55XM
-  evidence: sha256:9188d8d35ca949f73541878ac7d707eb471542e2ac04cbb901aece0fff96ab82
-    exact_match_ci_6xmyska9: regression (n=10)
+  decision: 01KZV2D2GKJJ54TKBRF440815Z
+  evidence: sha256:65456aca1f75c16ac650b9d212ca414390ea24874927066b4da5deb477658599
+    exact_match_ci_as8tn21c: regression (n=10)
   
   this outcome blocks the pipeline (exit 1)
   exit 1 -> the pipeline stops
 
-$ clep gate --project 01KZV12Z1VZ9AS1BJB1V443ZZT --run 01KZV12ZBKKKRE60YV81678DWB --policy 01KZV12ZNXQ8VBZ54YX088M4FX --baseline 01KZV12ZA4D2QENBD6AM8KME35
+$ clep gate --project 01KZV2D1FHXDVDG27EVFGDQ2E7 --run 01KZV2D1MG3QF65Q8T0R40KWMJ --policy 01KZV2D1QNCQ13G62HBV7A0DK1 --baseline 01KZV2D1KSGYVVDM4ESVBD6W9C
   gate: insufficient_evidence
-  decision: 01KZV131RJVN6N5S62GC3BEDRJ
-  evidence: sha256:bba1cb0b312d2a2b507d457781bebe3171192a0b08d3be81910a087ed8a39606
-    exact_match_ci_6xmyska9: insufficient_evidence (n=10)
+  decision: 01KZV2D2XYD33RE61RNV3CF0YA
+  evidence: sha256:84e0b28d4246bd38e55844f4a45076948193f9a0c2ed0cad968d5ec73c5ff20d
+    exact_match_ci_as8tn21c: insufficient_evidence (n=10)
         abstained: 10 paired sample(s) is below the configured minimum of 1000 for this metric
   
   this outcome blocks the pipeline (exit 70)
   exit 70 -> the pipeline stops
 
-$ clep gate --project 01KZV12Z1VZ9AS1BJB1V443ZZT --run 01KZV12ZEWKH7X1ZBGM27395K8 --policy 01KZV12ZKVTMY7J7V3F5P8V9TS --baseline 01KZV12ZA4D2QENBD6AM8KME35
+$ clep gate --project 01KZV2D1FHXDVDG27EVFGDQ2E7 --run 01KZV2D1NNXHJJTRY1G1QGSF02 --policy 01KZV2D1Q5CY569W2C6H7B6XKH --baseline 01KZV2D1KSGYVVDM4ESVBD6W9C
   gate: hard_fail
-  decision: 01KZV132FBJ3D8Y2136G7H22EE
-  evidence: sha256:9188d8d35ca949f73541878ac7d707eb471542e2ac04cbb901aece0fff96ab82
-    exact_match_ci_6xmyska9: regression (n=10)
+  decision: 01KZV2D3BEXZ9H0AS91MSDNGX4
+  evidence: sha256:65456aca1f75c16ac650b9d212ca414390ea24874927066b4da5deb477658599
+    exact_match_ci_as8tn21c: regression (n=10)
   
   this outcome blocks the pipeline (exit 1)
   exit 1 -> the pipeline stops
 
-$ clep gate --project 01KZV12Z1VZ9AS1BJB1V443ZZT --run not-a-ulid --policy 01KZV12ZKVTMY7J7V3F5P8V9TS --baseline 01KZV12ZA4D2QENBD6AM8KME35
+$ clep gate --project 01KZV2D1FHXDVDG27EVFGDQ2E7 --run not-a-ulid --policy 01KZV2D1Q5CY569W2C6H7B6XKH --baseline 01KZV2D1KSGYVVDM4ESVBD6W9C
   ! clep: --run is not a well-formed identifier
   exit 78 -> the pipeline stops
 
