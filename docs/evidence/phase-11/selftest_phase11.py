@@ -122,7 +122,8 @@ case("P-27a", "the sweep fires on every worker restart",
 case("P-27a", "the end-to-end test drives the sweep itself",
      lambda: plant(E2E_TEST, "    task = asyncio.create_task(worker.async_run())",
                    "    from clep.orchestration.scheduler import sweep_tenant\n"
-                   "    _ = sweep_tenant\n"
+                   "    sweep_tenant(None, organization_id, moment=None,\n"
+                   "                 example_source=None)\n"
                    "    task = asyncio.create_task(worker.async_run())"))
 
 case("P-27a", "the end-to-end test stops starting a worker at all",
@@ -284,11 +285,12 @@ case("P-17", "a Phase 11 foreign key stops carrying the tenant",
 
 # ------------------------------------------------------------ P-11 and P-12
 case("P-11", "an analytics operation stops declaring its requirement",
-     lambda: plant(CONTRACT, '        "operationId": "getQualityTrend",\n'
-                             '        "summary": "Quality over time, with baselines flagged",',
-                   '        "operationId": "getQualityTrend",\n'
-                   '        "x-requirements-removed": [],\n'
-                   '        "summary": "Quality over time, with baselines flagged",'))
+     lambda: plant(CONTRACT, '          "x-requirements": [\n'
+                             '            "REQ-F-11-1",\n'
+                             '            "REQ-F-11-6",\n'
+                             '            "REQ-F-11-7"\n'
+                             '          ],',
+                   '          "x-requirements": [],'))
 
 case("P-12", "the code's schedule triggers drift from the contract",
      lambda: plant(SCHEDULES, 'SCHEDULE_TRIGGERS = ("schedule", "post_deployment", "canary")',

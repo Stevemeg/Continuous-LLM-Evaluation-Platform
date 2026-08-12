@@ -426,7 +426,11 @@ effect_tables = {"run_sample": "uq_run_sample__idempotency_key",
                  # Phase 11: a firing is an effect a reader acts on, so
                  # evaluating the same run twice must not produce two.
                  "alert_event": "uq_alert_event__rule_run"}
-missing_keys = [t for t, c in effect_tables.items() if c not in sql]
+# Word-bounded: a constraint renamed to `uq_alert_event__rule_run_removed`
+# still contains the name a substring search looks for, and the store would no
+# longer enforce anything.
+missing_keys = [t for t, c in effect_tables.items()
+                if not re.search(rf"CONSTRAINT {c}\b", sql)]
 add("P-15", "PASS" if not missing_keys else "FAIL",
     f"every externally visible effect carries a unique idempotency key "
     f"({len(effect_tables)} tables, including a judgement, which costs money, "
@@ -510,15 +514,19 @@ try:
             "the sweep runs at startup; a redeploy would fire every schedule "
             "whose minute it happened to land in, which is a redeploy that "
             "looks like a cadence")
-    # And the test that proves it must not shortcut the trigger.
+    # And the test that proves it must not shortcut the trigger. The names are
+    # imported there — the worker registers them — so what is forbidden is a
+    # CALL, which is why each pattern carries its opening parenthesis.
     proof = (ROOT / "tests/test_scheduled_execution.py").read_text("utf-8")
     for shortcut in ("sweep_tenant(", "sweep_schedules(", "enqueue_job(",
-                     "execute_scheduled_run("):
-        if re.search(rf"^\s+.*[^_a-zA-Z]{re.escape(shortcut)}", proof, re.M):
+                     "execute_scheduled_run(", "evaluate_run("):
+        if shortcut in proof:
             trigger_defects.append(
                 f"the scheduled-execution test calls {shortcut} itself; the "
                 f"trigger must be the worker's")
-    if "Worker(" not in proof or "sweep_cron(" not in proof:
+    # `\b` rather than a substring: `_Worker(` contains `Worker(` and would
+    # satisfy a naive check while starting something else entirely.
+    if not re.search(r"\bWorker\(", proof) or "sweep_cron(" not in proof:
         trigger_defects.append(
             "the scheduled-execution test does not start a real worker with "
             "the real cron factory")
@@ -649,11 +657,15 @@ try:
     if "ck_evaluation_schedule__budget_is_positive" not in sql:
         budget_defects.append("a schedule may carry a zero budget")
     # And the sweep must consult the planner rather than a second cost model.
-    sweep_source = _inspect.getsource(_scheduler)
-    if "draft_plan" not in sweep_source or "validate" not in sweep_source:
+    # Identity, not a name search: a module can hold the name `draft_plan` and
+    # have it bound to something else entirely, which is what a source scan
+    # would report as compliance.
+    if getattr(_scheduler, "draft_plan", None) is not draft_plan:
         budget_defects.append(
-            "the sweep does not use the planner's estimate; a second cost model "
+            "the sweep's draft_plan is not the planner's; a second cost model "
             "disagrees with the first eventually")
+    if getattr(_scheduler, "validate", None) is not validate:
+        budget_defects.append("the sweep's validate is not the planner's critic")
 except Exception as e:
     budget_defects.append(f"{type(e).__name__}: {e}")
 add("P-27d", "PASS" if not budget_defects else "FAIL",
