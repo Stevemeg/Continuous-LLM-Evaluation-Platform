@@ -706,10 +706,23 @@ try:
         ci_defects.append(
             f"the installed console script is {installation.get('entry_points')}")
     package_file = str(installation.get("package_file", ""))
-    if "site-packages" not in package_file:
+    # The evidence records paths as tokens so it carries no private local
+    # detail, so the claim is checked on the token: `<venv>` is substituted for
+    # the isolated environment's root and for nothing else, and the boolean it
+    # supports was decided on the raw path before substitution. Requiring the
+    # prefix as well as `site-packages` is stricter than the raw-path check it
+    # replaces — a path merely containing `site-packages` could be anywhere.
+    if not package_file.startswith("<venv>/") or "site-packages" not in package_file:
         ci_defects.append(
-            f"the package resolved to {package_file}, not to the isolated "
+            f"the package resolved to {package_file}, not inside the isolated "
             f"environment; the evidence would be about the development tree")
+    # And the redaction has to have happened at all.
+    for leak, what in (("C:/", "a drive-letter path"), ("C:\\", "a drive-letter path"),
+                       ("AppData", "a temp directory"), ("/home/", "a home directory")):
+        if leak in json.dumps(body):
+            ci_defects.append(
+                f"the CI evidence carries {what}; private local detail belongs "
+                f"in neither the repository nor its evidence")
     expected = {"successful evaluation": 0, "blocking evaluation": 1,
                 "abstention blocks": 70,
                 "malformed input is a platform failure": 78}

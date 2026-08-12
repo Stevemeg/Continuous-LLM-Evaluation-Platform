@@ -8,10 +8,10 @@ An isolated venv and a clean git clone on this machine. No hosted CI service ran
 [OK  ] package installed: pip install <checkout> (exit 0) 
 [OK  ] console script exists: clep.exe present in the environment's script directory
 [OK  ] entry point declared: console_scripts: ['clep=clep.cli.main:main'] (exit 0) 
-[OK  ] package resolves inside the environment: clep.__file__ = C:\Users\konab\AppData\Local\Temp\clep-ci-77gd7k_g\venv\Lib\site-packages\clep\__init__.py
-[OK  ] console script resolves on PATH: `clep` -> C:\Users\konab\AppData\Local\Temp\clep-ci-77gd7k_g\venv\Scripts\clep.EXE
+[OK  ] package resolves inside the environment: clep.__file__ = <venv>/Lib/site-packages/clep/__init__.py
+[OK  ] console script resolves on PATH: `clep` -> <venv>/Scripts/clep.EXE
 [OK  ] console script runs by name: `clep --help` from workspace (exit 0)
-[OK  ] database prepared: schema applied, tenant b4669545…, 10 examples
+[OK  ] database prepared: schema applied, tenant 4da98de9…, 10 examples
 [OK  ] successful evaluation: exit 0 (expected 0); the pipeline continues
 [OK  ] blocking evaluation: exit 1 (expected 1); the pipeline stops
 [OK  ] abstention blocks: exit 70 (expected 70); the pipeline stops
@@ -20,42 +20,42 @@ An isolated venv and a clean git clone on this machine. No hosted CI service ran
 
 Pipeline steps
 ------------------------------------------------------------------------------
-$ clep gate --project 01KZT8MATRVZCXMCVEY21JE721 --run 01KZT8MB26DE1KZY4VYG8ZFQSK --policy 01KZT8MB5TBM3HQMQ7QCZB95RQ --baseline 01KZT8MB1D18QATC900A5BV2VN
+$ clep gate --project 01KZV12Z1VZ9AS1BJB1V443ZZT --run 01KZV12ZBKKKRE60YV81678DWB --policy 01KZV12ZKVTMY7J7V3F5P8V9TS --baseline 01KZV12ZA4D2QENBD6AM8KME35
   gate: pass
-  decision: 01KZT8MBPYXDJER3Z3GZ4F6MA1
-  evidence: sha256:70dbc2fb8acff7792259984c39853c3670d69be1cc36bd3f040c65dc3c9c85fd
-    exact_match_ci_jhvpw3s9: no_change (n=10)
+  decision: 01KZV1309W3WRYCH53DD7Z1QEK
+  evidence: sha256:17c57458cf655459ed936d7d2bb3f8c72f3ad290e4aba079d9a8a85739c1cc56
+    exact_match_ci_6xmyska9: no_change (n=10)
   exit 0 -> the pipeline continues
 
-$ clep gate --project 01KZT8MATRVZCXMCVEY21JE721 --run 01KZT8MB4183B5MJ22JFB016BJ --policy 01KZT8MB5TBM3HQMQ7QCZB95RQ --baseline 01KZT8MB1D18QATC900A5BV2VN
+$ clep gate --project 01KZV12Z1VZ9AS1BJB1V443ZZT --run 01KZV12ZEWKH7X1ZBGM27395K8 --policy 01KZV12ZKVTMY7J7V3F5P8V9TS --baseline 01KZV12ZA4D2QENBD6AM8KME35
   gate: hard_fail
-  decision: 01KZT8MC9K6BHX65V27TKTSP2C
-  evidence: sha256:a9f32f7a419839da6c0a8bd425950b858627948ead3d9c6a171dd1be1d51a389
-    exact_match_ci_jhvpw3s9: regression (n=10)
+  decision: 01KZV13112XGT31GY2PRPC55XM
+  evidence: sha256:9188d8d35ca949f73541878ac7d707eb471542e2ac04cbb901aece0fff96ab82
+    exact_match_ci_6xmyska9: regression (n=10)
   
   this outcome blocks the pipeline (exit 1)
   exit 1 -> the pipeline stops
 
-$ clep gate --project 01KZT8MATRVZCXMCVEY21JE721 --run 01KZT8MB26DE1KZY4VYG8ZFQSK --policy 01KZT8MB7BE3K68Q46C1E2BVMD --baseline 01KZT8MB1D18QATC900A5BV2VN
+$ clep gate --project 01KZV12Z1VZ9AS1BJB1V443ZZT --run 01KZV12ZBKKKRE60YV81678DWB --policy 01KZV12ZNXQ8VBZ54YX088M4FX --baseline 01KZV12ZA4D2QENBD6AM8KME35
   gate: insufficient_evidence
-  decision: 01KZT8MCX32QSF24NASKZP0EFA
-  evidence: sha256:ec14c458892e1bae6f780ebfba305a61796f302072c2e7f5ff50088d786db53c
-    exact_match_ci_jhvpw3s9: insufficient_evidence (n=10)
+  decision: 01KZV131RJVN6N5S62GC3BEDRJ
+  evidence: sha256:bba1cb0b312d2a2b507d457781bebe3171192a0b08d3be81910a087ed8a39606
+    exact_match_ci_6xmyska9: insufficient_evidence (n=10)
         abstained: 10 paired sample(s) is below the configured minimum of 1000 for this metric
   
   this outcome blocks the pipeline (exit 70)
   exit 70 -> the pipeline stops
 
-$ clep gate --project 01KZT8MATRVZCXMCVEY21JE721 --run 01KZT8MB4183B5MJ22JFB016BJ --policy 01KZT8MB5TBM3HQMQ7QCZB95RQ --baseline 01KZT8MB1D18QATC900A5BV2VN
+$ clep gate --project 01KZV12Z1VZ9AS1BJB1V443ZZT --run 01KZV12ZEWKH7X1ZBGM27395K8 --policy 01KZV12ZKVTMY7J7V3F5P8V9TS --baseline 01KZV12ZA4D2QENBD6AM8KME35
   gate: hard_fail
-  decision: 01KZT8MDGDKBGH9FEQ10GHCHC5
-  evidence: sha256:a9f32f7a419839da6c0a8bd425950b858627948ead3d9c6a171dd1be1d51a389
-    exact_match_ci_jhvpw3s9: regression (n=10)
+  decision: 01KZV132FBJ3D8Y2136G7H22EE
+  evidence: sha256:9188d8d35ca949f73541878ac7d707eb471542e2ac04cbb901aece0fff96ab82
+    exact_match_ci_6xmyska9: regression (n=10)
   
   this outcome blocks the pipeline (exit 1)
   exit 1 -> the pipeline stops
 
-$ clep gate --project 01KZT8MATRVZCXMCVEY21JE721 --run not-a-ulid --policy 01KZT8MB5TBM3HQMQ7QCZB95RQ --baseline 01KZT8MB1D18QATC900A5BV2VN
+$ clep gate --project 01KZV12Z1VZ9AS1BJB1V443ZZT --run not-a-ulid --policy 01KZV12ZKVTMY7J7V3F5P8V9TS --baseline 01KZV12ZA4D2QENBD6AM8KME35
   ! clep: --run is not a well-formed identifier
   exit 78 -> the pipeline stops
 

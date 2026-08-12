@@ -33,12 +33,38 @@ Three refusals keep it honest.
   * Exit codes are read from the process. There is no path here that computes
     what the code should have been.
 
+**Paths are normalised before anything is written.** The evidence has to show
+that the package resolved inside an isolated environment and not in the working
+tree, and the honest way to show that is the path — but the real path also
+carries the operator's account name and temp-directory layout, which is private
+local detail that no reader of this repository needs. Every recorded string is
+therefore rewritten through a deterministic token table before it is persisted:
+
+    <repo>       the repository root
+    <work>       the throwaway directory this run created
+    <checkout>   the clean git clone inside it
+    <venv>       the isolated environment inside it
+    <workspace>  the neutral directory the CLI is invoked from
+    <tmp>        the system temporary directory
+    <home>       the user's home directory
+
+Longest path wins, so `<venv>` is never reported as `<work>/venv`. The claim is
+preserved rather than weakened: `<venv>/Lib/site-packages/clep/__init__.py` says
+exactly what the raw path said, and the boolean it supports — *is this inside the
+isolated environment* — is still computed from the raw path before substitution.
+
+`_refuse_local_paths` is the backstop. It runs over the finished evidence and
+raises rather than writing if a drive-letter path, the account name or a temp
+directory survived, so this script cannot emit leaky evidence even if a new
+field is added later and someone forgets.
+
 Usage: python docs/evidence/phase-11/ci_execution.py <repo_root> [--keep]
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -66,9 +92,70 @@ CONTINUES = "the pipeline continues"
 steps: list[dict] = []
 failures: list[str] = []
 
+#: (real path, token), longest first. Populated once, in `main`.
+REDACTIONS: list[tuple[str, str]] = []
+
+
+def register_redactions(pairs: list[tuple[Path, str]]) -> None:
+    """Fix the token table for this run.
+
+    Sorted by descending length so a nested directory is matched before its
+    parent — otherwise the environment would be reported as `<work>/venv`, and
+    the claim that the package resolved *inside the isolated environment* would
+    rest on the reader reassembling it.
+    """
+    global REDACTIONS
+    resolved = [(str(Path(p).resolve()).replace("\\", "/"), token)
+                for p, token in pairs]
+    REDACTIONS = sorted(resolved, key=lambda kv: -len(kv[0]))
+
+
+def redact(value):
+    """Rewrite local paths as tokens. Recurses through the evidence structure."""
+    if isinstance(value, str):
+        out = value.replace("\\\\", "/").replace("\\", "/")
+        for real, token in REDACTIONS:
+            out = re.sub(re.escape(real), token, out, flags=re.IGNORECASE)
+        return out
+    if isinstance(value, list):
+        return [redact(v) for v in value]
+    if isinstance(value, dict):
+        return {k: redact(v) for k, v in value.items()}
+    return value
+
+
+def _refuse_local_paths(evidence: dict) -> None:
+    """Refuse to write evidence that still carries private local detail.
+
+    A backstop, not the mechanism. If this fires, a field was added that the
+    token table never saw — and writing the file anyway is how the disclosure
+    reaches the repository a second time.
+
+    Separators are normalised first. The fields this exists to catch are exactly
+    the ones that did NOT go through `redact`, so they still carry backslashes —
+    and `json.dumps` escapes each one again. The first version of this searched
+    for `C:/` and passed a literal `C:\\Users\\...` straight through, which the
+    proof in the self-test caught. A guard aimed only at the shape its own
+    mechanism produces is a guard that cannot fire.
+    """
+    body = json.dumps(evidence).replace("\\\\", "/").replace("\\", "/")
+    account = Path.home().name
+    for pattern, what in ((r"[A-Za-z]:/", "a drive-letter path"),
+                          (r"(?i)AppData/Local/Temp", "the temp directory"),
+                          (rf"(?i)\b{re.escape(account)}\b", "the account name"),
+                          (r"(?i)/home/[a-z0-9._\-]+/", "a POSIX home directory"),
+                          (r"(?i)/Users/[a-z0-9._\-]+/", "a macOS home directory")):
+        if re.search(pattern, body):
+            raise SystemExit(
+                f"REFUSING to write evidence: {what} survived redaction. The "
+                f"token table in `register_redactions` does not cover a field "
+                f"this run recorded.")
+
 
 def note(name: str, ok: bool, detail: str, extra: dict | None = None) -> None:
-    steps.append({"step": name, "ok": bool(ok), "detail": detail, **(extra or {})})
+    detail = redact(detail)
+    steps.append({"step": name, "ok": bool(ok), "detail": detail,
+                  **redact(extra or {})})
     print(f"[{'OK  ' if ok else 'FAIL'}] {name}: {detail}")
     if not ok:
         failures.append(f"{name}: {detail}")
@@ -373,18 +460,23 @@ def entry_point_resolves(venv: Path) -> dict:
     body = json.loads(out.strip().splitlines()[-1]) if code == 0 else {}
     note("entry point declared", body.get("entry_points") == ["clep=clep.cli.main:main"],
          f"console_scripts: {body.get('entry_points')} (exit {code}) {err[-120:]}")
-    inside = str(venv).lower() in str(body.get("package_file", "")).lower()
+    # Decided on the RAW path, recorded as a token. Redacting first would make
+    # the check compare a token against a token and always pass.
+    inside = str(venv).lower().replace("\\", "/") in \
+        str(body.get("package_file", "")).lower().replace("\\", "/")
     note("package resolves inside the environment", inside,
-         f"clep.__file__ = {body.get('package_file')}")
-    return body
+         f"clep.__file__ = {redact(str(body.get('package_file')))}")
+    return redact(body)
 
 
 def cli_help(venv: Path, organization: str, neutral: Path) -> None:
     """The console script by name, from PATH, with the repository nowhere near."""
     env = pipeline_env(venv, organization)
     resolved = on_path(env, "clep")
-    note("console script resolves on PATH", str(venv).lower() in resolved.lower(),
-         f"`clep` -> {resolved}")
+    # Same rule: the decision uses the raw path, the record uses the token.
+    note("console script resolves on PATH",
+         str(venv).lower().replace("\\", "/") in resolved.lower().replace("\\", "/"),
+         f"`clep` -> {redact(resolved)}")
     code, out, err = run([resolved, "--help"], cwd=neutral, env=env)
     note("console script runs by name", code == 0 and "clep gate" in out,
          f"`clep --help` from {neutral.name} (exit {code})")
@@ -402,8 +494,8 @@ def ci_step(venv: Path, organization: str, neutral: Path, argv: list[str]) -> di
     code, out, err = run([on_path(env, "clep"), *argv], cwd=neutral, env=env)
     return {"argv": ["clep", *argv], "exitCode": code,
             "ciDecision": CONTINUES if code == 0 else BLOCKS,
-            "stdout": out.strip().splitlines(),
-            "stderr": err.strip().splitlines()[:6]}
+            "stdout": redact(out.strip().splitlines()),
+            "stderr": redact(err.strip().splitlines()[:6])}
 
 
 def main() -> int:
@@ -413,6 +505,13 @@ def main() -> int:
     work = Path(tempfile.mkdtemp(prefix="clep-ci-"))
     neutral = work / "workspace"
     neutral.mkdir()
+    # Registered before anything is recorded, and covering the nested
+    # directories explicitly so the longest match wins over `<work>`.
+    register_redactions([
+        (work / "checkout", "<checkout>"), (work / "venv", "<venv>"),
+        (neutral, "<workspace>"), (work, "<work>"), (ROOT, "<repo>"),
+        (Path(tempfile.gettempdir()), "<tmp>"), (Path.home(), "<home>"),
+    ])
     evidence: dict = {"environment": "local CI-style, not hosted CI",
                       "note": ("An isolated venv and a clean git clone on this "
                                "machine. No hosted CI service ran this, and "
@@ -497,6 +596,7 @@ def main() -> int:
 
 
 def write(evidence: dict) -> None:
+    _refuse_local_paths(evidence)
     out = ROOT / "docs" / "evidence" / "phase-11"
     out.mkdir(parents=True, exist_ok=True)
     (out / "ci-execution-output.json").write_text(
