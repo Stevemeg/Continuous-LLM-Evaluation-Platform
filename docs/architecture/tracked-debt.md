@@ -62,3 +62,57 @@ This narrows the model and strengthens isolation, so it is recorded here rather
 than raised as a change to an accepted decision. If a shared rubric library is
 specified later, the shareable part is the rubric, not the version — which is a
 new table rather than a change to these.
+
+## D-3 — the object store has no adapter, so example payloads arrive over a port
+
+| Field | Value |
+|---|---|
+| Raised | Phase 11, M11.1 |
+| Decision | ADR-013: content lives in S3-compatible object storage, MinIO locally |
+| Owning phase | Deployment and infrastructure (Phase 14) |
+| Status | **Open** |
+
+`example_content` holds a `payload_ref` and a digest; the bytes live in the
+object store. Nothing in the repository stands that store up, and no adapter
+speaks to it.
+
+**Why it surfaced now.** Every run before Phase 11 was started by someone who
+already held the examples and passed them in. A schedule has no such caller
+(`REQ-F-10-1`), so something has to read the dataset — and reading it means
+reading the payload.
+
+**What holds instead.** `StoredExampleSource` reads the record from PostgreSQL
+and resolves the payload through a `payload_reader` port. A source constructed
+without one raises rather than returning examples with empty prompts, and the
+built-in reader accepts `file://` references only, refusing anything else rather
+than guessing. The digest the dataset version recorded is verified on every read,
+so the protection `REQ-F-07-1` depends on holds regardless of which
+implementation supplies the bytes.
+
+**What must not happen.** A default that silently falls back to an empty prompt.
+An evaluation of the empty string scores perfectly consistently and means
+nothing, which is the failure mode this port exists to make impossible.
+
+## D-4 — the gate's latency criterion still measures evaluation, not the model
+
+| Field | Value |
+|---|---|
+| Raised | Phase 11, M11.3 |
+| Requirement | `REQ-F-11-3` (reporting) and `REQ-F-08-1` (gate criteria) |
+| Owning phase | Whichever phase revisits gate policy semantics |
+| Status | **Accepted, and deliberately not fixed here** |
+
+Phase 11 added `run_sample.model_latency_ms`, measured at the gateway. The
+regression engine's `latency` criterion continues to read
+`evaluator_outcome.duration_ms`, which is evaluation latency.
+
+**Why it is not fixed here.** Changing what an existing gate criterion measures
+would change the verdict of every published policy that uses it, in a phase whose
+scope is reporting. That is a material change to CI semantics, and it belongs to
+a change proposal rather than to a milestone that was asked for dashboards.
+
+**What holds instead.** The two are named apart everywhere they appear. The
+analytics report `modelLatencyMs` and `evaluatorLatencyMs` as separate
+distributions; the engine's own docstring states which one it measures; and an
+alert rule names the figure it watches from a closed vocabulary, so a rule on
+model latency cannot be mistaken for a gate on it.
