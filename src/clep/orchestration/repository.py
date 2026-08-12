@@ -65,6 +65,14 @@ class RunRepository:
         self._conn = conn
         self._org = str(organization_id)
 
+    @property
+    def organization_id(self) -> str:
+        """Readable, not writable. The execution loop needs the tenant to scope
+        an evaluator's grant to it (ADR-006 rule 5), and reaching into a private
+        attribute to get it would be a second way to learn the tenant — which is
+        exactly the arrangement ADR-010 rule 3 exists to prevent."""
+        return self._org
+
     # ------------------------------------------------------------------- runs
     def create_run(self, *, project_id: str, suite_version_id: str,
                    dataset_version_id: str, identity_digest: str,
@@ -271,6 +279,30 @@ class RunRepository:
             (ulid_to_uuid(new_ulid()), self._org, ulid_to_uuid(sample_id),
              ulid_to_uuid(evaluator_version_id), resolution, score,
              unavailable_reason, duration_ms))
+
+    def record_evaluator_invocation(self, *, sample_id: str,
+                                    evaluator_version_id: str,
+                                    granted_permissions: str, outcome: str,
+                                    correlation_id: str) -> None:
+        """ADR-006 rule 6 and `REQ-F-12-9`: every invocation of untrusted code,
+        with the version that ran and the boundary it ran inside.
+
+        Separate from `record_evaluator_outcome` although both describe the same
+        invocation, and the split is the point: the outcome is a *score* and
+        lives in the evaluation domain; this is a *governance record* and is
+        append-only, immutable by trigger, and answers a different question —
+        not what did it say, but what was it allowed to do.
+        """
+        self._conn.execute(
+            """
+            INSERT INTO clep.evaluator_invocation
+                (id, organization_id, run_sample_id, evaluator_version_id,
+                 granted_permissions, outcome, correlation_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (ulid_to_uuid(new_ulid()), self._org, ulid_to_uuid(sample_id),
+             ulid_to_uuid(evaluator_version_id), granted_permissions, outcome,
+             correlation_id))
 
     # ------------------------------------------------------------- checkpoint
     def checkpoint(self, run_id: str) -> int:

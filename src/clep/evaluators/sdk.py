@@ -188,6 +188,10 @@ class EvaluatorRegistration:
     requires_tier: str
     evaluate: Callable[[SampleContext], EvaluatorOutcome]
     is_builtin: bool = False
+    #: What the evaluator declares it needs beyond the sample (ADR-006 rule 1).
+    #: Empty for every built-in, which is why the deny-by-default grant costs
+    #: them nothing: an evaluator that reaches for nothing needs no permission.
+    requires_capabilities: tuple[str, ...] = ()
 
     @property
     def version_key(self) -> str:
@@ -212,10 +216,20 @@ class EvaluatorRegistry:
                 raise EvaluatorError(f"evaluator must declare {attribute}")
         if evaluator.requires_tier not in TIERS:
             raise EvaluatorError(f"unknown required tier {evaluator.requires_tier!r}")
+        from clep.security.grants import parse_declared
+        declared = getattr(evaluator, "requires_capabilities", ())
+        if isinstance(declared, str):
+            declared = parse_declared(declared)
+        else:
+            # Validated at registration rather than at invocation. An evaluator
+            # naming a capability the platform cannot enforce must be refused
+            # when it is registered — refusing later would mean it was already
+            # part of a suite version somebody depends on.
+            declared = parse_declared(",".join(declared) if declared else "")
         reg = EvaluatorRegistration(
             name=evaluator.name, version=evaluator.version,
             requires_tier=evaluator.requires_tier, evaluate=evaluator.evaluate,
-            is_builtin=is_builtin)
+            is_builtin=is_builtin, requires_capabilities=declared)
         if reg.version_key in self._items:
             raise EvaluatorError(
                 f"{reg.version_key} is already registered; publish a new version "
@@ -241,13 +255,34 @@ def tier_permits(required: str, available: str) -> bool:
 
 
 def run_evaluator(registration: EvaluatorRegistration, sample: SampleContext,
-                  timeout_ms: int | None = None) -> EvaluatorOutcome:
+                  timeout_ms: int | None = None, grant=None) -> EvaluatorOutcome:
     """Run one evaluator and convert every way it can go wrong into an outcome.
 
-    The tier check happens first and without calling the plugin at all: an
-    evaluator that needs a trajectory must not be handed an empty one and left
-    to draw a conclusion from it.
+    Two checks happen before the plugin is called at all, and both refuse rather
+    than let it proceed and draw a conclusion from what it was missing.
+
+    The **tier** check: an evaluator that needs a trajectory must not be handed
+    an empty one.
+
+    The **capability** check (Phase 12, ADR-006 rule 3): an evaluator that
+    declares it needs a capability nobody granted is refused. Deny by default —
+    `grant=None` means nothing is permitted, so an evaluator declaring nothing
+    is unaffected and an evaluator declaring something must have been given it
+    deliberately. Refusing here rather than inside the plugin is what makes the
+    boundary a decision the platform records rather than an error the evaluator
+    reports about itself.
     """
+    from clep.security.grants import DENY_ALL
+
+    grant = DENY_ALL if grant is None else grant
+    withheld = grant.withheld(getattr(registration, "requires_capabilities", ()))
+    if withheld:
+        return EvaluatorOutcome(
+            "unavailable",
+            unavailable_reason=(
+                f"{registration.version_key} declares capability "
+                f"{list(withheld)}, which this invocation was not granted; it "
+                f"was not run"))
     if not tier_permits(registration.requires_tier, sample.integration_tier):
         return EvaluatorOutcome(
             "unavailable",

@@ -12,6 +12,8 @@ from it only by `exception_applied`, and only while an exception is in force.
 """
 from __future__ import annotations
 
+from clep.security.privacy import redact_credentials
+
 BLOCKING = ("hard_fail", "approval_required")
 
 
@@ -159,7 +161,12 @@ def human_readable(decision: dict, comparisons: list[dict],
                   f"- Actor: `{live_exception['actorId']}`",
                   f"- Expires: {live_exception['expiresAt']}",
                   f"- Justification: {live_exception['justification']}", ""]
-    return "\n".join(lines)
+    # `REQ-N-SEC-5` at the last surface before the report leaves the platform.
+    # A justification is free text a human wrote, and a policy exception written
+    # in a hurry is exactly where an operator pastes a token to explain how they
+    # reproduced something. Redacting at the boundary rather than at every field
+    # is what makes it true for fields added later.
+    return redact_credentials("\n".join(lines))
 
 
 def _show(value):

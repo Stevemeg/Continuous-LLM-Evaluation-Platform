@@ -432,6 +432,101 @@ def test_an_approved_baseline_pins_the_content_until_an_audited_override(
     assert used is True
 
 
+# ============================================= the controls through the API
+@pytest.fixture
+def client(migrated_database, seeded):
+    from fastapi.testclient import TestClient
+
+    from clep.api.service import RunService
+    from tests.conftest import api_app
+    run_service = RunService(
+        migrated_database,
+        dataset_version_resolver=lambda org, suite: seeded["dataset_version"])
+    return TestClient(api_app(migrated_database, run_service),
+                      raise_server_exceptions=False)
+
+
+def _submit(client, headers, seeded, key):
+    return client.post(
+        f"/projects/{seeded['project']}/runs",
+        headers={**headers, "Idempotency-Key": key},
+        json={"suiteVersionId": seeded["suite_version"],
+              "candidates": [{"label": "a",
+                              "modelConfigurationId":
+                                  seeded["model_configuration"]}]})
+
+
+def test_the_quota_refuses_a_run_through_the_api_with_a_429(
+        client, migrated_database, organization, owner, seeded):
+    headers = {"Authorization": f"Bearer {owner['credential']}"}
+    with tenant_session(migrated_database, organization) as conn:
+        SecurityRepository(conn, organization).set_usage_limit(
+            requests_per_minute=600, runs_per_period=1, period_days=30,
+            actor_id=owner["id"])
+    assert _submit(client, headers, seeded, "quota-1").status_code == 202
+    refused = _submit(client, headers, seeded, "quota-2")
+    assert refused.status_code == 429
+    body = refused.json()
+    assert body["category"] == "client_error", \
+        "a tenant spending their allowance is not the platform failing"
+    assert "PUT /usage-limit" in body["detail"], \
+        "REQ-N-USE-3: say what the caller can do about it"
+
+
+def test_a_retried_submission_does_not_spend_the_quota_twice(
+        client, migrated_database, organization, owner, seeded):
+    """The defect this ordering exists to prevent.
+
+    Charging the quota at the route would charge it before the idempotency key
+    was consulted, so a client retrying a timed-out POST — the exact case
+    idempotency exists for — would pay twice for one run.
+    """
+    headers = {"Authorization": f"Bearer {owner['credential']}"}
+    with tenant_session(migrated_database, organization) as conn:
+        SecurityRepository(conn, organization).set_usage_limit(
+            requests_per_minute=600, runs_per_period=2, period_days=30,
+            actor_id=owner["id"])
+    first = _submit(client, headers, seeded, "retried")
+    again = _submit(client, headers, seeded, "retried")
+    assert first.status_code == 202 and again.status_code == 202
+    assert first.json()["id"] == again.json()["id"]
+    with tenant_session(migrated_database, organization) as conn:
+        used = conn.execute(
+            "SELECT runs_started FROM clep.quota_consumption "
+            " WHERE organization_id = %s", (organization,)).fetchone()[0]
+    assert used == 1, "one run, one unit of quota, however many times it was sent"
+
+
+def test_the_rate_limiter_refuses_through_the_api(migrated_database, seeded,
+                                                  organization, owner):
+    """The limiter is wired to the guard, so it applies to every route rather
+    than to the ones somebody remembered."""
+    import redis
+    from fastapi.testclient import TestClient
+
+    from clep.api.service import RunService
+    from clep.security.limits import RateLimiter
+    from tests.conftest import REDIS_URL, api_app
+    client_redis = redis.Redis.from_url(REDIS_URL)
+    prefix = f"clep:ratelimit:api:{organization}"
+    for key in client_redis.scan_iter(f"{prefix}*"):
+        client_redis.delete(key)
+    limiter = RateLimiter(client_redis, lambda org: 2, prefix=prefix)
+    app = api_app(migrated_database,
+                  RunService(migrated_database,
+                             dataset_version_resolver=lambda o, s:
+                             seeded["dataset_version"]),
+                  limiter=limiter)
+    http = TestClient(app, raise_server_exceptions=False)
+    headers = {"Authorization": f"Bearer {owner['credential']}"}
+    codes = [http.get(f"/runs/{new_ulid()}", headers=headers).status_code
+             for _ in range(4)]
+    assert codes[:2] == [404, 404], "the first two are within the allowance"
+    assert codes[2:] == [429, 429]
+    for key in client_redis.scan_iter(f"{prefix}*"):
+        client_redis.delete(key)
+
+
 # ======================================================================= D-1
 def test_a_comparison_cannot_cite_another_tenants_evaluator_version(
         migrated_database, organization, second_organization, seeded):

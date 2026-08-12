@@ -1,0 +1,84 @@
+{
+  "advisorySource": "https://api.osv.dev/v1/query",
+  "checked": [
+    {
+      "advisories": 0,
+      "package": "arq",
+      "version": "0.28.0"
+    },
+    {
+      "advisories": 0,
+      "package": "fastapi",
+      "version": "0.141.1"
+    },
+    {
+      "advisories": 0,
+      "package": "httpx",
+      "version": "0.28.1"
+    },
+    {
+      "advisories": 0,
+      "package": "psycopg",
+      "version": "3.3.4"
+    },
+    {
+      "advisories": 0,
+      "package": "pydantic",
+      "version": "2.13.4"
+    },
+    {
+      "advisories": 0,
+      "package": "pytest",
+      "version": "9.1.1"
+    },
+    {
+      "advisories": 0,
+      "package": "pytest-asyncio",
+      "version": "1.4.0"
+    },
+    {
+      "advisories": 0,
+      "package": "pytest-cov",
+      "version": "7.1.0"
+    },
+    {
+      "advisories": 0,
+      "package": "redis",
+      "version": "5.3.1"
+    },
+    {
+      "advisories": 0,
+      "package": "setuptools",
+      "version": "84.0.0"
+    },
+    {
+      "advisories": 0,
+      "package": "uvicorn",
+      "version": "0.52.1"
+    }
+  ],
+  "declared": [
+    "arq",
+    "fastapi",
+    "httpx",
+    "psycopg",
+    "pydantic",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "redis",
+    "setuptools",
+    "uvicorn"
+  ],
+  "executedAt": "2026-08-12T16:01:06.301523+00:00",
+  "findings": [],
+  "missing": [],
+  "policy": {
+    "advisorySourceUnreachable": "fail",
+    "dependencyNotInstalled": "fail",
+    "vulnerabilityInADeclaredDependency": "fail"
+  },
+  "requirement": "REQ-N-SEC-7",
+  "unreachable": [],
+  "verdict": "PASS"
+}

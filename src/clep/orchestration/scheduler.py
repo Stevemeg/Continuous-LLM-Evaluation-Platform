@@ -56,6 +56,7 @@ from clep.orchestration.releases import (ReleaseObservationRepository,
                                          recommendation_for)
 from clep.orchestration.repository import RunRepository
 from clep.orchestration.schedules import ScheduleRepository, trigger_key
+from clep.security.repository import SecurityRepository
 
 #: How often the cron fires. A sweep costs one query per tenant and creates
 #: nothing unless a cadence matches the minute, so the default is every minute —
@@ -66,6 +67,11 @@ FIRED = "fired"
 ALREADY_FIRED = "already_fired"
 OVER_BUDGET = "over_budget"
 NOT_EXECUTABLE = "not_executable"
+#: Phase 12. Distinct from OVER_BUDGET, which is about one run's estimated cost
+#: (`REQ-F-10-5`); this is about how many runs the tenant has already started in
+#: the period (`REQ-N-SEC-9`). Merging them would tell an operator to raise a
+#: budget when what they need is a quota, or the reverse.
+QUOTA_EXHAUSTED = "quota_exhausted"
 
 
 @dataclass(frozen=True)
@@ -127,6 +133,19 @@ def sweep_tenant(conn, organization_id: str, *, moment: datetime,
         if problem:
             reason, detail = problem
             outcome.triggers.append(Trigger(schedule.id, reason, None, detail))
+            continue
+
+        # The tenant's evaluation quota, counted here as well as at the API
+        # (`REQ-N-SEC-9`). A quota only the HTTP surface enforced would be a
+        # quota a schedule walks around, and a schedule is the caller most able
+        # to spend without anyone watching.
+        allowed, used, ceiling = SecurityRepository(
+            conn, organization_id).consume_run_quota(at=moment.date())
+        if not allowed:
+            outcome.triggers.append(Trigger(
+                schedule.id, QUOTA_EXHAUSTED, None,
+                f"this tenant has started {used} run(s) against a quota of "
+                f"{ceiling} for the current period; the schedule did not fire"))
             continue
 
         dataset_version_id = schedules.dataset_version_for(schedule.suite_version_id)

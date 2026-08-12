@@ -42,7 +42,18 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=68"]
+# Raised from 68 in Phase 12, by the scan REQ-N-SEC-7 asks for rather than by
+# preference. The environment this project builds in was running setuptools
+# 65.5.0 -- below the floor the file already declared, and carrying eight OSV
+# advisories including a command injection through a package URL. 78.1.1 is the
+# fix version for that one.
+#
+# The floor is a minimum and not the guarantee. A floor cannot know about an
+# advisory published tomorrow, which is why the enforceable part is
+# `docs/evidence/phase-12/dependency_scan.py`: it queries the advisory database
+# for the versions actually installed, and fails the build when it cannot reach
+# it rather than reporting a clean result it did not obtain.
+requires = ["setuptools>=78.1.1"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]

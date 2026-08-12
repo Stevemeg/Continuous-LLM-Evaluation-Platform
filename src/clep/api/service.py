@@ -20,6 +20,13 @@ from clep.experiments.identity import IDENTITY_KINDS
 from clep.experiments.repository import IdentityRepository
 from clep.identity import new_ulid
 from clep.orchestration.repository import RunRepository
+from clep.security.repository import SecurityRepository
+
+
+class QuotaExhausted(RuntimeError):
+    """`REQ-N-SEC-9`. A refusal the caller can act on, never a platform failure:
+    the tenant asked for more than their configured allowance, which is a
+    successful decision about a request rather than the platform breaking."""
 
 
 def identity_digest(*parts: str) -> str:
@@ -56,6 +63,21 @@ class RunService:
             digest = identity.digest()
 
             repo = RunRepository(conn, organization_id)
+            # The evaluation quota, counted here rather than at the route, and
+            # counted only for a submission that is actually new (`REQ-N-SEC-9`).
+            # At the route it would have been charged before the idempotency key
+            # was consulted, so a client retrying a timed-out POST — the case
+            # idempotency exists for — would have spent quota twice for one run.
+            if repo.find_run_by_idempotency_key(project_id,
+                                                idempotency_key) is None:
+                allowed, used, ceiling = SecurityRepository(
+                    conn, organization_id).consume_run_quota()
+                if not allowed:
+                    raise QuotaExhausted(
+                        f"evaluation quota reached: this tenant has started "
+                        f"{used} run(s) against a quota of {ceiling} for the "
+                        f"current period. The quota is configurable through "
+                        f"PUT /usage-limit.")
             run_id = repo.create_run(
                 project_id=project_id, suite_version_id=suite_version_id,
                 dataset_version_id=dataset_version_id, identity_digest=digest,

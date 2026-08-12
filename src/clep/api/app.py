@@ -39,6 +39,7 @@ from clep.judges.repository import (EscalationAlreadyReviewed,
                                     JudgeRepositoryError)
 from clep.orchestration.releases import ReleaseObservationError
 from clep.orchestration.schedules import CadenceError, ScheduleError
+from clep.api.service import QuotaExhausted
 from clep.regression.repository import PolicyNotPublished
 from clep.security.erasure import BaselinePinned, ErasureError
 from clep.security.repository import SecurityError
@@ -489,11 +490,18 @@ def create_app(run_service, registry_service=None, gate_service=None,
         budget = None
         if body.budget:
             budget = (Decimal(body.budget.limit), body.budget.currency)
-        run = run_service.create_run(
-            organization_id=principal.organization_id, project_id=projectId,
-            suite_version_id=body.suiteVersionId,
-            candidates=[c.model_dump() for c in body.candidates],
-            integration_tier=tier, budget=budget, idempotency_key=idempotency_key)
+        try:
+            run = run_service.create_run(
+                organization_id=principal.organization_id, project_id=projectId,
+                suite_version_id=body.suiteVersionId,
+                candidates=[c.model_dump() for c in body.candidates],
+                integration_tier=tier, budget=budget,
+                idempotency_key=idempotency_key)
+        except QuotaExhausted as e:
+            # 429 as the contract declares, and `client_error` rather than
+            # `platform_failure`: the platform decided, correctly, that this
+            # tenant has spent their allowance.
+            raise HTTPException(status_code=429, detail=str(e))
         return run
 
     @app.get("/runs/{runId}")

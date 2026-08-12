@@ -45,6 +45,7 @@ from decimal import Decimal, InvalidOperation
 from clep.evaluators.sdk import RESOLUTIONS, SampleContext
 from clep.providers.gateway import CandidateInvocation, ProviderGateway
 from clep.providers.port import CompletionRequest
+from clep.security.privacy import redact_credentials
 
 #: The fence around untrusted content. Fixed rather than random: a nonce would
 #: make two runs of the same judgement differ, and `REQ-F-07-1` identity is worth
@@ -152,17 +153,32 @@ def render_prompt(judge: JudgeVersion, sample: SampleContext) -> tuple[str, bool
     """
     neutralised = False
     parts = []
+
+    def prepare(value):
+        """Neutralise, then redact.
+
+        Two different defences against two different problems, in an order that
+        matters. `neutralise` is Phase 8's answer to injection: it stops content
+        pretending to be instruction. Redaction is Phase 12's answer to
+        `REQ-N-SEC-5`: a provider key that found its way into a dataset example
+        or a retrieved document must not be sent to a third-party model, whether
+        or not it was trying to instruct anything. Redacting first would let a
+        credential shape be split by neutralisation and survive.
+        """
+        cleaned, changed = neutralise(value)
+        return redact_credentials(cleaned), changed
+
     for label, value in (("prompt", sample.prompt), ("output", sample.output),
                          ("expected", sample.expected or "")):
-        cleaned, changed = neutralise(value)
+        cleaned, changed = prepare(value)
         neutralised = neutralised or changed
         parts.append(f"[{label}]\n{cleaned}")
     for index, context in enumerate(sample.retrieved_context):
-        cleaned, changed = neutralise(context)
+        cleaned, changed = prepare(context)
         neutralised = neutralised or changed
         parts.append(f"[retrieved {index}]\n{cleaned}")
     for index, step in enumerate(sample.trajectory):
-        cleaned, changed = neutralise(step)
+        cleaned, changed = prepare(step)
         neutralised = neutralised or changed
         parts.append(f"[trajectory {index}]\n{cleaned}")
 

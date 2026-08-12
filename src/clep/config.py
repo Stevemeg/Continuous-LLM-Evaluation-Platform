@@ -87,12 +87,61 @@ def load(require_database: bool = True) -> Config:
     if len(currency) != 3:
         raise ConfigurationError("CLEP_DEFAULT_BUDGET_CURRENCY must be 3 characters")
 
+    env = _optional("CLEP_ENV", "local")
+    migration_dsn = _require("CLEP_MIGRATION_DSN") if require_database else ""
+    runtime_dsn = _require("CLEP_RUNTIME_DSN") if require_database else ""
+    redis_url = _optional("CLEP_REDIS_URL", "redis://localhost:6399")
+    for name, value in (("CLEP_MIGRATION_DSN", migration_dsn),
+                        ("CLEP_RUNTIME_DSN", runtime_dsn),
+                        ("CLEP_REDIS_URL", redis_url)):
+        require_transport_security(env, name, value)
+
     return Config(
-        env=_optional("CLEP_ENV", "local"),
-        migration_dsn=_require("CLEP_MIGRATION_DSN") if require_database else "",
-        runtime_dsn=_require("CLEP_RUNTIME_DSN") if require_database else "",
-        redis_url=_optional("CLEP_REDIS_URL", "redis://localhost:6399"),
+        env=env,
+        migration_dsn=migration_dsn,
+        runtime_dsn=runtime_dsn,
+        redis_url=redis_url,
         default_budget_limit=Decimal(_optional("CLEP_DEFAULT_BUDGET_LIMIT", "1.00")),
         default_budget_currency=currency,
         endpoints=tuple(endpoints),
     )
+
+
+#: The one environment where an unencrypted connection is not a finding. Named
+#: rather than inferred from a hostname: `localhost` in a container is not the
+#: same machine, and a check that trusted the word would pass in production.
+LOCAL_ENVIRONMENTS = ("local", "test")
+
+
+def require_transport_security(env: str, name: str, value: str) -> None:
+    """`REQ-N-SEC-6`: encrypted in transit, refused at startup when it is not.
+
+    Verified by executing this function rather than by inspecting a deployment
+    document, which is what "Inspection" would otherwise have meant. A
+    misconfiguration here is a silent one — an unencrypted connection works
+    perfectly — so the only moment it can be caught is before the first request.
+
+    Outside a local environment the requirement is positive: the connection
+    string must *say* it is encrypted. Absence is not permission, because
+    PostgreSQL's default `sslmode=prefer` falls back to plaintext without an
+    error, which is the exact failure this refuses.
+    """
+    if not value or env in LOCAL_ENVIRONMENTS:
+        return
+    lowered = value.lower()
+    if lowered.startswith("rediss://"):
+        return
+    if lowered.startswith(("redis://", "postgres://", "postgresql://")):
+        secure = ("sslmode=require" in lowered or "sslmode=verify-ca" in lowered
+                  or "sslmode=verify-full" in lowered)
+        if not secure:
+            raise ConfigurationError(
+                f"{name} does not require an encrypted connection and "
+                f"CLEP_ENV is {env!r}. REQ-N-SEC-6 requires encryption in "
+                f"transit; PostgreSQL's default falls back to plaintext "
+                f"without an error, so 'sslmode=require' or stricter must be "
+                f"stated. Use rediss:// for Redis.")
+    else:
+        raise ConfigurationError(
+            f"{name} names a scheme this platform cannot reason about the "
+            f"transport security of; refusing rather than assuming")

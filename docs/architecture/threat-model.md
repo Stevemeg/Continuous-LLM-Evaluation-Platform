@@ -2,13 +2,15 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft — pending external review** |
-| Milestone | M2.5 — Trust Boundaries, Threat Model, Security Architecture |
-| Phase | Phase 2 — Architecture |
-| Required by | Canonical §16, §18 (threat model, trust-boundary views), §21 |
+| Status | **Draft — pending external review.** Revised in Phase 12 against the implementation |
+| Milestone | M2.5 — Trust Boundaries, Threat Model, Security Architecture · revised M12.8 |
+| Phase | Phase 2 — Architecture · revised in Phase 12 |
+| Required by | Canonical §16, §18 (threat model, trust-boundary views), §21 · `REQ-N-SEC-8` |
 | Product input | [`../product/prd.md`](../product/prd.md) §7 — data sensitivity classes `DS-1`…`DS-9` |
 
 This threat model consumes the product-level sensitivity taxonomy rather than inventing its own, as the PRD intended.
+
+> **What the Phase 12 revision changed, and what it did not.** `REQ-N-SEC-8` requires a formal threat model *before* production hardening, and `SR-4` recorded that this document was its architectural predecessor rather than its replacement. Phase 12 built the T1, T2, T6 and T7 mitigations, so those rows now describe enforcement that exists and can be pointed at. Nothing in §1 to §3 was rewritten to match what was built — the threats are the same threats, and a threat model edited to agree with an implementation stops being a check on it. §5 is where the change is: two residual risks close, one narrows, and one is added that the implementation itself revealed.
 
 ## 1. Assets, by sensitivity class
 
@@ -164,12 +166,29 @@ Rated by consequence, not by likelihood, because likelihood is unknowable before
 
 | # | Risk | Status |
 |---|---|---|
-| SR-1 | Injection resistance is unverified — the adversarial corpus `REQ-N-SEC-3` requires does not exist. | Open. Corpus construction must precede any claim of resistance. |
-| SR-2 | Evaluator isolation mechanism not yet selected; only the boundary property is fixed. | Open, constrained by ADR-006 rule 4. |
+| SR-1 | Injection resistance is unverified — the adversarial corpus `REQ-N-SEC-3` requires does not exist. | **Narrowed, not closed.** Phase 8 built the corpus and the structural defence holds against it: for any content, the prompt outside the fence is byte-identical, and the verdict path is deterministic so a distorted score cannot by itself produce a passing gate. What remains open is that resistance is demonstrated against a corpus this project wrote, which is not the same as resistance to an adversary who has read it. |
+| SR-2 | Evaluator isolation mechanism not yet selected; only the boundary property is fixed. | **Open, and now half-built.** Phase 12 delivers the deny-by-default grant, the refusal before the plugin runs, the tenant scoping, and the invocation record (ADR-006 rules 1, 3, 5, 6). Rule 4 — enforcement outside the evaluator's process — is **not** delivered and is Phase 14's. A granted evaluator is permitted, not contained. |
 | SR-3 | Retention of a content hash after erasure is unresolved and may itself be regulated. | Open; requires legal input, see [ADR-011](../adr/ADR-011-artifact-retention.md). |
-| SR-4 | Threat model is pre-implementation. Canonical §16 and `REQ-N-SEC-8` require a formal threat model before production hardening; this is its architectural predecessor, not its replacement. | Open by design. |
-| SR-5 | No dependency inventory exists yet, so `REQ-N-SEC-7` scanning has nothing to scan. | Deferred to first implementation milestone. |
+| SR-4 | Threat model is pre-implementation. | **Closed.** Revised in Phase 12 against a built T1, T2, T6 and T7. It remains pre-*production*, which is a different claim and is what SR-8 now carries. |
+| SR-5 | No dependency inventory exists yet, so `REQ-N-SEC-7` scanning has nothing to scan. | **Closed.** `docs/evidence/phase-12/dependency_scan.py` queries OSV for every declared dependency at its installed version, fails on any advisory, and fails when it cannot reach the source rather than reporting a clean result it did not obtain. Its first execution found eight advisories against the setuptools the build was actually using. |
+| SR-6 | Erasure is verified against the platform's own records and not against the object store, which has no adapter (D-3). | **Open.** An erasure reports `completed` on evidence it can observe. Confirmation that the bytes are gone arrives with the adapter, in Phase 14. |
+| SR-7 | Authentication failures are counted and not audited, so a sustained credential-guessing campaign leaves no per-attempt trail. | **Open, and deliberate.** Auditing them would let an unauthenticated caller grow the one store `REQ-N-COMP-3` forbids anyone to prune. The counter is the intended signal; wiring it to platform metrics is Phase 13's. |
+| SR-8 | The threat model is pre-production. Canonical §16 and `REQ-N-SEC-8` place a formal threat model before production hardening; this is now post-implementation and still pre-deployment. | Open by design until Phase 14 fixes the deployment topology. |
 
-## 6. Out of scope for Phase 2
+## 6. What Phase 12 built, by threat
 
-Deployment-time controls — network segmentation, secret-manager selection, key rotation mechanics, WAF, DDoS protection — are Phase 12 and Phase 14 `[CANON §23]`. They are named here so their absence is visibly deliberate.
+Named so that a reviewer can tell an enforced mitigation from an intended one.
+
+| Threat | Now enforced | Still intended |
+|---|---|---|
+| T1 authn/authz bypass | Credential verified against a stored derivation; tenant proven by where the key resolves; 35 permissions; every route refuses to start without one; refusals audited | — |
+| T2 resource abuse | Per-tenant token bucket that fails closed; per-tenant evaluation quota charged once per run, at the API and at the scheduler | Burst shaping, currency-denominated spend ceilings (ADR-021 deferred) |
+| T3 cross-tenant leakage | Unchanged, and now reachable only by a verified principal. D-1 closed: a comparison cannot cite another tenant's evaluator version | — |
+| T4 untrusted code | Deny-by-default capability grant, refusal before execution, invocation recorded | Out-of-process isolation (SR-2) |
+| T5 prompt injection | Unchanged, plus credential redaction on the path into a judge | Adversarial breadth (SR-1) |
+| T6 credential exposure | Redaction at the judge prompt and at the rendered report; transport security refused at startup outside a local environment | At-rest encryption, a deployment property (Phase 14) |
+| T7 audit integrity | Justification and target digest written; append-only enforced by grant; cursor paging that cannot skip an event | Independent retention *enforcement* — the floor is stored and constrained, and nothing yet expires anything |
+
+## 7. Out of scope, still
+
+Deployment-time controls — network segmentation, secret-manager selection, key rotation mechanics, WAF, DDoS protection — are Phase 14 `[CANON §23]`. Phase 12 was the other half of this line and has been taken; what remains is named here so its absence stays visibly deliberate.

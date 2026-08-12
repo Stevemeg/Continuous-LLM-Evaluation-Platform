@@ -22,6 +22,21 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 
 from clep.evaluators.sdk import (EvaluatorRegistry, SampleContext, run_evaluator)
+from clep.security.grants import grant_for
+
+
+def _invocation_outcome(result) -> str:
+    """The evaluator's six resolutions, narrowed to the four a governance
+    reader asks about: did it score, did it decline, was it unable, or was it
+    refused permission before it ran."""
+    if result.resolution == "scored":
+        return "scored"
+    if result.resolution == "abstained":
+        return "abstained"
+    if result.resolution == "unavailable" and "was not granted" in \
+            (result.unavailable_reason or ""):
+        return "refused"
+    return "unavailable"
 from clep.judges.panel import PanelOutcome
 from clep.orchestration.repository import RunRepository, sample_key
 from clep.providers.gateway import (CandidateInvocation, ProviderGateway)
@@ -86,7 +101,13 @@ class RunExecutor:
                  registry: EvaluatorRegistry, *, evaluator_ids: dict[str, str] | None = None,
                  is_cancelled=None, evaluator_timeout_ms: int | None = None,
                  analysis_repository=None, judge_panel=None,
-                 judge_timeout_ms: int | None = None):
+                 judge_timeout_ms: int | None = None,
+                 evaluator_capabilities=()):
+        #: What a deployment has granted custom evaluators (ADR-006 rule 3).
+        #: Empty by default and empty everywhere in this repository: every
+        #: built-in reaches for nothing, so deny-by-default costs them nothing
+        #: and a widening is a deliberate act with a name attached.
+        self._evaluator_capabilities = tuple(evaluator_capabilities)
         self._repo = repository
         self._gateway = gateway
         self._registry = registry
@@ -239,9 +260,17 @@ class RunExecutor:
             expected_tools=example.expected_tools)
 
     def _evaluate(self, sample: SampleContext):
-        """Run every registered evaluator once, and return what each said."""
+        """Run every registered evaluator once, under an explicit grant.
+
+        The grant is deny-by-default and scoped to this tenant (ADR-006 rules 3
+        and 5). Nothing here widens it: an evaluator that declares a capability
+        is refused before it runs unless a deployment granted it deliberately.
+        """
+        grant = grant_for(self._repo.organization_id,
+                          self._evaluator_capabilities)
         return [(key, run_evaluator(self._registry.get(key), sample,
-                                    timeout_ms=self._evaluator_timeout_ms))
+                                    timeout_ms=self._evaluator_timeout_ms,
+                                    grant=grant))
                 for key in self._registry.keys()]
 
     def _score_from(self, results):
@@ -258,6 +287,8 @@ class RunExecutor:
         return "scored", sum(scores) / Decimal(len(scores)), None
 
     def _record_evaluators(self, sample_id, results, outcome):
+        grant = grant_for(self._repo.organization_id,
+                          self._evaluator_capabilities)
         for key, result in results:
             evaluator_version_id = self._evaluator_ids.get(key)
             if evaluator_version_id is None:
@@ -267,6 +298,16 @@ class RunExecutor:
                 resolution=result.resolution, score=result.score,
                 unavailable_reason=result.unavailable_reason,
                 duration_ms=result.duration_ms)
+            # The governance record (ADR-006 rule 6): which version ran, inside
+            # which boundary, and how it ended. `outcome` here is the
+            # invocation's fate, which is narrower than the evaluator's six
+            # resolutions — a governance reader is asking whether the code was
+            # allowed to run and whether it produced anything, not what it said.
+            self._repo.record_evaluator_invocation(
+                sample_id=sample_id, evaluator_version_id=evaluator_version_id,
+                granted_permissions=grant.recorded,
+                outcome=_invocation_outcome(result),
+                correlation_id=f"{sample_id}:{key}")
             outcome.evaluator_outcomes += 1
 
     def _judge(self, sample_id, example, candidate_outcome, tier, outcome):
