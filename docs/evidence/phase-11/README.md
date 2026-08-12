@@ -12,6 +12,7 @@ Milestones: M11.1 through M11.9
 | `ci_execution.py` | Installs the package from a clean checkout into an isolated environment and runs `clep` |
 | `ci-execution-output.txt` / `.json` | Verbatim output of that run |
 | `validation-output.txt` | Verbatim output of the validator |
+| `finalization-output.txt` | The same gate, re-run against the accepted tree |
 | `selftest-output.txt` | Verbatim output of the self-test |
 | `test-output.txt` | Verbatim output of the test suite with coverage |
 
@@ -226,13 +227,22 @@ SUMMARY: {"PASS": 32}
 OBSERVED_EXIT=0
 ```
 
-`finalization-output.txt` is the same gate re-run after this evidence was
+`finalization-output.txt` is the same gate re-run after that evidence was
 committed. Recording evidence changes the tree, and a gate result that predates
 the tree it describes is a result about something else — so the finalization run
-is the one that describes the accepted tree. The only figures that move between
-them are the derived counts of files and refs; every figure that carries meaning
-— undisclosed secrets, attribution matches, and all three canonical-document
-reachability counts — is zero in both.
+is the one that describes the accepted tree.
+
+Two lines differ between them, and both of them are that evidence file:
+
+```
+-[PASS] P-20  working tree: 290 files (2 binary skipped), 0 match(es); ...
++[PASS] P-20  working tree: 291 files (2 binary skipped), 0 match(es); ...
+-[PASS] P-24  282 tracked file(s); stray: 0; clean tree: True
++[PASS] P-24  283 tracked file(s); stray: 0; clean tree: True
+```
+
+Every figure that carries meaning — undisclosed secrets, attribution matches,
+and all three canonical-document reachability counts — is zero in both.
 
 ## Deliberately unresolved
 
