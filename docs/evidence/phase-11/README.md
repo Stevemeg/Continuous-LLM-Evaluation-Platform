@@ -8,7 +8,7 @@ Milestones: M11.1 through M11.9
 | File | What it is |
 |---|---|
 | `check_phase11.py` | Phase validator, 30 checks. `python docs/evidence/phase-11/check_phase11.py .` |
-| `selftest_phase11.py` | Plants 40 violations, proves each is caught, and verifies nothing survives |
+| `selftest_phase11.py` | Plants 41 violations, proves each is caught, and verifies nothing survives |
 | `ci_execution.py` | Installs the package from a clean checkout into an isolated environment and runs `clep` |
 | `ci-execution-output.txt` / `.json` | Verbatim output of that run |
 | `validation-output.txt` | Verbatim output of the validator |
@@ -37,6 +37,7 @@ The trigger is `arq`'s own cron, registered on the worker ADR-001 selected.
       -> the worker executes it through RunExecutor
       -> evaluators run; samples, costs and model latency are persisted
       -> the gate is evaluated against the approved baseline
+      -> the alert rules are evaluated, because nobody is watching this run
       -> a release observation records what the platform RECOMMENDS
       -> all of it readable back out of the store
 
@@ -191,7 +192,7 @@ four phases.
 
 ## What the self-test proves
 
-40 planted violations, 40 caught. It is stricter than Phase 10's in two ways.
+41 planted violations, 41 caught. It is stricter than Phase 10's in two ways.
 Restoration removes untracked files as well as reverting modifications — a plant
 that created a file would otherwise have survived, which is how the earlier leak
 happened. And the restoration is verified rather than assumed: after every case
@@ -202,8 +203,8 @@ the tree is compared with `HEAD`, and the run fails if anything survived.
 | | |
 |---|---|
 | Validator | **30 checks, all PASS**, exit 0 |
-| Self-test | **40 planted violations, 40 caught**; restoration verified |
-| Tests | **784 passed**, coverage **93.08%** against an 85% gate |
+| Self-test | **41 planted violations, 41 caught**; restoration verified |
+| Tests | **785 passed**, coverage **93.08%** against an 85% gate |
 | Schema | 72 tables, 71 tenant-scoped with ENABLE and FORCE |
 | Contract | 53 operations, 137 schemas |
 | Regression | Phase 10 gate at its own history in an isolated clone, which transitively re-runs the Spike Sprint and Phases 4 to 9; plus the Phase 1 milestone validators 11/14/18 |

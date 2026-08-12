@@ -530,6 +530,15 @@ try:
         trigger_defects.append(
             "the scheduled-execution test does not start a real worker with "
             "the real cron factory")
+    # A scheduled run is the case alerting exists for, because nobody is
+    # watching it. Wiring, asserted here; the behaviour is asserted by the
+    # integration test the suite runs.
+    scheduled = _inspect.getsource(_scheduler.execute_scheduled_run)
+    if "evaluate_alerts" not in scheduled:
+        trigger_defects.append(
+            "a scheduled run does not evaluate the alert rules; alerting that "
+            "only runs when someone asks fires when a person was already "
+            "looking, which is when it is least needed")
 except Exception as e:
     trigger_defects.append(f"{type(e).__name__}: {e}")
 add("P-27a", "PASS" if not trigger_defects else "FAIL",

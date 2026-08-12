@@ -394,6 +394,52 @@ async def test_a_cron_trigger_produces_a_run_a_gate_decision_and_an_observation(
     assert schedule.last_run_id == observation.run_id
 
 
+async def test_a_scheduled_run_evaluates_the_alert_rules_nobody_was_watching(
+        migrated_database, seeded, dataset_on_disk):
+    """A scheduled run is the case alerting exists for. The rule below cannot
+    be satisfied by any score, so what is being tested is that the rules were
+    evaluated at all — by the worker, without anyone asking."""
+    from clep.analytics.alerts import AlertRepository
+    dsn = migrated_database
+    organization = seeded["organization"]
+    metric = _metric_slug(dsn, seeded)
+    with tenant_session(dsn, organization) as conn:
+        AlertRepository(conn, organization).create_rule(
+            project_id=seeded["project"], slug="floor", display_name="Floor",
+            dimension="quality", metric_key=metric,
+            direction="higher_is_better", threshold=Decimal("2"),
+            minimum_sample_size=1, created_by="tester")
+        ScheduleRepository(conn, organization).create_schedule(
+            project_id=seeded["project"],
+            suite_version_id=seeded["suite_version"], cadence="* * * * *",
+            budget_limit=Decimal("5"), budget_currency="USD",
+            created_by="tester",
+            candidates=[{"label": "candidate",
+                         "modelConfigurationId": seeded["model_configuration"]}])
+
+    def an_alert_fired(conn):
+        return AlertRepository(conn, organization).events_for_project(
+            seeded["project"])
+
+    events = await run_worker_until(
+        dsn, organization, an_alert_fired,
+        queue_name=f"arq:test:{uuid.uuid4().hex[:12]}",
+        context=worker_context(dsn, seeded))
+    assert len(events) == 1
+    assert events[0].sample_size == 3
+    assert events[0].evidence_completeness == "complete"
+    assert events[0].threshold == Decimal("2.000000000")
+
+
+def _metric_slug(dsn, seeded) -> str:
+    with tenant_session(dsn, seeded["organization"]) as conn:
+        return conn.execute(
+            "SELECT d.slug FROM clep.evaluator_version v "
+            "JOIN clep.evaluator_definition d ON d.id = v.evaluator_definition_id "
+            "WHERE v.id = %s",
+            (ulid_to_uuid(seeded["evaluator_version"]),)).fetchone()[0]
+
+
 async def test_a_schedule_whose_cadence_does_not_match_produces_nothing(
         migrated_database, seeded, dataset_on_disk):
     """The negative half. The same worker, the same cron, a cadence that fires

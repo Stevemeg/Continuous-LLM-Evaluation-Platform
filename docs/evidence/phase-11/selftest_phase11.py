@@ -129,6 +129,11 @@ case("P-27a", "the end-to-end test drives the sweep itself",
 case("P-27a", "the end-to-end test stops starting a worker at all",
      lambda: plant(E2E_TEST, "    worker = Worker(", "    worker = _Worker("))
 
+case("P-27a", "a scheduled run stops evaluating the alert rules",
+     lambda: plant(SCHEDULER,
+                   "        outcomes = evaluate_alerts(conn, organization_id,",
+                   "        outcomes = _skipped(conn, organization_id,"))
+
 # --------------------------------------------- P-27b the trigger's identity
 case("P-27b", "a trigger key varies within its own minute",
      lambda: plant(SCHEDULES, "%Y-%m-%dT%H:%MZ", "%Y-%m-%dT%H:%M:%SZ"))

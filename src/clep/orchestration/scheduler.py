@@ -34,6 +34,10 @@ evaluates something before it ships; only `post_deployment` and `canary` describ
 a system that is already live, and only those record an observation. What the
 observation recommends comes from `releases.BY_OUTCOME`, and the platform acts on
 none of it (`REQ-F-10-3`).
+
+Alert rules are evaluated after every scheduled run, because a scheduled run is
+the case alerting exists for: nobody is watching it. Evaluating them only when
+someone asks would mean an alert fires when a person was already looking.
 """
 from __future__ import annotations
 
@@ -232,6 +236,7 @@ async def execute_scheduled_run(ctx, organization_id: str, schedule_id: str,
     first about what a run is, and the disagreement would surface as two runs
     that measured the same thing differently.
     """
+    from clep.analytics.alerts import evaluate_run as evaluate_alerts
     from clep.api.gate_service import GateService
     from clep.orchestration.worker import execute_run
 
@@ -267,6 +272,17 @@ async def execute_scheduled_run(ctx, organization_id: str, schedule_id: str,
             baseline_id=schedule.baseline_id, actor_id="scheduler")
     result["gateDecisionId"] = decision["id"] if decision else None
     result["evaluatedOutcome"] = decision["evaluatedOutcome"] if decision else None
+
+    # A scheduled run is the case alerting exists for: nobody is watching it.
+    # Leaving the rules to be evaluated only when someone asks would mean an
+    # alert fires when a person was already looking, which is when it is least
+    # needed.
+    with tenant_session(dsn, organization_id) as conn:
+        outcomes = evaluate_alerts(conn, organization_id,
+                                   project_id=schedule.project_id,
+                                   run_id=run_id)
+    result["alertsFired"] = [o.slug for o in outcomes if o.fired]
+    result["alertsEvaluated"] = len(outcomes)
 
     if schedule.observes_a_release:
         result["releaseObservationId"] = _observe(

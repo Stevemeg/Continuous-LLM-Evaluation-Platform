@@ -8,7 +8,7 @@
 ........................................................................ [ 73%]
 ........................................................................ [ 82%]
 ........................................................................ [ 91%]
-................................................................         [100%]
+.................................................................        [100%]
 =============================== tests coverage ================================
 _______________ coverage: platform win32, python 3.11.0-final-0 _______________
 
@@ -69,7 +69,7 @@ src\clep\orchestration\examples.py           52      4     14      2    91%   10
 src\clep\orchestration\releases.py           53      5      6      3    86%   91, 96, 99, 122-125
 src\clep\orchestration\repository.py         94      1     10      1    98%   164
 src\clep\orchestration\runner.py            145      2     38      4    97%   209, 217->166, 257, 299->exit
-src\clep\orchestration\scheduler.py         136      6     32      5    93%   163, 171, 245, 249, 280-281
+src\clep\orchestration\scheduler.py         141      6     32      5    94%   167, 175, 250, 254, 296-297
 src\clep\orchestration\schedules.py         135      6     34      4    94%   79, 93, 130, 206, 278-282
 src\clep\orchestration\worker.py             42      2      0      0    95%   35, 123
 src\clep\providers\__init__.py                0      0      0      0   100%
@@ -89,6 +89,6 @@ src\clep\regression\report.py                52      5     26      4    88%   98
 src\clep\regression\repository.py           151      6     26      6    93%   120, 143, 213, 235, 237, 254
 src\clep\regression\statistics.py           100      0     26      0   100%
 -------------------------------------------------------------------------------------
-TOTAL                                      5088    232   1212    188    93%
+TOTAL                                      5093    232   1212    188    93%
 Required test coverage of 85.0% reached. Total coverage: 93.08%
-784 passed in 320.30s (0:05:20)
+785 passed in 349.50s (0:05:49)
