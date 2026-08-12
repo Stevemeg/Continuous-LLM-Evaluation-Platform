@@ -253,16 +253,13 @@ case("P-38", "a provider key stops being a shape worth removing",
      lambda: plant(PRIVACY, '    (re.compile(r"sk-[A-Za-z0-9]{16,}"), "provider key"),', ""))
 
 case("P-38", "a provider credential becomes reportable",
-     lambda: plant(PRIVACY, '    DataClass("DS-7", "provider credential", judge=False, report=False,\n'
-                            '              log=False),',
-                   '    DataClass("DS-7", "provider credential", judge=True, report=True,\n'
-                   '              log=True),'))
+     lambda: plant(PRIVACY, 'DataClass("DS-7", "provider credential", judge=False, report=False,',
+                   'DataClass("DS-7", "provider credential", judge=True, report=True,'))
 
 case("P-38", "evaluated content becomes loggable",
-     lambda: plant(PRIVACY, '    DataClass("DS-3", "retrieved context", judge=True, report=True,\n'
-                            '              log=False),',
-                   '    DataClass("DS-3", "retrieved context", judge=True, report=True,\n'
-                   '              log=True),'))
+     lambda: plant(PRIVACY,
+                   'DataClass("DS-3", "retrieved context", judge=True, report=True, log=False),',
+                   'DataClass("DS-3", "retrieved context", judge=True, report=True, log=True),'))
 
 case("P-38", "withheld content starts reproducing what it withheld",
      lambda: plant(PRIVACY, '        return f"[withheld: {declared.code} {declared.label}]"',

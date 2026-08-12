@@ -459,16 +459,44 @@ try:
                 f"a malformed credential parsed: {malformed[:24]!r}")
         except _creds.CredentialError:
             pass
-    # And a wrong work factor must not silently produce a passing comparison.
-    if _creds.verify(minted.secret, minted.salt, minted.verifier, iterations=1):
+    # A weak work factor is refused at the point of derivation, not merely
+    # rejected downstream. The self-test caught this the first time: removing
+    # the guard changed no verification result, because deriving at the wrong
+    # factor produces a digest that fails to match anyway. What the guard
+    # actually prevents is a verifier being *created* weak.
+    try:
+        _creds.derive("secret", b"0" * 16, iterations=1000)
         credential_defects.append(
-            "verification succeeded at a work factor the key was not derived at")
+            "a verifier can be derived at 1000 iterations; the floor is 100000 "
+            "and below it a verifier is a plain hash with extra steps")
+    except _creds.CredentialError:
+        pass
+
+    # Static, and stated as such. Constant-time comparison is not behaviourally
+    # observable: `==` and `compare_digest` return the same answers, and the
+    # difference is a timing channel a test on this machine cannot measure
+    # reliably. So this reads the function — through `inspect`, so it reads the
+    # code that is actually bound rather than a regular expression's guess at
+    # where the function ends.
+    import inspect as _inspect
+    verify_source = _inspect.getsource(_creds.verify)
+    if "compare_digest" not in verify_source:
+        credential_defects.append(
+            "verification does not use hmac.compare_digest; `==` returns as "
+            "soon as two bytes differ, which reveals the stored verifier one "
+            "byte at a time")
+    if re.search(r"==\s*bytes\(verifier\)|verifier\s*==", verify_source):
+        credential_defects.append(
+            "verification compares the verifier with `==` somewhere in its "
+            "body; a constant-time comparison after a short-circuiting one is "
+            "a short-circuiting comparison")
 except Exception as e:
     credential_defects.append(f"{type(e).__name__}: {e}")
 add("P-31", "PASS" if not credential_defects else "FAIL",
     f"ADR-019 exercised: a minted secret verifies, a different one does not, the "
-    f"secret is absent from every rendering, and five malformed forms are refused "
-    f"before any lookup; defects: {len(credential_defects)}", credential_defects)
+    f"secret is absent from every rendering, five malformed forms are refused "
+    f"before any lookup, and a weak derivation is refused where it is created; "
+    f"defects: {len(credential_defects)}", credential_defects)
 
 # ========== P-32 every route is guarded, and the guard is the contract's
 route_defects = []
@@ -509,6 +537,40 @@ try:
             "every request as whoever the caller claimed to be")
     except ValueError:
         pass
+
+    # The other half of ADR-020 rule 6, exercised rather than assumed: an
+    # operation that declares no permission must stop the application from
+    # starting. It cannot be observed while every operation declares one, so the
+    # contract is mutated in memory for the length of this probe and restored.
+    # The self-test caught the omission — the branch was unreachable, so a plant
+    # that defaulted the permission changed nothing observable.
+    # The accessor is replaced rather than the document. Two earlier attempts
+    # mutated the loaded spec, and both were defeated by the loader's own cache:
+    # it is `lru_cache(maxsize=1)`, so `create_app` asking for the title evicts
+    # whatever this probe had edited and the next lookup re-reads the file. The
+    # guard calls `contract.operation_for`, so replacing that function asks the
+    # question directly — when the contract declares no permission for an
+    # operation, does the application refuse to start — and no cache is involved.
+    original = _contract.operation_for
+
+    def _without_permission(method, path, root=None):
+        operation = dict(original(method, path, root))
+        if (method, path) == ("GET", "/api-keys"):
+            operation.pop("x-permission", None)
+        return operation
+
+    _contract.operation_for = _without_permission
+    try:
+        _create_app(_Any(), _Any(), _Any(), _Any(), _Any(), _Any(),
+                    authenticator=lambda token: None, security_service=_Any())
+        route_defects.append(
+            "an application started with an operation that declares no "
+            "permission; a route with none is a surface nobody attached a rule "
+            "to, which is the failure ADR-020 rule 6 exists to make impossible")
+    except _contract.ContractError:
+        pass
+    finally:
+        _contract.operation_for = original
 except Exception as e:
     route_defects.append(f"{type(e).__name__}: {e}")
 add("P-32", "PASS" if not route_defects else "FAIL",
@@ -571,27 +633,46 @@ try:
     for column in ("justification", "target_content_digest"):
         if not re.search(rf"^\s+{column}\s", body, re.M):
             audit_defects.append(f"audit_event has no {column} column")
-    writer = (ROOT / "src/clep/api/audit.py").read_text(encoding="utf-8")
-    for column in ("justification", "target_content_digest"):
-        if column not in writer:
-            audit_defects.append(
-                f"the audit writer never sets {column}; a column written by "
-                f"nothing is a column that answers no question")
-    # The paging property, exercised over identifiers that share a millisecond —
-    # the case that actually failed, and the reason the cursor compares a pair.
-    from clep.identity import new_ulid as _new_ulid
-    same_ms = [_new_ulid() for _ in range(50)]
-    if sorted(same_ms) == same_ms:
-        # Not a defect in itself; it means the check below proves nothing, so it
-        # is reported rather than passed over.
+    # The writer, exercised. The first version of this searched the source for
+    # the column names, which the self-test defeated in one line: a plant that
+    # passed `None` for both values left every name in place. So the writer is
+    # called against a connection that records what it was handed.
+    from clep.api import audit as _audit
+
+    class _Recording:
+        def __init__(self):
+            self.params = None
+
+        def execute(self, statement, params=None):
+            self.params = params
+            return self
+
+    recorder = _Recording()
+    _audit.record(recorder, "00000000-0000-0000-0000-000000000000", "actor",
+                  "baseline.approved", "baseline",
+                  "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                  justification="release sign-off",
+                  target_content_digest="sha256:" + "a" * 64)
+    written = [str(p) for p in (recorder.params or ())]
+    if "release sign-off" not in written:
         audit_defects.append(
-            "identifiers minted together happened to sort; this check cannot "
-            "demonstrate the property it exists for")
+            "the audit writer discards the justification; REQ-F-12-4 asks for "
+            "the reason wherever an action requires one")
+    if ("sha256:" + "a" * 64) not in written:
+        audit_defects.append(
+            "the audit writer discards the version acted on; without it an "
+            "auditor can ask which thing and not which version of it")
+
+    # The paging property. Read as the exact comparison rather than as a
+    # substring: the self-test defeated the loose form, because the subselect
+    # that resolves the cursor also contains `occurred_at, id`.
     service = (ROOT / "src/clep/api/security_service.py").read_text("utf-8")
-    if "(occurred_at, id)" not in service:
+    if not re.search(r"OR \(occurred_at, id\) <", service):
         audit_defects.append(
             "the audit cursor does not compare occurred_at and id together; a "
-            "page boundary inside one transaction would drop events")
+            "page boundary inside one transaction would drop events, because "
+            "every event a transaction writes shares a timestamp and ULIDs are "
+            "random below the millisecond")
 except Exception as e:
     audit_defects.append(f"{type(e).__name__}: {e}")
 add("P-34", "PASS" if not audit_defects else "FAIL",
@@ -610,20 +691,33 @@ try:
             "the erasure states are not written in the order the schema fixes; "
             "destroying before demoting leaves a window in which a run claims "
             "reproducibility whose content is already gone")
-    if "artifact_class <> 'gate_evidence'" not in erasure_src:
+    # Counted, not searched for. Gate evidence is excluded at three statements —
+    # the target count, the destruction, and the verification — and the
+    # self-test showed that removing one of them left the other two matching a
+    # substring check that then reported the property intact.
+    spared = erasure_src.count("artifact_class <> 'gate_evidence'")
+    if spared < 3:
         erasure_defects.append(
-            "erasure does not exclude gate evidence, which REQ-N-COMP-1 makes "
-            "permanent and the schema makes free of erasable content")
+            f"gate evidence is excluded at {spared} of the three statements "
+            f"that touch artifacts; REQ-N-COMP-1 makes it permanent and one "
+            f"unguarded statement destroys it")
     if "reproducibility = 'auditable'" not in erasure_src:
         erasure_defects.append("erasure does not demote the runs it affects")
-    # Completion is refused without verification, by the store.
-    if not re.search(r"ck_erasure_request__verified_on_completion", sql):
+    # Completion is refused without verification, by the store. Word-bounded:
+    # a constraint renamed to `..._removed` still contains the name a substring
+    # search looks for, and the store would no longer enforce anything.
+    if not re.search(r"CONSTRAINT ck_erasure_request__verified_on_completion\b",
+                     sql):
         erasure_defects.append(
             "the store no longer requires verification before completion")
-    # And the count is obtained by looking, not by trusting the update.
-    if "payload_ref IS NOT NULL" not in erasure_src:
+    # And the count is obtained by looking, not by trusting the update: both
+    # surviving-object queries ask what still has a payload.
+    survived = erasure_src.count("payload_ref IS NOT NULL")
+    if survived < 2:
         erasure_defects.append(
-            "the verification counts what was updated rather than what survives")
+            f"{survived} of the two verification queries count what survives; "
+            f"the rest count what was updated, which is the number the update "
+            f"reported about itself")
 except Exception as e:
     erasure_defects.append(f"{type(e).__name__}: {e}")
 add("P-35", "PASS" if not erasure_defects else "FAIL",
@@ -672,8 +766,7 @@ try:
 
     memory = _Memory()
     limits = RateLimiter(memory, lambda org: 2, clock=_Clock())
-    if [limits.check("a").allowed for _ in range(3)] != [True, True, False]:
-        limiter_defects.append("the bucket did not empty at its capacity")
+    limits.check("a")
     if not limits.check("b").allowed:
         limiter_defects.append(
             "exhausting one tenant refused another; REQ-N-SCALE-2 forbids "
@@ -681,15 +774,49 @@ try:
     if len(memory.keys) != 2:
         limiter_defects.append(
             f"two tenants shared {len(memory.keys)} bucket(s)")
-    if not limits.check("a").detail:
+
+    # The bucket arithmetic lives in a Lua script Redis executes, so a fake
+    # broker cannot exercise it — the self-test proved that by mutating the
+    # script and watching this check pass. It is driven against the real broker
+    # instead, at an injected instant, and an unreachable broker is a defect
+    # rather than a skip: this validator already requires the same services P-1
+    # does, and a check that quietly passes when it could not run is the failure
+    # mode the whole phase is about.
+    clock = _Clock()
+    try:
+        import redis as _redis
+        client = _redis.Redis.from_url(
+            os.environ.get("CLEP_REDIS_URL", "redis://localhost:6399"),
+            socket_connect_timeout=3)
+        prefix = f"clep:ratelimit:gate:{os.getpid()}"
+        for key in client.scan_iter(f"{prefix}*"):
+            client.delete(key)
+        real = RateLimiter(client, lambda org: 3, clock=clock, prefix=prefix)
+        if [real.check("t").allowed for _ in range(4)] != [True, True, True, False]:
+            limiter_defects.append(
+                "the bucket did not empty at its capacity of three")
+        clock.now += 20.0          # a third of a minute buys one token of three
+        if not real.check("t").allowed:
+            limiter_defects.append("the bucket did not refill with time")
+        if real.check("t").allowed:
+            limiter_defects.append("the bucket refilled by more than it earned")
+        refusal = real.check("t")
+        if "second(s)" not in refusal.detail:
+            limiter_defects.append(
+                "a refusal says nothing about when the caller may try again")
+        for key in client.scan_iter(f"{prefix}*"):
+            client.delete(key)
+    except Exception as e:  # noqa: BLE001 - unreachable is a defect, not a skip
         limiter_defects.append(
-            "a refusal says nothing about when the caller may try again")
+            f"the bucket arithmetic could not be exercised against a real "
+            f"broker: {type(e).__name__}: {e}")
 except Exception as e:
     limiter_defects.append(f"{type(e).__name__}: {e}")
 add("P-36", "PASS" if not limiter_defects else "FAIL",
-    f"ADR-021 exercised: the limiter fails closed with no broker, empties at its "
-    f"capacity, and keys one bucket per tenant; defects: {len(limiter_defects)}",
-    limiter_defects)
+    f"ADR-021 exercised: the limiter fails closed with no broker, keys one "
+    f"bucket per tenant, and — against the real broker at an injected instant — "
+    f"empties at its capacity and refills by what time buys and no more; "
+    f"defects: {len(limiter_defects)}", limiter_defects)
 
 # ========== P-37 an evaluator that asks for something is not run without it
 grant_defects = []
