@@ -47,6 +47,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from clep.agents.planner import PlanInputs, draft_plan, validate
+from clep.analytics.alerts import evaluate_run as evaluate_alerts
 from clep.db.session import known_organizations, tenant_session
 from clep.experiments.capture import build_run_identity
 from clep.experiments.repository import IdentityRepository
@@ -236,7 +237,11 @@ async def execute_scheduled_run(ctx, organization_id: str, schedule_id: str,
     first about what a run is, and the disagreement would surface as two runs
     that measured the same thing differently.
     """
-    from clep.analytics.alerts import evaluate_run as evaluate_alerts
+    # Imported here rather than at module scope only where the alternative is a
+    # cycle: the worker imports this module, and the gate service reaches the
+    # regression engine through it. `evaluate_alerts` has no such problem and is
+    # imported above, which also makes the call visible to a reader — and to a
+    # check — as a global rather than as a local the function creates.
     from clep.api.gate_service import GateService
     from clep.orchestration.worker import execute_run
 

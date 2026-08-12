@@ -8,7 +8,7 @@ Milestones: M11.1 through M11.9
 | File | What it is |
 |---|---|
 | `check_phase11.py` | Phase validator, 30 checks. `python docs/evidence/phase-11/check_phase11.py .` |
-| `selftest_phase11.py` | Plants 41 violations, proves each is caught, and verifies nothing survives |
+| `selftest_phase11.py` | Plants 42 violations, proves each is caught, and verifies nothing survives |
 | `ci_execution.py` | Installs the package from a clean checkout into an isolated environment and runs `clep` |
 | `ci-execution-output.txt` / `.json` | Verbatim output of that run |
 | `validation-output.txt` | Verbatim output of the validator |
@@ -182,17 +182,20 @@ load.** It passed alone and failed in the full suite: the run loop is synchronou
 executes. The failure only appeared behind ninety seconds of other integration
 tests, which is the worst way for a test to be flaky.
 
-**Four self-test plants were not caught by the first version of the validator**,
-and all four were substring matching: a constraint renamed to
+**Five self-test plants were not caught by the first version of the validator**,
+and all five were substring matching: a constraint renamed to
 `uq_alert_event__rule_run_removed` still contains the name a substring search
 looks for; `_Worker(` contains `Worker(`; a module can hold the name `draft_plan`
-bound to `None`. Three of the four are now word-bounded or identity checks. That
-is the **fifth, sixth, seventh and eighth** check lost to string matching across
-four phases.
+bound to `None`; and a search for `evaluate_alerts` in a function's source is
+satisfied by the import statement whether or not anything calls it. They are now
+word-bounded, identity, or bytecode checks — the last reads `co_names`, which
+holds the globals a function actually loads. That is the **fifth through ninth**
+check lost to string matching across four phases, and the reason the Phase 11
+checks are behavioural wherever a property can be exercised.
 
 ## What the self-test proves
 
-41 planted violations, 41 caught. It is stricter than Phase 10's in two ways.
+42 planted violations, 42 caught. It is stricter than Phase 10's in two ways.
 Restoration removes untracked files as well as reverting modifications — a plant
 that created a file would otherwise have survived, which is how the earlier leak
 happened. And the restoration is verified rather than assumed: after every case
@@ -203,7 +206,7 @@ the tree is compared with `HEAD`, and the run fails if anything survived.
 | | |
 |---|---|
 | Validator | **30 checks, all PASS**, exit 0 |
-| Self-test | **41 planted violations, 41 caught**; restoration verified |
+| Self-test | **42 planted violations, 42 caught**; restoration verified |
 | Tests | **785 passed**, coverage **93.08%** against an 85% gate |
 | Schema | 72 tables, 71 tenant-scoped with ENABLE and FORCE |
 | Contract | 53 operations, 137 schemas |

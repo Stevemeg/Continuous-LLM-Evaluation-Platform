@@ -531,14 +531,23 @@ try:
             "the scheduled-execution test does not start a real worker with "
             "the real cron factory")
     # A scheduled run is the case alerting exists for, because nobody is
-    # watching it. Wiring, asserted here; the behaviour is asserted by the
-    # integration test the suite runs.
-    scheduled = _inspect.getsource(_scheduler.execute_scheduled_run)
-    if "evaluate_alerts" not in scheduled:
+    # watching it.
+    #
+    # Read from the compiled function rather than from its text. The first
+    # version of this searched the source for `evaluate_alerts` and was fooled
+    # by the import statement, which mentions the name whether or not anything
+    # calls it — the ninth check in this project lost to string matching.
+    # `co_names` holds the globals a function actually loads, so replacing the
+    # call removes it and renaming the import cannot put it back.
+    if "evaluate_alerts" not in _scheduler.execute_scheduled_run.__code__.co_names:
         trigger_defects.append(
             "a scheduled run does not evaluate the alert rules; alerting that "
             "only runs when someone asks fires when a person was already "
             "looking, which is when it is least needed")
+    from clep.analytics.alerts import evaluate_run as _evaluate_run
+    if getattr(_scheduler, "evaluate_alerts", None) is not _evaluate_run:
+        trigger_defects.append(
+            "the scheduler's alert evaluation is not the alerting module's")
 except Exception as e:
     trigger_defects.append(f"{type(e).__name__}: {e}")
 add("P-27a", "PASS" if not trigger_defects else "FAIL",

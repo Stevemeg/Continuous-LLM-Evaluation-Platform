@@ -134,6 +134,11 @@ case("P-27a", "a scheduled run stops evaluating the alert rules",
                    "        outcomes = evaluate_alerts(conn, organization_id,",
                    "        outcomes = _skipped(conn, organization_id,"))
 
+case("P-27a", "the scheduler's alert evaluation becomes something else",
+     lambda: plant(SCHEDULER,
+                   "from clep.analytics.alerts import evaluate_run as evaluate_alerts",
+                   "evaluate_alerts = lambda *a, **k: []  # noqa: E731"))
+
 # --------------------------------------------- P-27b the trigger's identity
 case("P-27b", "a trigger key varies within its own minute",
      lambda: plant(SCHEDULES, "%Y-%m-%dT%H:%MZ", "%Y-%m-%dT%H:%M:%SZ"))
