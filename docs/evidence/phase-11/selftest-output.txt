@@ -2,7 +2,8 @@
 [CAUGHT ] P-27a  the sweep fires on every worker restart (reported FAIL)
 [CAUGHT ] P-27a  the end-to-end test drives the sweep itself (reported FAIL)
 [CAUGHT ] P-27a  the end-to-end test stops starting a worker at all (reported FAIL)
-[MISSED ] P-27a  a scheduled run stops evaluating the alert rules (reported PASS)
+[CAUGHT ] P-27a  a scheduled run stops evaluating the alert rules (reported FAIL)
+[CAUGHT ] P-27a  the scheduler's alert evaluation becomes something else (reported FAIL)
 [CAUGHT ] P-27b  a trigger key varies within its own minute (reported FAIL)
 [CAUGHT ] P-27b  a cadence with the wrong number of fields is accepted (reported FAIL)
 [CAUGHT ] P-27b  a minute outside the range is accepted (reported FAIL)
@@ -40,5 +41,5 @@
 [CAUGHT ] P-12   the alert dimensions drift from the contract (reported FAIL)
 [CAUGHT ] P-26   an earlier gate stops re-running the one before it (reported FAIL)
 
-self-test: 40/41 planted violations caught
+self-test: 42/42 planted violations caught
 restoration verified: the working tree matches HEAD after every case

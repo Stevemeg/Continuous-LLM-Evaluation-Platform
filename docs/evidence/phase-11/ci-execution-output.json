@@ -31,12 +31,12 @@
       "step": "entry point declared"
     },
     {
-      "detail": "clep.__file__ = C:\\Users\\konab\\AppData\\Local\\Temp\\clep-ci-hm3d9byo\\venv\\Lib\\site-packages\\clep\\__init__.py",
+      "detail": "clep.__file__ = C:\\Users\\konab\\AppData\\Local\\Temp\\clep-ci-77gd7k_g\\venv\\Lib\\site-packages\\clep\\__init__.py",
       "ok": true,
       "step": "package resolves inside the environment"
     },
     {
-      "detail": "`clep` -> C:\\Users\\konab\\AppData\\Local\\Temp\\clep-ci-hm3d9byo\\venv\\Scripts\\clep.EXE",
+      "detail": "`clep` -> C:\\Users\\konab\\AppData\\Local\\Temp\\clep-ci-77gd7k_g\\venv\\Scripts\\clep.EXE",
       "ok": true,
       "step": "console script resolves on PATH"
     },
@@ -46,7 +46,7 @@
       "step": "console script runs by name"
     },
     {
-      "detail": "schema applied, tenant be50829d\u2026, 10 examples",
+      "detail": "schema applied, tenant b4669545\u2026, 10 examples",
       "ok": true,
       "step": "database prepared"
     },
@@ -82,7 +82,7 @@
       "clep=clep.cli.main:main"
     ],
     "main_is_callable": true,
-    "package_file": "C:\\Users\\konab\\AppData\\Local\\Temp\\clep-ci-hm3d9byo\\venv\\Lib\\site-packages\\clep\\__init__.py",
+    "package_file": "C:\\Users\\konab\\AppData\\Local\\Temp\\clep-ci-77gd7k_g\\venv\\Lib\\site-packages\\clep\\__init__.py",
     "version": "0.1.0"
   },
   "note": "An isolated venv and a clean git clone on this machine. No hosted CI service ran this, and nothing here claims one did.",
@@ -95,22 +95,22 @@
         "clep",
         "gate",
         "--project",
-        "01KZT77STAM0THHH0N9K2CHX6G",
+        "01KZT8MATRVZCXMCVEY21JE721",
         "--run",
-        "01KZT77T209RXXYM8SESAV8055",
+        "01KZT8MB26DE1KZY4VYG8ZFQSK",
         "--policy",
-        "01KZT77T8WZH1FVW0NR5SVY61Q",
+        "01KZT8MB7BE3K68Q46C1E2BVMD",
         "--baseline",
-        "01KZT77T1604G5FNX02S77WZXB"
+        "01KZT8MB1D18QATC900A5BV2VN"
       ],
       "ciDecision": "the pipeline stops",
       "exitCode": 70,
       "stderr": [],
       "stdout": [
         "gate: insufficient_evidence",
-        "decision: 01KZT77W5XCQ03V5PCM7V3X7C2",
-        "evidence: sha256:036337a2f9f53466754c9f946c23a8bb958fbe8f307b42f1b390db0f934f2e43",
-        "  exact_match_ci_yy5ns4dd: insufficient_evidence (n=10)",
+        "decision: 01KZT8MCX32QSF24NASKZP0EFA",
+        "evidence: sha256:ec14c458892e1bae6f780ebfba305a61796f302072c2e7f5ff50088d786db53c",
+        "  exact_match_ci_jhvpw3s9: insufficient_evidence (n=10)",
         "      abstained: 10 paired sample(s) is below the configured minimum of 1000 for this metric",
         "",
         "this outcome blocks the pipeline (exit 70)"
@@ -121,22 +121,22 @@
         "clep",
         "gate",
         "--project",
-        "01KZT77STAM0THHH0N9K2CHX6G",
+        "01KZT8MATRVZCXMCVEY21JE721",
         "--run",
-        "01KZT77T53JQXMRJ4WCEM8P9C3",
+        "01KZT8MB4183B5MJ22JFB016BJ",
         "--policy",
-        "01KZT77T7YYMVMK0K837V99484",
+        "01KZT8MB5TBM3HQMQ7QCZB95RQ",
         "--baseline",
-        "01KZT77T1604G5FNX02S77WZXB"
+        "01KZT8MB1D18QATC900A5BV2VN"
       ],
       "ciDecision": "the pipeline stops",
       "exitCode": 1,
       "stderr": [],
       "stdout": [
         "gate: hard_fail",
-        "decision: 01KZT77VG0YM9BZXC28NQEGY8J",
-        "evidence: sha256:6cce95c4fb9a00d1b8ac93ce76a7529e6e25151e2a41952c75098b824e59d85a",
-        "  exact_match_ci_yy5ns4dd: regression (n=10)",
+        "decision: 01KZT8MC9K6BHX65V27TKTSP2C",
+        "evidence: sha256:a9f32f7a419839da6c0a8bd425950b858627948ead3d9c6a171dd1be1d51a389",
+        "  exact_match_ci_jhvpw3s9: regression (n=10)",
         "",
         "this outcome blocks the pipeline (exit 1)"
       ]
@@ -146,22 +146,22 @@
         "clep",
         "gate",
         "--project",
-        "01KZT77STAM0THHH0N9K2CHX6G",
+        "01KZT8MATRVZCXMCVEY21JE721",
         "--run",
-        "01KZT77T53JQXMRJ4WCEM8P9C3",
+        "01KZT8MB4183B5MJ22JFB016BJ",
         "--policy",
-        "01KZT77T7YYMVMK0K837V99484",
+        "01KZT8MB5TBM3HQMQ7QCZB95RQ",
         "--baseline",
-        "01KZT77T1604G5FNX02S77WZXB"
+        "01KZT8MB1D18QATC900A5BV2VN"
       ],
       "ciDecision": "the pipeline stops",
       "exitCode": 1,
       "stderr": [],
       "stdout": [
         "gate: hard_fail",
-        "decision: 01KZT77WRJEETC1A8977AY22K2",
-        "evidence: sha256:6cce95c4fb9a00d1b8ac93ce76a7529e6e25151e2a41952c75098b824e59d85a",
-        "  exact_match_ci_yy5ns4dd: regression (n=10)",
+        "decision: 01KZT8MDGDKBGH9FEQ10GHCHC5",
+        "evidence: sha256:a9f32f7a419839da6c0a8bd425950b858627948ead3d9c6a171dd1be1d51a389",
+        "  exact_match_ci_jhvpw3s9: regression (n=10)",
         "",
         "this outcome blocks the pipeline (exit 1)"
       ]
@@ -171,13 +171,13 @@
         "clep",
         "gate",
         "--project",
-        "01KZT77STAM0THHH0N9K2CHX6G",
+        "01KZT8MATRVZCXMCVEY21JE721",
         "--run",
         "not-a-ulid",
         "--policy",
-        "01KZT77T7YYMVMK0K837V99484",
+        "01KZT8MB5TBM3HQMQ7QCZB95RQ",
         "--baseline",
-        "01KZT77T1604G5FNX02S77WZXB"
+        "01KZT8MB1D18QATC900A5BV2VN"
       ],
       "ciDecision": "the pipeline stops",
       "exitCode": 78,
@@ -191,22 +191,22 @@
         "clep",
         "gate",
         "--project",
-        "01KZT77STAM0THHH0N9K2CHX6G",
+        "01KZT8MATRVZCXMCVEY21JE721",
         "--run",
-        "01KZT77T209RXXYM8SESAV8055",
+        "01KZT8MB26DE1KZY4VYG8ZFQSK",
         "--policy",
-        "01KZT77T7YYMVMK0K837V99484",
+        "01KZT8MB5TBM3HQMQ7QCZB95RQ",
         "--baseline",
-        "01KZT77T1604G5FNX02S77WZXB"
+        "01KZT8MB1D18QATC900A5BV2VN"
       ],
       "ciDecision": "the pipeline continues",
       "exitCode": 0,
       "stderr": [],
       "stdout": [
         "gate: pass",
-        "decision: 01KZT77TV430BK5G0A8VP62QS2",
-        "evidence: sha256:7252b0120df71c58b214ed4e4d93ff4b84226c60a8750f06f8819b5fd7f66052",
-        "  exact_match_ci_yy5ns4dd: no_change (n=10)"
+        "decision: 01KZT8MBPYXDJER3Z3GZ4F6MA1",
+        "evidence: sha256:70dbc2fb8acff7792259984c39853c3670d69be1cc36bd3f040c65dc3c9c85fd",
+        "  exact_match_ci_jhvpw3s9: no_change (n=10)"
       ]
     }
   }

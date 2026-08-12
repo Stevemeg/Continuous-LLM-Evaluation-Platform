@@ -152,7 +152,13 @@ def test_baseline_history_includes_superseded_baselines(
     assert analysis.verdict == DRIFTED
     assert analysis.position == BELOW_RANGE
     assert analysis.historical_median == Decimal("0.70000000000000000000")
-    assert [p.run_id for p in analysis.history] == runs
+    # A set, not a sequence. All three baselines are approved inside one
+    # transaction, so they share an `approved_at` and the order falls back to
+    # their identifiers — and two ULIDs minted in the same millisecond differ
+    # only in their random bits, so their relative order is not defined. The
+    # median does not depend on it, and asserting an order the platform never
+    # promised is how a test comes to fail once in every few runs.
+    assert {p.run_id for p in analysis.history} == set(runs)
 
 
 @pytest.mark.integration
