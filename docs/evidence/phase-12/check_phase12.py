@@ -703,11 +703,14 @@ try:
             f"unguarded statement destroys it")
     if "reproducibility = 'auditable'" not in erasure_src:
         erasure_defects.append("erasure does not demote the runs it affects")
-    # Completion is refused without verification, by the store. Word-bounded:
-    # a constraint renamed to `..._removed` still contains the name a substring
-    # search looks for, and the store would no longer enforce anything.
-    if not re.search(r"CONSTRAINT ck_erasure_request__verified_on_completion\b",
-                     sql):
+    # Completion is refused without verification, by the store. The DEFINITION
+    # is required, not the name: word-bounding alone was not enough, because
+    # `COMMENT ON CONSTRAINT ck_...` contains `CONSTRAINT ck_...` and kept the
+    # check passing while the constraint itself had been renamed away. Requiring
+    # `CHECK` after it means only a live constraint can satisfy this.
+    if not re.search(
+            r"CONSTRAINT ck_erasure_request__verified_on_completion\s+CHECK",
+            sql):
         erasure_defects.append(
             "the store no longer requires verification before completion")
     # And the count is obtained by looking, not by trusting the update: both
