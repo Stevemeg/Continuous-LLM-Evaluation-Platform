@@ -7,7 +7,7 @@ Milestones: M11.1 through M11.9
 
 | File | What it is |
 |---|---|
-| `check_phase11.py` | Phase validator, 30 checks. `python docs/evidence/phase-11/check_phase11.py .` |
+| `check_phase11.py` | Phase validator, 32 checks. `python docs/evidence/phase-11/check_phase11.py .` |
 | `selftest_phase11.py` | Plants 42 violations, proves each is caught, and verifies nothing survives |
 | `ci_execution.py` | Installs the package from a clean checkout into an isolated environment and runs `clep` |
 | `ci-execution-output.txt` / `.json` | Verbatim output of that run |
@@ -205,16 +205,34 @@ the tree is compared with `HEAD`, and the run fails if anything survived.
 
 | | |
 |---|---|
-| Validator | **30 checks, all PASS**, exit 0 |
+| Validator | **32 checks, all PASS**, exit 0 |
 | Self-test | **42 planted violations, 42 caught**; restoration verified |
 | Tests | **785 passed**, coverage **93.08%** against an 85% gate |
 | Schema | 72 tables, 71 tenant-scoped with ENABLE and FORCE |
 | Contract | 53 operations, 137 schemas |
-| Regression | Phase 10 gate at its own history in an isolated clone, which transitively re-runs the Spike Sprint and Phases 4 to 9; plus the Phase 1 milestone validators 11/14/18 |
+| Regression | Phase 10 gate 28/28 at its own history (`b87946b`) in an isolated clone of 48 commits, which transitively re-runs the Spike Sprint and Phases 4 to 9; plus the Phase 1 milestone validators 11/14/18 |
 | Closure | 17 validators in the repository, 17 reachable — derived, not asserted |
 | Traceability | 149 of 150 traced, 1 deferred to Phase 15, 0 untracked |
 | ADRs | 18 recorded, 0 undecided |
 | Dependencies added | **none** — the cron parser is `re`, the analytics are SQL |
+
+## The observed run
+
+`validation-output.txt` is the run made against the tree at `d20b009`, with its
+exit code captured rather than inferred:
+
+```
+SUMMARY: {"PASS": 32}
+OBSERVED_EXIT=0
+```
+
+`finalization-output.txt` is the same gate re-run after this evidence was
+committed. Recording evidence changes the tree, and a gate result that predates
+the tree it describes is a result about something else — so the finalization run
+is the one that describes the accepted tree. The only figures that move between
+them are the derived counts of files and refs; every figure that carries meaning
+— undisclosed secrets, attribution matches, and all three canonical-document
+reachability counts — is zero in both.
 
 ## Deliberately unresolved
 
