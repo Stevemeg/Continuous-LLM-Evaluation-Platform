@@ -306,6 +306,7 @@ def create_app(run_service, registry_service=None, gate_service=None,
                          ("GET", "/projects/{projectId}/analytics/operational"),
                          ("GET", "/projects/{projectId}/analytics/judges"),
                          ("GET", "/projects/{projectId}/analytics/agents"),
+                         ("GET", "/projects/{projectId}/analytics/rag"),
                          ("GET", "/projects/{projectId}/analytics/drift"),
                          ("GET", "/projects/{projectId}/scorecard"),
                          ("POST", "/projects/{projectId}/alert-rules"),
@@ -904,6 +905,18 @@ def _register_analytics_routes(app, analytics_service) -> None:
         if suiteVersionId:
             _require_ulid(suiteVersionId, "suiteVersionId")
         return analytics_service.agents(
+            organization_id=principal.organization_id, project_id=projectId,
+            suite_version_id=suiteVersionId, window_days=windowDays)
+
+    @app.get("/projects/{projectId}/analytics/rag")
+    def get_rag_analytics(projectId: str = Path(...),
+                          suiteVersionId: str | None = Query(default=None),
+                          windowDays: int | None = Query(default=None, ge=1),
+                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        if suiteVersionId:
+            _require_ulid(suiteVersionId, "suiteVersionId")
+        return analytics_service.rag(
             organization_id=principal.organization_id, project_id=projectId,
             suite_version_id=suiteVersionId, window_days=windowDays)
 

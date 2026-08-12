@@ -335,6 +335,55 @@ def test_a_loop_is_an_identical_call_repeated_back_to_back(
     assert figures.samples_with_retries == 2
 
 
+def test_rag_analytics_report_grounding_as_counts_not_as_a_rate(
+        migrated_database, seeded, examples_with_evidence):
+    """Canonical §12 asks for hallucination, faithfulness, groundedness and
+    citation trends. They are not evaluator scores — a finding is a categorical
+    verdict about one claim — so they are reported as counts, and the claims
+    the platform declined to judge are reported apart from the ones it did."""
+    from tests.test_end_to_end import build_examples, execute_run
+    examples = build_examples(examples_with_evidence)
+    execute_run(migrated_database, seeded, examples, key="an-rag")
+
+    with tenant_session(migrated_database, seeded["organization"]) as conn:
+        figures = AnalyticsRepository(conn, seeded["organization"]
+                                      ).rag_analytics(seeded["project"])
+
+    # Two passages per sample, one cited; the third example was labelled as
+    # needing a passage retrieval never returned.
+    assert figures.samples_with_retrieval == 3
+    assert figures.retrieved_contexts == 6
+    assert figures.cited_contexts == 3
+    assert figures.required_contexts_missing == 1
+    assert figures.run_ids, "the figures name no run"
+    # Counts keyed by finding, never a rate.
+    assert isinstance(figures.findings, dict)
+    assert figures.claims_not_analysable == figures.findings.get(
+        "not_analysable", 0)
+
+
+def test_rag_analytics_over_a_project_with_no_retrieval_are_marked(
+        migrated_database, seeded, examples):
+    build_run(migrated_database, seeded, examples, TEN, key="rag-empty")
+    with tenant_session(migrated_database, seeded["organization"]) as conn:
+        figures = AnalyticsRepository(conn, seeded["organization"]
+                                      ).rag_analytics(seeded["project"])
+    assert figures.retrieved_contexts == 0
+    assert figures.completeness.state == INCOMPLETE
+
+
+def test_rag_analytics_never_cross_a_tenant_boundary(
+        migrated_database, seeded, second_organization, examples_with_evidence):
+    from tests.test_end_to_end import build_examples, execute_run
+    execute_run(migrated_database, seeded, build_examples(examples_with_evidence),
+                key="an-rag-iso")
+    with tenant_session(migrated_database, second_organization) as conn:
+        figures = AnalyticsRepository(conn, second_organization).rag_analytics(
+            seeded["project"])
+    assert figures.retrieved_contexts == 0
+    assert figures.run_ids == ()
+
+
 def test_agent_analytics_never_crosses_a_tenant_boundary(
         migrated_database, seeded, second_organization, examples_with_evidence):
     from tests.test_end_to_end import build_examples, execute_run

@@ -96,8 +96,8 @@ def test_the_phase_implements_its_operations_and_says_so_by_omission():
             "getOperationalAnalytics", "getJudgeAnalytics", "getAgentAnalytics",
             "getQualityDrift", "getProjectScorecard", "createAlertRule",
             "listAlertRules", "pauseAlertRule", "evaluateAlerts",
-            "listAlertEvents"} <= ids
-    assert len(ids) == 52
+            "listAlertEvents", "getRagAnalytics"} <= ids
+    assert len(ids) == 53
 
 
 def test_every_identifier_a_request_accepts_can_be_created_through_the_contract():

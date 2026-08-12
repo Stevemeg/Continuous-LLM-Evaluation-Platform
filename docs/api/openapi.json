@@ -81,6 +81,68 @@
     }
   ],
   "paths": {
+      "/projects/{projectId}/analytics/rag": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectId"
+          }
+        ],
+        "get": {
+          "operationId": "getRagAnalytics",
+          "summary": "Hallucination, faithfulness, groundedness and citation behaviour",
+          "description": "REQ-F-11-1 and canonical \u00a712. These are not evaluator scores: a hallucination finding is a categorical verdict about one claim and a stage attribution says which part of the pipeline a failure belongs to, so neither can be recovered from a mean and neither is folded into the quality trend. What is reported is how many claims fell into each category and how many could not be analysed at all \u2014 never a hallucination rate, because the support and contradiction thresholds behind a finding are configured rather than calibrated.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-1",
+            "REQ-F-11-6",
+            "REQ-F-11-7"
+          ],
+          "parameters": [
+            {
+              "name": "suiteVersionId",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "description": "Restrict to one benchmark suite version."
+            },
+            {
+              "name": "windowDays",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": "Narrow the figures to this many days."
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "The retrieval and grounding figures.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/RagAnalytics"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      },
       "/projects/{projectId}/analytics/quality-trend": {
         "parameters": [
           {
@@ -3065,6 +3127,74 @@
       }
     },
     "schemas": {
+        "RagAnalytics": {
+          "type": "object",
+          "description": "Retrieval and grounding behaviour over a window. Counts, never rates: a rate implies a denominator the platform can defend, and the thresholds behind a hallucination finding are configured rather than calibrated.",
+          "required": [
+            "claimsAnalysed",
+            "claimsNotAnalysable",
+            "findings",
+            "completeness"
+          ],
+          "x-requirements": [
+            "REQ-F-11-1",
+            "REQ-F-11-6",
+            "REQ-F-11-7"
+          ],
+          "properties": {
+            "claimsAnalysed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "claimsNotAnalysable": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Claims the platform declined to judge. Reported separately rather than counted as supported, which is the distinction REQ-F-08-4 exists to keep."
+            },
+            "findings": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "description": "Claim counts keyed by HallucinationFinding."
+            },
+            "attributionStages": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "description": "Sample counts keyed by AttributionStage: which part of the pipeline a failure belongs to."
+            },
+            "retrievedContexts": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "citedContexts": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "samplesWithRetrieval": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "requiredContextsMissing": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Passages the dataset says retrieval was supposed to find and did not. The one figure that cannot be inferred from the passages that were returned."
+            },
+            "runIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Ulid"
+              }
+            },
+            "completeness": {
+              "$ref": "#/components/schemas/EvidenceCompleteness"
+            }
+          }
+        },
         "EvidenceCompleteness": {
           "type": "object",
           "description": "Whether a figure may be read at face value. REQ-F-11-7 requires a figure computed from incomplete data to be marked in every view and export it appears in, so this travels with the figure rather than being a property of some responses.",

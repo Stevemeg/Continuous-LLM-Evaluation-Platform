@@ -207,8 +207,8 @@ ops = []
 try:
     from clep.api import contract as _contract
     ops = _contract.operations(str(ROOT))
-    if len(ops) != 52:
-        contract_defects.append(f"expected 52 declared operations, found {len(ops)}")
+    if len(ops) != 53:
+        contract_defects.append(f"expected 53 declared operations, found {len(ops)}")
     generated = list(ROOT.glob("**/openapi_generated*")) + \
         [p for p in ROOT.glob("src/**/*.py") if "openapi.json" in p.read_text("utf-8")
          and "write_text" in p.read_text("utf-8")]

@@ -64,6 +64,7 @@ class Scorecard:
     operational: object
     judges: object
     agents: object
+    rag: object
     drift: tuple
     alerts: tuple
     alert_rules: int
@@ -113,6 +114,9 @@ def build(conn, organization_id: str, project_id: str, *,
         agents=analytics.agent_analytics(project_id,
                                          suite_version_id=suite_version_id,
                                          window_days=window_days),
+        rag=analytics.rag_analytics(project_id,
+                                    suite_version_id=suite_version_id,
+                                    window_days=window_days),
         drift=drift,
         alerts=tuple(alerts_repository.events_for_project(project_id)),
         alert_rules=len(alerts_repository.list_rules(project_id)))
@@ -185,6 +189,17 @@ def machine_readable(card: Scorecard) -> dict:
             "byTool": list(card.agents.by_tool),
             "runIds": list(card.agents.run_ids),
             "completeness": card.agents.completeness.as_dict()},
+        "rag": {
+            "claimsAnalysed": card.rag.claims_analysed,
+            "claimsNotAnalysable": card.rag.claims_not_analysable,
+            "findings": card.rag.findings,
+            "attributionStages": card.rag.attribution_stages,
+            "retrievedContexts": card.rag.retrieved_contexts,
+            "citedContexts": card.rag.cited_contexts,
+            "samplesWithRetrieval": card.rag.samples_with_retrieval,
+            "requiredContextsMissing": card.rag.required_contexts_missing,
+            "runIds": list(card.rag.run_ids),
+            "completeness": card.rag.completeness.as_dict()},
         "drift": [d.as_dict() for d in card.drift],
         "alerts": [
             {"id": e.id, "alertRuleId": e.alert_rule_id, "runId": e.run_id,
@@ -317,6 +332,35 @@ def human_readable(card: Scorecard) -> str:
     else:
         out.append("No agent trajectory was recorded in this window.")
     out += _caveats("the agent figures", [agents.completeness])
+    out.append("")
+
+    rag = card.rag
+    out.append("## Retrieval and grounding")
+    out.append("")
+    if rag.samples_with_retrieval or rag.claims_analysed:
+        out.append(f"{rag.retrieved_contexts} passage(s) retrieved across "
+                   f"{rag.samples_with_retrieval} sample(s), of which "
+                   f"{rag.cited_contexts} were cited. "
+                   f"{rag.required_contexts_missing} passage(s) the dataset "
+                   f"says should have been found were not.")
+        if rag.claims_analysed or rag.claims_not_analysable:
+            named = ", ".join(f"{count} {finding.replace('_', ' ')}"
+                              for finding, count in sorted(rag.findings.items()))
+            out.append("")
+            out.append(f"Of the claims examined: {named}. The thresholds behind "
+                       f"these categories are configured, not calibrated, so "
+                       f"read them as counts rather than as a hallucination "
+                       f"rate.")
+        if rag.attribution_stages:
+            stages = ", ".join(f"{count} at {stage.replace('_', ' ')}"
+                               for stage, count in
+                               sorted(rag.attribution_stages.items()))
+            out.append("")
+            out.append(f"Where failures were attributed: {stages}.")
+    else:
+        out.append("No sample in this window carried retrieval, so there is "
+                   "nothing to say about grounding.")
+    out += _caveats("retrieval and grounding", [rag.completeness])
     out.append("")
 
     if card.drift:

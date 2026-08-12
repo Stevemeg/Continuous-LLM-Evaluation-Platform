@@ -126,6 +126,21 @@ def test_the_judge_and_agent_endpoints_answer_for_an_empty_project(
     assert agents["completeness"]["state"] == "incomplete"
 
 
+def test_the_rag_endpoint_answers_for_an_empty_project(client, auth, seeded):
+    body = client.get(f"/projects/{seeded['project']}/analytics/rag",
+                      headers=auth).json()
+    assert body["retrievedContexts"] == 0
+    assert body["claimsAnalysed"] == 0
+    assert body["completeness"]["state"] == "incomplete"
+    # Counts, never a rate: nothing here presents a hallucination percentage
+    # over a denominator the platform cannot defend.
+    assert "rate" not in json_keys(body)
+
+
+def json_keys(body) -> str:
+    return " ".join(body).lower()
+
+
 # ---------------------------------------------------------------------- drift
 def test_the_drift_endpoint_abstains_without_a_configured_tolerance(
         client, auth, migrated_database, seeded, examples):

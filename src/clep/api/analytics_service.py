@@ -77,6 +77,16 @@ class AnalyticsService:
                 window_days=window_days)
         return _agents(figures)
 
+    # -------------------------------------------------------------- REQ-F-11-1
+    def rag(self, *, organization_id: str, project_id: str,
+            suite_version_id: str | None = None,
+            window_days: int | None = None) -> dict:
+        with tenant_session(self._dsn, organization_id) as conn:
+            figures = AnalyticsRepository(conn, organization_id).rag_analytics(
+                project_id, suite_version_id=suite_version_id,
+                window_days=window_days)
+        return _rag(figures)
+
     # -------------------------------------------------------------- REQ-F-10-4
     def drift(self, *, organization_id: str, project_id: str, run_id: str,
               suite_version_id: str, metric_key: str,
@@ -242,6 +252,19 @@ def _agents(figures) -> dict:
             "samplesWithRetries": figures.samples_with_retries,
             "trajectoryFailures": figures.trajectory_failures,
             "byTool": list(figures.by_tool), "runIds": list(figures.run_ids),
+            "completeness": figures.completeness.as_dict()}
+
+
+def _rag(figures) -> dict:
+    return {"claimsAnalysed": figures.claims_analysed,
+            "claimsNotAnalysable": figures.claims_not_analysable,
+            "findings": figures.findings,
+            "attributionStages": figures.attribution_stages,
+            "retrievedContexts": figures.retrieved_contexts,
+            "citedContexts": figures.cited_contexts,
+            "samplesWithRetrieval": figures.samples_with_retrieval,
+            "requiredContextsMissing": figures.required_contexts_missing,
+            "runIds": list(figures.run_ids),
             "completeness": figures.completeness.as_dict()}
 
 

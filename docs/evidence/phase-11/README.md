@@ -107,7 +107,7 @@ service.
 
 ## Analytics are derived, never stored
 
-Phase 11 adds twelve operations and no aggregate table. Every figure — a trend
+Phase 11 adds thirteen operations and no aggregate table. Every figure — a trend
 point, a leaderboard row, a latency quantile, a judge agreement rate — is
 computed on read from `run_sample`, `evaluator_outcome`, `sample_cost`,
 `consensus_result` and `trajectory_step`.
@@ -145,6 +145,22 @@ reasoning that kept an actuation column out of `release_observation` keeps a
 webhook target out of `alert_rule`. A firing carries the completeness of its
 evidence, and one firing per rule per run is a unique constraint rather than a
 caller remembering.
+
+## Grounding is reported as counts, not as a rate
+
+Canonical §12 asks for hallucination, faithfulness, groundedness and citation
+trends. Retrieval and citation quality are evaluator scores and appear in the
+trend and the leaderboard like any other metric. Hallucination and attribution
+are not: a finding is a categorical verdict about one claim, and a stage
+attribution says which part of the pipeline a failure belongs to. Neither can be
+recovered from a mean, so `getRagAnalytics` reports them apart from the quality
+trend.
+
+It reports counts. A "hallucination rate" would imply a denominator the platform
+can defend, and the support and contradiction thresholds behind a finding are
+configured rather than calibrated — one of this project's open risks. Claims the
+platform declined to judge are counted separately from the ones it judged, which
+is `REQ-F-08-4` applied to grounding rather than to a gate.
 
 ## Defects found by building it
 
@@ -187,9 +203,9 @@ the tree is compared with `HEAD`, and the run fails if anything survived.
 |---|---|
 | Validator | **30 checks, all PASS**, exit 0 |
 | Self-test | **40 planted violations, 40 caught**; restoration verified |
-| Tests | **780 passed**, coverage **93.27%** against an 85% gate |
+| Tests | **784 passed**, coverage **93.08%** against an 85% gate |
 | Schema | 72 tables, 71 tenant-scoped with ENABLE and FORCE |
-| Contract | 52 operations, 136 schemas |
+| Contract | 53 operations, 137 schemas |
 | Regression | Phase 10 gate at its own history in an isolated clone, which transitively re-runs the Spike Sprint and Phases 4 to 9; plus the Phase 1 milestone validators 11/14/18 |
 | Closure | 17 validators in the repository, 17 reachable — derived, not asserted |
 | Traceability | 149 of 150 traced, 1 deferred to Phase 15, 0 untracked |

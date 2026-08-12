@@ -120,6 +120,20 @@ class JudgeAnalytics:
 
 
 @dataclass(frozen=True)
+class RagAnalytics:
+    claims_analysed: int
+    claims_not_analysable: int
+    findings: dict
+    attribution_stages: dict
+    retrieved_contexts: int
+    cited_contexts: int
+    samples_with_retrieval: int
+    required_contexts_missing: int
+    run_ids: tuple
+    completeness: Completeness
+
+
+@dataclass(frozen=True)
 class AgentAnalytics:
     samples_with_trajectory: int
     completed_tasks: int
@@ -464,6 +478,89 @@ class AnalyticsRepository:
             completeness=completeness_of(
                 contributing_runs=steps[3], incomplete_runs=steps[4],
                 observations=samples[0], unresolved_observations=samples[2]))
+
+    # ------------------------------------------------------------------ REQ-F-11-1
+    def rag_analytics(self, project_id: str, *,
+                      suite_version_id: str | None = None,
+                      window_days: int | None = None) -> RagAnalytics:
+        """Hallucination, faithfulness, groundedness and citation behaviour.
+
+        Canonical §12 names these as trends of their own, and they are not
+        evaluator scores: a hallucination finding is a categorical verdict about
+        one claim, and a stage attribution says which part of the pipeline a
+        failure belongs to. Neither can be recovered from a mean, so neither is
+        folded into the quality trend.
+
+        Nothing here is a rate against a threshold. `REQ-F-08-4` and the
+        project's open risks both apply: the support and contradiction
+        thresholds behind a finding are configured rather than calibrated, so
+        what is reported is how many claims fell into each category and how many
+        could not be analysed at all — never a "hallucination rate" that would
+        read as a measured property of the model.
+        """
+        clause, params = self._scope(project_id, suite_version_id, window_days,
+                                     "r.created_at")
+        findings = dict(self._conn.execute(
+            "SELECT hf.finding, count(*) FROM clep.run r "
+            "JOIN clep.run_sample s ON s.organization_id = r.organization_id "
+            "  AND s.run_id = r.id "
+            "JOIN clep.hallucination_finding hf "
+            "  ON hf.organization_id = s.organization_id "
+            " AND hf.run_sample_id = s.id " + clause +
+            " GROUP BY hf.finding ORDER BY hf.finding", params).fetchall())
+        stages = dict(self._conn.execute(
+            "SELECT sa.stage, count(*) FROM clep.run r "
+            "JOIN clep.run_sample s ON s.organization_id = r.organization_id "
+            "  AND s.run_id = r.id "
+            "JOIN clep.stage_attribution sa "
+            "  ON sa.organization_id = s.organization_id "
+            " AND sa.run_sample_id = s.id " + clause +
+            " GROUP BY sa.stage ORDER BY sa.stage", params).fetchall())
+        retrieval = self._conn.execute(
+            "SELECT count(DISTINCT rc.id), "
+            "       count(DISTINCT sc.retrieved_context_id), "
+            "       count(DISTINCT s.id), "
+            "       count(DISTINCT r.id), "
+            "       count(DISTINCT r.id) FILTER (WHERE r.completeness <> 'complete'), "
+            "       coalesce(array_agg(DISTINCT r.id), '{}') "
+            "FROM clep.run r "
+            "JOIN clep.run_sample s ON s.organization_id = r.organization_id "
+            "  AND s.run_id = r.id "
+            "JOIN clep.retrieved_context rc "
+            "  ON rc.organization_id = s.organization_id "
+            " AND rc.run_sample_id = s.id "
+            "LEFT JOIN clep.sample_citation sc "
+            "  ON sc.organization_id = rc.organization_id "
+            " AND sc.retrieved_context_id = rc.id " + clause,
+            params).fetchone()
+        # What retrieval was supposed to find and did not. The one figure that
+        # cannot be inferred from the passages that were returned.
+        missing = self._conn.execute(
+            "SELECT count(*) FROM clep.run r "
+            "JOIN clep.run_sample s ON s.organization_id = r.organization_id "
+            "  AND s.run_id = r.id "
+            "JOIN clep.required_context req "
+            "  ON req.organization_id = s.organization_id "
+            " AND req.example_id = s.example_id " + clause +
+            " AND NOT EXISTS (SELECT 1 FROM clep.retrieved_context rc "
+            "                 WHERE rc.organization_id = s.organization_id "
+            "                   AND rc.run_sample_id = s.id "
+            "                   AND rc.context_ref = req.context_ref)",
+            params).fetchone()
+        analysable = sum(count for finding, count in findings.items()
+                         if finding != "not_analysable")
+        return RagAnalytics(
+            claims_analysed=analysable,
+            claims_not_analysable=findings.get("not_analysable", 0),
+            findings=findings, attribution_stages=stages,
+            retrieved_contexts=retrieval[0], cited_contexts=retrieval[1],
+            samples_with_retrieval=retrieval[2],
+            required_contexts_missing=missing[0],
+            run_ids=tuple(uuid_to_ulid(x) for x in retrieval[5]),
+            completeness=completeness_of(
+                contributing_runs=retrieval[3], incomplete_runs=retrieval[4],
+                observations=analysable,
+                unresolved_observations=findings.get("not_analysable", 0)))
 
     # ------------------------------------------------- figures for one run
     def figures_for_run(self, project_id: str, run_id: str) -> dict:
