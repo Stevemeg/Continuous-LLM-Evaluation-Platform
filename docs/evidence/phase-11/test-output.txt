@@ -1,0 +1,94 @@
+﻿........................................................................ [  9%]
+........................................................................ [ 18%]
+........................................................................ [ 27%]
+........................................................................ [ 36%]
+........................................................................ [ 46%]
+........................................................................ [ 55%]
+........................................................................ [ 64%]
+........................................................................ [ 73%]
+........................................................................ [ 83%]
+........................................................................ [ 92%]
+............................................................             [100%]
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.11.0-final-0 _______________
+
+Name                                      Stmts   Miss Branch BrPart  Cover   Missing
+-------------------------------------------------------------------------------------
+src\clep\__init__.py                          1      0      0      0   100%
+src\clep\agents\__init__.py                   0      0      0      0   100%
+src\clep\agents\planner.py                  140      6     60      6    94%   92, 105, 107, 203, 240, 281
+src\clep\agents\repository.py                89      7     24      9    86%   71->73, 164, 188, 190, 199->201, 213, 215, 219, 222
+src\clep\agents\sdk.py                       96      2     26      2    97%   114, 120
+src\clep\analytics\__init__.py                2      0      0      0   100%
+src\clep\analytics\alerts.py                133      1     22      1    99%   259
+src\clep\analytics\completeness.py           30      0      8      0   100%
+src\clep\analytics\drift.py                  96      0     18      0   100%
+src\clep\analytics\repository.py            162      0     20      3    98%   498->483, 511->515, 525->530
+src\clep\analytics\scorecard.py             138      6     42      4    93%   285-295, 306, 336, 357->355
+src\clep\api\__init__.py                      0      0      0      0   100%
+src\clep\api\agentic_service.py             112      4     10      4    93%   65, 125, 140, 179
+src\clep\api\analytics_service.py            97      1     14      2    97%   126, 127->130
+src\clep\api\app.py                         533     31    110     22    92%   67, 159-160, 322, 416, 437, 490, 523, 534, 545, 557, 576, 594, 625, 658, 667, 707, 720-721, 723, 750, 831, 854, 874-875, 884, 905, 927-928, 943, 989
+src\clep\api\audit.py                         5      0      0      0   100%
+src\clep\api\contract.py                     45      4     16      3    89%   32, 70, 76, 89
+src\clep\api\gate_service.py                130      8     30     10    89%   52, 80, 107, 123, 135, 180, 191, 218->222, 303, 308->310
+src\clep\api\registry_service.py             62      1      8      2    96%   59, 78->80
+src\clep\api\schedule_service.py             62      7     12      1    89%   67-69, 86, 100-103
+src\clep\api\service.py                      83      4     22      4    92%   150, 151->154, 167->170, 196, 199-200
+src\clep\cli\__init__.py                      0      0      0      0   100%
+src\clep\cli\exit_codes.py                   13      0      0      0   100%
+src\clep\cli\main.py                        103     17     42     11    79%   86, 88, 91, 103, 118-119, 121, 127, 130-134, 143, 149, 151, 164
+src\clep\config.py                           49      0     14      0   100%
+src\clep\db\__init__.py                       0      0      0      0   100%
+src\clep\db\migrations.py                    46      2     10      0    96%   98-99
+src\clep\db\provision.py                     27      5     10      5    73%   42, 67, 69, 77, 90
+src\clep\db\session.py                       38      0      2      0   100%
+src\clep\evaluators\__init__.py               0      0      0      0   100%
+src\clep\evaluators\agent.py                 93      9     32      7    87%   59, 68-70, 106, 137, 139, 163, 192
+src\clep\evaluators\builtin.py               37      3     10      3    87%   45, 64, 67
+src\clep\evaluators\rag.py                   46      0      8      0   100%
+src\clep\evaluators\sdk.py                  131      7     36      3    94%   110, 142, 167, 181, 214, 229-230
+src\clep\evaluators\trajectory.py            76      2     32      2    96%   52, 109
+src\clep\experiments\__init__.py              0      0      0      0   100%
+src\clep\experiments\cache.py                34      0      6      0   100%
+src\clep\experiments\capture.py              39      1     16      4    91%   40->46, 44->46, 52, 62->64
+src\clep\experiments\identity.py             59      0     10      1    99%   120->exit
+src\clep\experiments\repository.py           30      1      6      1    94%   89
+src\clep\experiments\reproduction.py         66      2     24      1    97%   53, 174
+src\clep\identity.py                         47      1     12      1    97%   53
+src\clep\judges\__init__.py                   0      0      0      0   100%
+src\clep\judges\consensus.py                 88      4     34      4    93%   95, 115, 120, 126
+src\clep\judges\panel.py                     56      6     16      4    83%   63, 83-89, 101->103, 103->79
+src\clep\judges\reflection.py                19      1      4      1    91%   72
+src\clep\judges\repository.py               115      6     26      6    91%   127, 129, 145, 167, 206, 307
+src\clep\judges\sdk.py                      101      1     30      1    98%   198
+src\clep\memory\__init__.py                   0      0      0      0   100%
+src\clep\memory\repository.py                95      1     12      1    98%   249
+src\clep\orchestration\__init__.py            0      0      0      0   100%
+src\clep\orchestration\examples.py           52      4     14      2    91%   105, 136-137, 139
+src\clep\orchestration\releases.py           53      5      6      3    86%   91, 96, 99, 122-125
+src\clep\orchestration\repository.py         94      1     10      1    98%   164
+src\clep\orchestration\runner.py            145      2     38      4    97%   209, 217->166, 257, 299->exit
+src\clep\orchestration\scheduler.py         136      6     32      5    93%   163, 171, 245, 249, 280-281
+src\clep\orchestration\schedules.py         135      6     34      4    94%   79, 93, 130, 206, 278-282
+src\clep\orchestration\worker.py             42      2      0      0    95%   35, 123
+src\clep\providers\__init__.py                0      0      0      0   100%
+src\clep\providers\gateway.py                74      2      6      1    96%   109, 114
+src\clep\providers\openai_compatible.py      79      1     18      1    98%   122
+src\clep\providers\port.py                   54      1      2      0    98%   123
+src\clep\rag\__init__.py                      0      0      0      0   100%
+src\clep\rag\attribution.py                  36      2     14      2    92%   56, 58
+src\clep\rag\hallucination.py                69      9     28      7    79%   55, 56->exit, 60, 90-94, 117->119, 120, 160
+src\clep\rag\repository.py                   58      8     16      3    82%   90, 127-145, 148, 170, 221
+src\clep\registry\__init__.py                 0      0      0      0   100%
+src\clep\registry\repository.py             127      7     26      7    91%   161->163, 191, 225->232, 228, 254, 261, 296, 310, 329
+src\clep\regression\__init__.py               0      0      0      0   100%
+src\clep\regression\comparability.py         40      1     10      3    92%   53->55, 55->57, 67
+src\clep\regression\engine.py               118      3     38      4    96%   124, 139-142, 226->232, 244->250
+src\clep\regression\report.py                52      5     26      4    88%   98-101, 150, 153, 158
+src\clep\regression\repository.py           151      6     26      6    93%   120, 143, 213, 235, 237, 254
+src\clep\regression\statistics.py           100      0     26      0   100%
+-------------------------------------------------------------------------------------
+TOTAL                                      5039    222   1204    186    93%
+Required test coverage of 85.0% reached. Total coverage: 93.27%
+780 passed in 310.03s (0:05:10)
