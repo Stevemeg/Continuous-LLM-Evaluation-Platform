@@ -29,6 +29,9 @@ from pydantic import BaseModel, Field
 from clep.agents.planner import PlanError, PlanInputs
 from clep.agents.repository import PlanSettled
 from clep.agents.sdk import Bounds
+from clep.analytics.alerts import AlertError
+from clep.analytics.drift import DriftError
+from clep.analytics.repository import AnalyticsError
 from clep.api import contract
 from clep.identity import is_ulid, new_ulid
 from clep.judges.consensus import ConsensusError
@@ -210,6 +213,16 @@ class GateEvaluationIn(BaseModel):
     gatePolicyVersionId: str
 
 
+class AlertRuleIn(BaseModel):
+    slug: str = Field(min_length=1)
+    displayName: str = Field(min_length=1)
+    dimension: str
+    metricKey: str = Field(min_length=1)
+    direction: str
+    threshold: str
+    minimumSampleSize: int = Field(ge=1)
+
+
 class EvaluationScheduleIn(BaseModel):
     suiteVersionId: str
     cadence: str = Field(min_length=1)
@@ -241,7 +254,8 @@ PLANNING_BOUNDS = Bounds(max_iterations=4, budget=Decimal("0.50"),
 
 
 def create_app(run_service, registry_service=None, gate_service=None,
-               agentic_service=None, schedule_service=None) -> FastAPI:
+               agentic_service=None, schedule_service=None,
+               analytics_service=None) -> FastAPI:
     """`run_service` supplies persistence and execution.
 
     Injected rather than imported so the contract tests can drive every path
@@ -286,7 +300,19 @@ def create_app(run_service, registry_service=None, gate_service=None,
                          ("GET", "/projects/{projectId}/evaluation-memory"),
                          ("POST", "/projects/{projectId}/evaluation-schedules"),
                          ("POST", "/evaluation-schedules/{scheduleId}/pause"),
-                         ("POST", "/projects/{projectId}/release-observations")):
+                         ("POST", "/projects/{projectId}/release-observations"),
+                         ("GET", "/projects/{projectId}/analytics/quality-trend"),
+                         ("GET", "/projects/{projectId}/analytics/leaderboard"),
+                         ("GET", "/projects/{projectId}/analytics/operational"),
+                         ("GET", "/projects/{projectId}/analytics/judges"),
+                         ("GET", "/projects/{projectId}/analytics/agents"),
+                         ("GET", "/projects/{projectId}/analytics/drift"),
+                         ("GET", "/projects/{projectId}/scorecard"),
+                         ("POST", "/projects/{projectId}/alert-rules"),
+                         ("GET", "/projects/{projectId}/alert-rules"),
+                         ("POST", "/alert-rules/{alertRuleId}/pause"),
+                         ("POST", "/runs/{runId}/alert-evaluations"),
+                         ("GET", "/projects/{projectId}/alert-events")):
         contract.operation_for(method, path)
 
     @app.exception_handler(HTTPException)
@@ -733,11 +759,21 @@ def create_app(run_service, registry_service=None, gate_service=None,
             organization_id=principal.organization_id, project_id=projectId,
             window_days=windowDays)
 
-    # ---- schedules and release observations ---------------------------------
-    # Registered on the same rule as everything above it.
-    if schedule_service is None:
-        return app
+    # Each block registers only when its own service is supplied. Chained
+    # early returns did this before, which meant a deployment wanting
+    # analytics but not schedules silently lost the analytics routes.
+    _register_schedule_routes(app, schedule_service)
+    _register_analytics_routes(app, analytics_service)
+    return app
 
+
+def _register_schedule_routes(app, schedule_service) -> None:
+    """Registered only when the service is supplied. A route that exists and
+    cannot work is worse than one that does not exist: the first is a 500 a
+    client discovers in production, the second is a 404 it discovers at once."""
+    if schedule_service is None:
+        return
+    # ---- schedules and release observations ---------------------------------
     @app.post("/projects/{projectId}/evaluation-schedules", status_code=201)
     def create_evaluation_schedule(body: EvaluationScheduleIn,
                                    projectId: str = Path(...),
@@ -798,7 +834,183 @@ def create_app(run_service, registry_service=None, gate_service=None,
                                 detail="no such run or gate decision")
         return observation
 
-    return app
+
+def _register_analytics_routes(app, analytics_service) -> None:
+    """Registered only when the service is supplied. A route that exists and
+    cannot work is worse than one that does not exist: the first is a 500 a
+    client discovers in production, the second is a 404 it discovers at once."""
+    if analytics_service is None:
+        return
+    # ---- analytics, the scorecard and alerting ------------------------------
+    @app.get("/projects/{projectId}/analytics/quality-trend")
+    def get_quality_trend(projectId: str = Path(...),
+                          suiteVersionId: str | None = Query(default=None),
+                          metricKey: str | None = Query(default=None),
+                          windowDays: int | None = Query(default=None, ge=1),
+                          limit: int = Query(100, ge=1, le=500),
+                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        if suiteVersionId:
+            _require_ulid(suiteVersionId, "suiteVersionId")
+        return analytics_service.quality_trend(
+            organization_id=principal.organization_id, project_id=projectId,
+            suite_version_id=suiteVersionId, metric_key=metricKey,
+            window_days=windowDays, limit=limit)
+
+    @app.get("/projects/{projectId}/analytics/leaderboard")
+    def get_benchmark_leaderboard(projectId: str = Path(...),
+                                  suiteVersionId: str = Query(...),
+                                  windowDays: int | None = Query(default=None, ge=1),
+                                  principal: TenantPrincipal = Depends(principal_from_authorization)):
+        # Required by the signature, not merely by convention. REQ-F-11-2
+        # forbids a global ranking, and an optional benchmark is a global
+        # ranking with extra steps.
+        _require_ulid(projectId, "projectId")
+        _require_ulid(suiteVersionId, "suiteVersionId")
+        try:
+            return analytics_service.leaderboard(
+                organization_id=principal.organization_id, project_id=projectId,
+                suite_version_id=suiteVersionId, window_days=windowDays)
+        except AnalyticsError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+    @app.get("/projects/{projectId}/analytics/operational")
+    def get_operational_analytics(projectId: str = Path(...),
+                                  suiteVersionId: str | None = Query(default=None),
+                                  windowDays: int | None = Query(default=None, ge=1),
+                                  principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        if suiteVersionId:
+            _require_ulid(suiteVersionId, "suiteVersionId")
+        return analytics_service.operational(
+            organization_id=principal.organization_id, project_id=projectId,
+            suite_version_id=suiteVersionId, window_days=windowDays)
+
+    @app.get("/projects/{projectId}/analytics/judges")
+    def get_judge_analytics(projectId: str = Path(...),
+                            windowDays: int | None = Query(default=None, ge=1),
+                            principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        return analytics_service.judges(
+            organization_id=principal.organization_id, project_id=projectId,
+            window_days=windowDays)
+
+    @app.get("/projects/{projectId}/analytics/agents")
+    def get_agent_analytics(projectId: str = Path(...),
+                            suiteVersionId: str | None = Query(default=None),
+                            windowDays: int | None = Query(default=None, ge=1),
+                            principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        if suiteVersionId:
+            _require_ulid(suiteVersionId, "suiteVersionId")
+        return analytics_service.agents(
+            organization_id=principal.organization_id, project_id=projectId,
+            suite_version_id=suiteVersionId, window_days=windowDays)
+
+    @app.get("/projects/{projectId}/analytics/drift")
+    def get_quality_drift(projectId: str = Path(...),
+                          suiteVersionId: str = Query(...),
+                          runId: str = Query(...), metricKey: str = Query(...),
+                          minimumHistory: int | None = Query(default=None, ge=2),
+                          tolerance: str | None = Query(default=None),
+                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+        for name, value in (("projectId", projectId),
+                            ("suiteVersionId", suiteVersionId),
+                            ("runId", runId)):
+            _require_ulid(value, name)
+        try:
+            analysis = analytics_service.drift(
+                organization_id=principal.organization_id, project_id=projectId,
+                run_id=runId, suite_version_id=suiteVersionId,
+                metric_key=metricKey, minimum_history=minimumHistory,
+                tolerance=Decimal(tolerance) if tolerance else None)
+        except DriftError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        if analysis is None:
+            raise HTTPException(status_code=404, detail="no such run")
+        return analysis
+
+    @app.get("/projects/{projectId}/scorecard")
+    def get_project_scorecard(projectId: str = Path(...),
+                              suiteVersionId: str | None = Query(default=None),
+                              windowDays: int | None = Query(default=None, ge=1),
+                              format: str = Query("json"),
+                              minimumHistory: int | None = Query(default=None, ge=2),
+                              tolerance: str | None = Query(default=None),
+                              principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        if suiteVersionId:
+            _require_ulid(suiteVersionId, "suiteVersionId")
+        if format not in ("json", "markdown"):
+            raise HTTPException(status_code=400,
+                                detail="format must be json or markdown")
+        card = analytics_service.scorecard(
+            organization_id=principal.organization_id, project_id=projectId,
+            suite_version_id=suiteVersionId, window_days=windowDays,
+            minimum_history=minimumHistory,
+            tolerance=Decimal(tolerance) if tolerance else None,
+            representation=format)
+        if format == "markdown":
+            return PlainTextResponse(card, media_type="text/markdown")
+        return card
+
+    @app.post("/projects/{projectId}/alert-rules", status_code=201)
+    def create_alert_rule(body: AlertRuleIn, projectId: str = Path(...),
+                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        _require_enum(body.dimension, "AlertDimension", "dimension")
+        _require_enum(body.direction, "MetricDirection", "direction")
+        try:
+            return analytics_service.create_alert_rule(
+                organization_id=principal.organization_id, project_id=projectId,
+                actor_id=principal.subject, slug=body.slug,
+                display_name=body.displayName, dimension=body.dimension,
+                metric_key=body.metricKey, direction=body.direction,
+                threshold=Decimal(body.threshold),
+                minimum_sample_size=body.minimumSampleSize)
+        except AlertError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+    @app.get("/projects/{projectId}/alert-rules")
+    def list_alert_rules(projectId: str = Path(...),
+                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        return analytics_service.list_alert_rules(
+            organization_id=principal.organization_id, project_id=projectId)
+
+    @app.post("/alert-rules/{alertRuleId}/pause")
+    def pause_alert_rule(alertRuleId: str = Path(...),
+                         principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(alertRuleId, "alertRuleId")
+        paused = analytics_service.pause_alert_rule(
+            organization_id=principal.organization_id, rule_id=alertRuleId,
+            actor_id=principal.subject)
+        if paused is None:
+            raise HTTPException(status_code=404, detail="no such alert rule")
+        return paused
+
+    @app.post("/runs/{runId}/alert-evaluations", status_code=201)
+    def evaluate_alerts(runId: str = Path(...),
+                        principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(runId, "runId")
+        try:
+            evaluated = analytics_service.evaluate_alerts(
+                organization_id=principal.organization_id, run_id=runId,
+                actor_id=principal.subject)
+        except AlertError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        if evaluated is None:
+            raise HTTPException(status_code=404, detail="no such run")
+        return evaluated
+
+    @app.get("/projects/{projectId}/alert-events")
+    def list_alert_events(projectId: str = Path(...),
+                          limit: int = Query(50, ge=1, le=200),
+                          principal: TenantPrincipal = Depends(principal_from_authorization)):
+        _require_ulid(projectId, "projectId")
+        return analytics_service.list_alert_events(
+            organization_id=principal.organization_id, project_id=projectId,
+            limit=limit)
 
 
 def _require_enum(value: str, schema_name: str, field: str) -> None:

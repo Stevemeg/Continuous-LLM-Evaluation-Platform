@@ -47,7 +47,8 @@ def examples(seeded):
 
 def build_run(dsn, seeded, examples, scores, *, key, durations=None,
               costs=None, capture_identity=True, evaluator_version=None,
-              extra_candidate=False):
+              extra_candidate=False, latencies=None, completeness="complete",
+              trigger_kind="manual"):
     """A finished run with one evaluator outcome per example.
 
     `scores` may contain `None`, which records the sample as `failed` and writes
@@ -60,7 +61,7 @@ def build_run(dsn, seeded, examples, scores, *, key, durations=None,
             project_id=seeded["project"], suite_version_id=seeded["suite_version"],
             dataset_version_id=seeded["dataset_version"],
             identity_digest="sha256:" + "0" * 64, integration_tier="output_only",
-            idempotency_key=key)
+            idempotency_key=key, trigger_kind=trigger_kind)
         candidate_id = repo.add_candidate(
             run_id, label="a",
             model_configuration_id=seeded["model_configuration"],
@@ -76,7 +77,8 @@ def build_run(dsn, seeded, examples, scores, *, key, durations=None,
                 run_id=run_id, candidate_id=candidate_id, candidate_label="a",
                 example_id=example_id, sample_index=index, resolution=resolution,
                 score=score,
-                failure_kind=None if score is not None else "provider_outage")
+                failure_kind=None if score is not None else "provider_outage",
+                model_latency_ms=(latencies or [None] * len(examples))[index])
             repo.record_evaluator_outcome(
                 sample_id=sample_id,
                 evaluator_version_id=_ulid_of(evaluator_version),
@@ -87,7 +89,9 @@ def build_run(dsn, seeded, examples, scores, *, key, durations=None,
                                  sample_key_value=f"{key}-{index}",
                                  prompt_tokens=10, completion_tokens=5,
                                  amount=costs[index], currency="USD")
-        repo.finish_run(run_id, "complete")
+        repo.finish_run(run_id, completeness,
+                        None if completeness == "complete"
+                        else f"built as {completeness} by a test fixture")
         if capture_identity:
             _capture(conn, seeded, run_id, evaluator_version)
     return run_id

@@ -74,9 +74,747 @@
     {
       "name": "release",
       "description": "Scheduled, post-deployment and canary evaluation, and the recommendations they produce."
+    },
+    {
+      "name": "analytics",
+      "description": "Trends, benchmark-scoped standings, operational figures, judge and agent behaviour, drift, alerting and the executive scorecard. Every figure is derived on read from the evaluation record and carries the runs and observations behind it; none is a stored aggregate."
     }
   ],
   "paths": {
+      "/projects/{projectId}/analytics/quality-trend": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectId"
+          }
+        ],
+        "get": {
+          "operationId": "getQualityTrend",
+          "summary": "Quality over time, with baselines flagged",
+          "description": "REQ-F-11-1. One point per run per metric, oldest first, with approved baselines flagged in the same series so a baseline-versus-candidate reading needs no second call. Every point names the run it came from and the observations behind it (REQ-F-11-6) and is marked where its evidence was incomplete (REQ-F-11-7).",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-1",
+            "REQ-F-11-6",
+            "REQ-F-11-7"
+          ],
+          "responses": {
+            "200": {
+              "description": "The series.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/QualityTrend"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          },
+          "parameters": [
+            {
+              "name": "suiteVersionId",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "description": "Restrict to one benchmark suite version."
+            },
+            {
+              "name": "metricKey",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "string"
+              },
+              "description": "Restrict to one evaluator definition's slug."
+            },
+            {
+              "name": "windowDays",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": "Narrow the figures to this many days. Omitted means all recorded history."
+            },
+            {
+              "name": "limit",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 500
+              },
+              "description": "Maximum points to return."
+            }
+          ]
+        }
+      },
+      "/projects/{projectId}/analytics/leaderboard": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectId"
+          }
+        ],
+        "get": {
+          "operationId": "getBenchmarkLeaderboard",
+          "summary": "Model and provider standings within one benchmark",
+          "description": "REQ-F-11-2. `suiteVersionId` is required and there is no code path that omits it: a ranking without a stated benchmark is the decontextualised comparison canonical \u00a725 rejects.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-2",
+            "REQ-F-11-6",
+            "REQ-F-11-7"
+          ],
+          "responses": {
+            "200": {
+              "description": "The standings, within the named benchmark.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Leaderboard"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            },
+            "422": {
+              "$ref": "#/components/responses/Unprocessable"
+            }
+          },
+          "parameters": [
+            {
+              "name": "suiteVersionId",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "description": "The benchmark this ranking is about. Required."
+            },
+            {
+              "name": "windowDays",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": "Narrow the figures to this many days. Omitted means all recorded history."
+            }
+          ]
+        }
+      },
+      "/projects/{projectId}/analytics/operational": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectId"
+          }
+        ],
+        "get": {
+          "operationId": "getOperationalAnalytics",
+          "summary": "Latency distributions, tokens and cost per successful task",
+          "description": "REQ-F-11-3. Two latencies are reported and named apart: the provider call, measured at the gateway, and the time the evaluators took. Cost and tokens are divided by tasks that succeeded, because dividing by every attempt makes a run that failed half its calls look cheaper per task.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-3",
+            "REQ-F-11-6",
+            "REQ-F-11-7"
+          ],
+          "responses": {
+            "200": {
+              "description": "The operational figures.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/OperationalAnalytics"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          },
+          "parameters": [
+            {
+              "name": "suiteVersionId",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "description": "Restrict to one benchmark suite version."
+            },
+            {
+              "name": "windowDays",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": "Narrow the figures to this many days. Omitted means all recorded history."
+            }
+          ]
+        }
+      },
+      "/projects/{projectId}/analytics/judges": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectId"
+          }
+        ],
+        "get": {
+          "operationId": "getJudgeAnalytics",
+          "summary": "Judge agreement, disagreement, calibration and failure rates",
+          "description": "REQ-F-11-4. Calibration is the same figure the evaluation memory reports, read from the same definition rather than recomputed: two definitions of how far a judge sits from its ensemble is how a dashboard and an escalation come to disagree.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-4",
+            "REQ-F-11-6",
+            "REQ-F-11-7"
+          ],
+          "responses": {
+            "200": {
+              "description": "The judge figures.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/JudgeAnalytics"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          },
+          "parameters": [
+            {
+              "name": "windowDays",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": "Narrow the figures to this many days. Omitted means all recorded history."
+            }
+          ]
+        }
+      },
+      "/projects/{projectId}/analytics/agents": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectId"
+          }
+        ],
+        "get": {
+          "operationId": "getAgentAnalytics",
+          "summary": "Tool success, trajectory failures, loops, retries, completion",
+          "description": "REQ-F-11-5. A loop is an identical call repeated back to back \u2014 the shape that cannot be productive \u2014 and a retry is any repeated call signature. Both are the definitions the agent evaluators use, so a dashboard and a score mean the same thing by each word.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-5",
+            "REQ-F-11-6",
+            "REQ-F-11-7"
+          ],
+          "responses": {
+            "200": {
+              "description": "The agent figures.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/AgentAnalytics"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          },
+          "parameters": [
+            {
+              "name": "suiteVersionId",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "description": "Restrict to one benchmark suite version."
+            },
+            {
+              "name": "windowDays",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": "Narrow the figures to this many days. Omitted means all recorded history."
+            }
+          ]
+        }
+      },
+      "/projects/{projectId}/analytics/drift": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectId"
+          }
+        ],
+        "get": {
+          "operationId": "getQualityDrift",
+          "summary": "Drift against baseline history, never against a single prior run",
+          "description": "REQ-F-10-4. The comparison is against every baseline that has held the scope, including superseded ones, because a superseded baseline is history rather than a mistake. The verdict is withheld with a reason unless a minimum history and a tolerance are supplied: a threshold invented by the platform would be a calibrated-looking number nobody calibrated.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-10-4",
+            "REQ-F-11-6",
+            "REQ-F-11-7"
+          ],
+          "responses": {
+            "200": {
+              "description": "What the history says about this run.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/DriftAnalysis"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            },
+            "422": {
+              "$ref": "#/components/responses/Unprocessable"
+            }
+          },
+          "parameters": [
+            {
+              "name": "suiteVersionId",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "description": "The benchmark whose baseline history is being read. Required."
+            },
+            {
+              "name": "runId",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "description": "The run being assessed."
+            },
+            {
+              "name": "metricKey",
+              "in": "query",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "description": "The evaluator definition's slug."
+            },
+            {
+              "name": "minimumHistory",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "description": "How many baselines must exist before a verdict is given. Below two is refused: a history of one is the single prior run REQ-F-10-4 forbids."
+            },
+            {
+              "name": "tolerance",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              "description": "How far from the historical median counts as drift. Supplied by the caller; the platform declines to invent it."
+            }
+          ]
+        }
+      },
+      "/projects/{projectId}/scorecard": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectId"
+          }
+        ],
+        "get": {
+          "operationId": "getProjectScorecard",
+          "summary": "An executive scorecard, with its qualifications intact",
+          "description": "REQ-F-11-8. Suitable for a non-specialist reader, and the second half of that requirement is the load-bearing one: every figure keeps the observation count behind it, every incomplete figure says so in a sentence rather than a footnote, and what the platform has not calibrated is stated rather than omitted.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-8",
+            "REQ-F-11-6",
+            "REQ-F-11-7"
+          ],
+          "responses": {
+            "200": {
+              "description": "The scorecard, machine-readable or as Markdown.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Scorecard"
+                  }
+                },
+                "text/markdown": {
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          },
+          "parameters": [
+            {
+              "name": "suiteVersionId",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "$ref": "#/components/schemas/Ulid"
+              },
+              "description": "Restrict to one benchmark suite version."
+            },
+            {
+              "name": "windowDays",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": "Narrow the figures to this many days. Omitted means all recorded history."
+            },
+            {
+              "name": "format",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "string",
+                "enum": [
+                  "json",
+                  "markdown"
+                ]
+              },
+              "description": "Representation. Both carry the same qualifications."
+            },
+            {
+              "name": "minimumHistory",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "description": "Passed through to the drift analysis."
+            },
+            {
+              "name": "tolerance",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "$ref": "#/components/schemas/Decimal"
+              },
+              "description": "Passed through to the drift analysis."
+            }
+          ]
+        }
+      },
+      "/projects/{projectId}/alert-rules": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectId"
+          }
+        ],
+        "post": {
+          "operationId": "createAlertRule",
+          "summary": "Define an alert condition",
+          "description": "REQ-F-11-9. A rule states which way is bad and how many observations it needs before it will fire. There is no delivery target: REQ-F-10-3 forbids the product from acting, and a rule that named an endpoint would be the first step towards it.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9"
+          ],
+          "responses": {
+            "201": {
+              "description": "The rule.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/AlertRule"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            },
+            "422": {
+              "$ref": "#/components/responses/Unprocessable"
+            }
+          },
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertRuleRequest"
+                }
+              }
+            }
+          }
+        },
+        "get": {
+          "operationId": "listAlertRules",
+          "summary": "List the alert rules on a project",
+          "description": "REQ-F-11-9. Paused rules are listed too: a rule that was switched off is part of why nothing fired.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9"
+          ],
+          "responses": {
+            "200": {
+              "description": "The rules.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/AlertRulePage"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      },
+      "/alert-rules/{alertRuleId}/pause": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/alertRuleId"
+          }
+        ],
+        "post": {
+          "operationId": "pauseAlertRule",
+          "summary": "Pause an alert rule",
+          "description": "Paused rather than deleted, so a later reader can explain a quiet period rather than guessing at one.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9"
+          ],
+          "responses": {
+            "200": {
+              "description": "The paused rule.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/AlertRule"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          }
+        }
+      },
+      "/runs/{runId}/alert-evaluations": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/runId"
+          }
+        ],
+        "post": {
+          "operationId": "evaluateAlerts",
+          "summary": "Evaluate the alert rules against one run",
+          "description": "REQ-F-11-9. Every active rule is reported on, whether or not it fired, and a rule that could not be evaluated says why rather than being silently absent. One firing per rule per run is guaranteed by the store, so evaluating a run twice cannot produce a second alert about the same evidence.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9",
+            "REQ-F-11-7"
+          ],
+          "responses": {
+            "201": {
+              "description": "What each rule decided.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/AlertEvaluation"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            },
+            "422": {
+              "$ref": "#/components/responses/Unprocessable"
+            }
+          }
+        }
+      },
+      "/projects/{projectId}/alert-events": {
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/projectId"
+          }
+        ],
+        "get": {
+          "operationId": "listAlertEvents",
+          "summary": "List alert firings on a project",
+          "description": "REQ-F-11-9. A firing records the condition that held, the value that held it, and the completeness of the evidence behind it (REQ-F-11-7). It records no notification and no action.",
+          "tags": [
+            "analytics"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9",
+            "REQ-F-11-7"
+          ],
+          "responses": {
+            "200": {
+              "description": "The firings.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/AlertEventPage"
+                  }
+                }
+              }
+            },
+            "401": {
+              "$ref": "#/components/responses/Unauthorized"
+            },
+            "403": {
+              "$ref": "#/components/responses/Forbidden"
+            },
+            "404": {
+              "$ref": "#/components/responses/NotFound"
+            }
+          },
+          "parameters": [
+            {
+              "name": "limit",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 200
+              },
+              "description": "Maximum firings to return."
+            }
+          ]
+        }
+      },
     "/projects/{projectId}/runs": {
       "parameters": [
         {
@@ -2101,6 +2839,14 @@
       }
     },
     "parameters": {
+        "alertRuleId": {
+          "name": "alertRuleId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/Ulid"
+          }
+        },
       "projectId": {
         "name": "projectId",
         "in": "path",
@@ -2319,6 +3065,1098 @@
       }
     },
     "schemas": {
+        "EvidenceCompleteness": {
+          "type": "object",
+          "description": "Whether a figure may be read at face value. REQ-F-11-7 requires a figure computed from incomplete data to be marked in every view and export it appears in, so this travels with the figure rather than being a property of some responses.",
+          "required": [
+            "state",
+            "contributingRuns",
+            "incompleteRuns",
+            "observations",
+            "unresolvedObservations"
+          ],
+          "x-requirements": [
+            "REQ-F-11-7"
+          ],
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "complete",
+                "incomplete"
+              ]
+            },
+            "contributingRuns": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "incompleteRuns": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Contributing runs that did not finish `complete`. Four of the five completeness states are not success."
+            },
+            "observations": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Scored observations behind the figure. A sample that was not scored contributes nothing and never a zero."
+            },
+            "unresolvedObservations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reason": {
+              "type": "string",
+              "description": "A sentence a non-specialist can act on. Present exactly when the state is incomplete."
+            }
+          }
+        },
+        "QualityTrendPoint": {
+          "type": "object",
+          "required": [
+            "runId",
+            "metricKey",
+            "observations",
+            "completeness"
+          ],
+          "x-requirements": [
+            "REQ-F-11-1",
+            "REQ-F-11-6"
+          ],
+          "properties": {
+            "runId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "metricKey": {
+              "type": "string"
+            },
+            "meanScore": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "trigger": {
+              "$ref": "#/components/schemas/RunTrigger"
+            },
+            "runCompleteness": {
+              "$ref": "#/components/schemas/Completeness"
+            },
+            "isBaseline": {
+              "type": "boolean"
+            },
+            "createdAt": {
+              "$ref": "#/components/schemas/Instant"
+            },
+            "completeness": {
+              "$ref": "#/components/schemas/EvidenceCompleteness"
+            }
+          }
+        },
+        "QualityTrend": {
+          "type": "object",
+          "required": [
+            "items"
+          ],
+          "x-requirements": [
+            "REQ-F-11-1"
+          ],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/QualityTrendPoint"
+              }
+            },
+            "windowDays": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "suiteVersionId": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Ulid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "LeaderboardEntry": {
+          "type": "object",
+          "required": [
+            "modelConfigurationId",
+            "metricKey",
+            "observations",
+            "runIds",
+            "completeness"
+          ],
+          "x-requirements": [
+            "REQ-F-11-2",
+            "REQ-F-11-6"
+          ],
+          "properties": {
+            "modelConfigurationId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "modelIdentifier": {
+              "type": "string"
+            },
+            "providerSlug": {
+              "type": "string"
+            },
+            "metricKey": {
+              "type": "string"
+            },
+            "meanScore": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unresolved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Ulid"
+              }
+            },
+            "completeness": {
+              "$ref": "#/components/schemas/EvidenceCompleteness"
+            }
+          }
+        },
+        "Leaderboard": {
+          "type": "object",
+          "description": "Standings within one named benchmark. REQ-F-11-2: never a global ranking, so `suiteVersionId` is required and always present in the response.",
+          "required": [
+            "suiteVersionId",
+            "items"
+          ],
+          "x-requirements": [
+            "REQ-F-11-2"
+          ],
+          "properties": {
+            "suiteVersionId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "windowDays": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/LeaderboardEntry"
+              }
+            }
+          }
+        },
+        "LatencyDistribution": {
+          "type": "object",
+          "description": "Quantiles reported with the count they were taken over. The tail is not optional: a median published without a 95th percentile beside it is the figure that makes a system with a slow tail look healthy.",
+          "required": [
+            "measured",
+            "quantiles"
+          ],
+          "x-requirements": [
+            "REQ-F-11-3"
+          ],
+          "properties": {
+            "measured": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minimum": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "maximum": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "quantiles": {
+              "type": "object",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description": "Keyed by quantile. Discrete: each value is an observation that happened, never an interpolation between two that did not."
+            }
+          }
+        },
+        "OperationalAnalytics": {
+          "type": "object",
+          "required": [
+            "modelLatencyMs",
+            "evaluatorLatencyMs",
+            "successfulTasks",
+            "completeness"
+          ],
+          "x-requirements": [
+            "REQ-F-11-3",
+            "REQ-F-11-6"
+          ],
+          "properties": {
+            "modelLatencyMs": {
+              "$ref": "#/components/schemas/LatencyDistribution"
+            },
+            "evaluatorLatencyMs": {
+              "$ref": "#/components/schemas/LatencyDistribution"
+            },
+            "successfulTasks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "promptTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "completionTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "costTotal": {
+              "$ref": "#/components/schemas/Decimal"
+            },
+            "costCurrency": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tokensPerSuccessfulTask": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "costPerSuccessfulTask": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "runIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Ulid"
+              }
+            },
+            "completeness": {
+              "$ref": "#/components/schemas/EvidenceCompleteness"
+            }
+          }
+        },
+        "JudgeAnalytics": {
+          "type": "object",
+          "required": [
+            "judgements",
+            "consensusResults",
+            "completeness"
+          ],
+          "x-requirements": [
+            "REQ-F-11-4",
+            "REQ-F-11-6"
+          ],
+          "properties": {
+            "judgements": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scored": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "abstained": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "failed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "consensusResults": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "agreed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalated": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "disagreementMeasured": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Verdicts where disagreement could be measured. An unmeasured one holds the maximum as a floor on ignorance and is excluded from the mean, so an absence of evidence never reads as agreement."
+            },
+            "meanDisagreement": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "escalationReasons": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "calibration": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/JudgeCalibration"
+              }
+            },
+            "runIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Ulid"
+              }
+            },
+            "completeness": {
+              "$ref": "#/components/schemas/EvidenceCompleteness"
+            }
+          }
+        },
+        "AgentToolSummary": {
+          "type": "object",
+          "required": [
+            "tool",
+            "calls",
+            "failed"
+          ],
+          "x-requirements": [
+            "REQ-F-11-5"
+          ],
+          "properties": {
+            "tool": {
+              "type": "string"
+            },
+            "calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "failed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "successRate": {
+              "$ref": "#/components/schemas/Decimal"
+            }
+          }
+        },
+        "AgentAnalytics": {
+          "type": "object",
+          "required": [
+            "samplesWithTrajectory",
+            "toolCalls",
+            "completeness"
+          ],
+          "x-requirements": [
+            "REQ-F-11-5",
+            "REQ-F-11-6"
+          ],
+          "properties": {
+            "samplesWithTrajectory": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "completedTasks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "truncatedTrajectories": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Trajectories cut at the ingest bound. They cannot be read as finished: the run may have ended on the next step or looped for a thousand more."
+            },
+            "toolCalls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "failedToolCalls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "toolSuccessRate": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "samplesWithLoops": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Samples where an identical call was repeated back to back \u2014 the shape that cannot be productive."
+            },
+            "samplesWithRetries": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Samples where any call signature repeated. Not a fault on its own: an agent may legitimately re-read a file after writing it."
+            },
+            "trajectoryFailures": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "byTool": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/AgentToolSummary"
+              }
+            },
+            "runIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Ulid"
+              }
+            },
+            "completeness": {
+              "$ref": "#/components/schemas/EvidenceCompleteness"
+            }
+          }
+        },
+        "DriftVerdict": {
+          "type": "string",
+          "enum": [
+            "drifted",
+            "stable",
+            "insufficient_history",
+            "insufficient_configuration",
+            "not_measured"
+          ],
+          "description": "`insufficient_configuration` is the abstention that keeps this honest: without a caller-supplied tolerance and minimum history, drift cannot be distinguished from ordinary variation, and the platform declines to invent the value rather than guessing it.",
+          "x-requirements": [
+            "REQ-F-10-4"
+          ]
+        },
+        "DriftPosition": {
+          "type": "string",
+          "enum": [
+            "below_observed_range",
+            "within_observed_range",
+            "above_observed_range"
+          ],
+          "description": "Where the current value sits relative to the range the baseline history actually spanned. An observation, not a threshold: it costs no calibration and is reported even when no verdict can be given.",
+          "x-requirements": [
+            "REQ-F-10-4"
+          ]
+        },
+        "DriftHistoryPoint": {
+          "type": "object",
+          "required": [
+            "runId",
+            "baselineId",
+            "meanScore",
+            "observations"
+          ],
+          "x-requirements": [
+            "REQ-F-10-4",
+            "REQ-F-11-6"
+          ],
+          "properties": {
+            "runId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "baselineId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "baselineState": {
+              "type": "string",
+              "enum": [
+                "approved",
+                "superseded"
+              ]
+            },
+            "meanScore": {
+              "$ref": "#/components/schemas/Decimal"
+            },
+            "observations": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "approvedAt": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Instant"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "DriftAnalysis": {
+          "type": "object",
+          "required": [
+            "metricKey",
+            "runId",
+            "verdict",
+            "detail",
+            "historySize",
+            "history"
+          ],
+          "x-requirements": [
+            "REQ-F-10-4",
+            "REQ-F-11-6"
+          ],
+          "properties": {
+            "metricKey": {
+              "type": "string"
+            },
+            "runId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "currentValue": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "currentObservations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "verdict": {
+              "$ref": "#/components/schemas/DriftVerdict"
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            },
+            "position": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/DriftPosition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "historySize": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "historicalMinimum": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "historicalMedian": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "historicalMaximum": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "deviationFromMedian": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tolerance": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "minimumHistory": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "history": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/DriftHistoryPoint"
+              }
+            }
+          }
+        },
+        "Scorecard": {
+          "type": "object",
+          "description": "An executive summary that keeps its qualifications. `notEstablished` is not decoration and is never empty: judge accuracy, statistical calibration and hosted-provider behaviour are open questions in this product, and a scorecard that omitted them would invite a decision the evidence does not support.",
+          "required": [
+            "projectId",
+            "generatedAt",
+            "qualityTrend",
+            "operational",
+            "judges",
+            "agents",
+            "notEstablished"
+          ],
+          "x-requirements": [
+            "REQ-F-11-8",
+            "REQ-F-11-6",
+            "REQ-F-11-7"
+          ],
+          "properties": {
+            "projectId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "suiteVersionId": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Ulid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "windowDays": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "generatedAt": {
+              "$ref": "#/components/schemas/Instant"
+            },
+            "qualityTrend": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/QualityTrendPoint"
+              }
+            },
+            "leaderboard": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/LeaderboardEntry"
+              }
+            },
+            "operational": {
+              "$ref": "#/components/schemas/OperationalAnalytics"
+            },
+            "judges": {
+              "$ref": "#/components/schemas/JudgeAnalytics"
+            },
+            "agents": {
+              "$ref": "#/components/schemas/AgentAnalytics"
+            },
+            "drift": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/DriftAnalysis"
+              }
+            },
+            "alerts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/AlertEvent"
+              }
+            },
+            "alertRules": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "notEstablished": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              },
+              "description": "What this report does not tell you. Present on every scorecard."
+            }
+          }
+        },
+        "AlertDimension": {
+          "type": "string",
+          "enum": [
+            "quality",
+            "cost",
+            "latency"
+          ],
+          "description": "The three dimensions REQ-F-11-9 names.",
+          "x-requirements": [
+            "REQ-F-11-9"
+          ]
+        },
+        "AlertRuleRequest": {
+          "type": "object",
+          "required": [
+            "slug",
+            "displayName",
+            "dimension",
+            "metricKey",
+            "direction",
+            "threshold",
+            "minimumSampleSize"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9"
+          ],
+          "properties": {
+            "slug": {
+              "type": "string",
+              "minLength": 1
+            },
+            "displayName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "dimension": {
+              "$ref": "#/components/schemas/AlertDimension"
+            },
+            "metricKey": {
+              "type": "string",
+              "minLength": 1,
+              "description": "An evaluator definition's slug for a quality rule; one of the figures the platform computes for a cost or latency rule. A rule on a figure that does not exist never fires and never says why, so it is refused at creation."
+            },
+            "direction": {
+              "$ref": "#/components/schemas/MetricDirection"
+            },
+            "threshold": {
+              "$ref": "#/components/schemas/Decimal"
+            },
+            "minimumSampleSize": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "REQ-F-08-3 applied to alerting: a rule with no minimum fires on noise."
+            }
+          }
+        },
+        "AlertRule": {
+          "type": "object",
+          "description": "A standing statement that a figure is worth knowing about. There is deliberately no delivery target: REQ-F-10-3 forbids the product from acting.",
+          "required": [
+            "id",
+            "slug",
+            "dimension",
+            "metricKey",
+            "direction",
+            "threshold",
+            "minimumSampleSize",
+            "state"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9",
+            "REQ-F-10-3"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "projectId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "slug": {
+              "type": "string"
+            },
+            "displayName": {
+              "type": "string"
+            },
+            "dimension": {
+              "$ref": "#/components/schemas/AlertDimension"
+            },
+            "metricKey": {
+              "type": "string"
+            },
+            "direction": {
+              "$ref": "#/components/schemas/MetricDirection"
+            },
+            "threshold": {
+              "$ref": "#/components/schemas/Decimal"
+            },
+            "minimumSampleSize": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "state": {
+              "$ref": "#/components/schemas/ScheduleState"
+            }
+          }
+        },
+        "AlertRulePage": {
+          "type": "object",
+          "required": [
+            "items"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9"
+          ],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/AlertRule"
+              }
+            }
+          }
+        },
+        "AlertEvent": {
+          "type": "object",
+          "description": "The condition held, at this value, over this many observations, against evidence of this completeness. There is no field recording a notification sent or an action taken.",
+          "required": [
+            "id",
+            "alertRuleId",
+            "runId",
+            "observedValue",
+            "threshold",
+            "sampleSize",
+            "evidenceCompleteness",
+            "detail"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9",
+            "REQ-F-11-7",
+            "REQ-F-10-3"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "alertRuleId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "runId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "observedValue": {
+              "$ref": "#/components/schemas/Decimal"
+            },
+            "threshold": {
+              "$ref": "#/components/schemas/Decimal"
+            },
+            "sampleSize": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "evidenceCompleteness": {
+              "$ref": "#/components/schemas/Completeness"
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            },
+            "firedAt": {
+              "$ref": "#/components/schemas/Instant"
+            }
+          }
+        },
+        "AlertEventPage": {
+          "type": "object",
+          "required": [
+            "items"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9"
+          ],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/AlertEvent"
+              }
+            }
+          }
+        },
+        "AlertOutcomeKind": {
+          "type": "string",
+          "enum": [
+            "fired",
+            "within_threshold",
+            "not_measured",
+            "below_minimum_sample",
+            "already_recorded"
+          ],
+          "description": "What one rule decided about one run. A rule that could not be evaluated reports why rather than being silently absent from the result.",
+          "x-requirements": [
+            "REQ-F-11-9"
+          ]
+        },
+        "AlertOutcome": {
+          "type": "object",
+          "required": [
+            "alertRuleId",
+            "slug",
+            "outcome",
+            "detail"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9"
+          ],
+          "properties": {
+            "alertRuleId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "slug": {
+              "type": "string"
+            },
+            "outcome": {
+              "$ref": "#/components/schemas/AlertOutcomeKind"
+            },
+            "observedValue": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Decimal"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "sampleSize": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "alertEventId": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Ulid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "AlertEvaluation": {
+          "type": "object",
+          "required": [
+            "runId",
+            "items"
+          ],
+          "x-requirements": [
+            "REQ-F-11-9"
+          ],
+          "properties": {
+            "runId": {
+              "$ref": "#/components/schemas/Ulid"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/AlertOutcome"
+              }
+            }
+          }
+        },
       "Ulid": {
         "type": "string",
         "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",

@@ -61,11 +61,19 @@ Money and token quantities are strings matching a decimal pattern, never JSON nu
 
 | Absent | Owner |
 |---|---|
-| Analytics, trends, leaderboards, scorecards | Phase 11 |
-| Canary and post-deployment evaluation | Phase 10 |
+| ~~Analytics, trends, leaderboards, scorecards~~ | **Delivered in Phase 11** (`REQ-F-11-1` … `REQ-F-11-8`, `REQ-F-10-4`) |
+| ~~Canary and post-deployment evaluation~~ | **Delivered in Phase 10**, executed in Phase 11 |
 | Custom evaluator registration and upload | Phase 5, behind the evaluator SDK |
-| Webhooks and alert delivery | Phase 11 |
+| Alert **delivery** — webhooks, email, paging | Not owned by any phase yet. `REQ-F-11-9` asks the product to *alert on defined conditions*, and Phase 11 delivers that: rules, evaluation, and an audited firing record readable through `listAlertEvents`. Outbound delivery is an egress capability with its own threat surface, and `REQ-F-10-3` keeps the platform from acting on a production system. Nothing in `CAP-11` requires it, so it is absent rather than invented. |
 | Authentication issuance and rotation flows | Phase 12 |
 | Bulk export | Not required by any Phase 1 requirement |
 
-Each is absent because no Phase 3 requirement needs it, not because it was overlooked. Adding a speculative endpoint would be the unearned complexity canonical §22 and `PR-7` both reject.
+Each is absent because no requirement needs it, not because it was overlooked. Adding a speculative endpoint would be the unearned complexity canonical §22 and `PR-7` both reject.
+
+## Analytics are derived, never stored
+
+Phase 11 adds twelve operations and no aggregate table. Every figure — a trend point, a leaderboard row, a latency quantile, a judge agreement rate — is computed on read from `run_sample`, `evaluator_outcome`, `sample_cost`, `consensus_result` and `trajectory_step`.
+
+That is `REQ-F-11-6` made structural. A stored aggregate is a figure whose provenance is a previous computation; asked *which samples produced this*, it can only answer *the ones that were there when the job ran*. Every analytics response therefore carries the runs it was computed from and the observation count behind it, because it has just read them.
+
+`EvidenceCompleteness` travels with each figure for `REQ-F-11-7`: a mean over a run that was cancelled halfway is not a mean of that run, and the qualification is part of the figure rather than a property some views happen to render.

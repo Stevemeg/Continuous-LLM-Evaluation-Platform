@@ -74,7 +74,7 @@ def test_every_implemented_route_is_declared_in_the_contract(client):
 
 
 def test_the_phase_implements_its_operations_and_says_so_by_omission():
-    """Phase 10 adds the scheduled and post-deployment surface.
+    """Phase 11 adds the analytics, scorecard and alerting surface.
     The rest belong to phases that have not run and are absent, not stubbed: a
     501 is still a route a client can find and build against."""
     ids = {contract.operation_id(m, p) for m, p in contract.operations()}
@@ -91,8 +91,13 @@ def test_the_phase_implements_its_operations_and_says_so_by_omission():
             "acceptEvaluationPlan", "listEscalations",
             "recordEscalationReview", "getEvaluationMemory",
             "getSampleAnalysis", "createEvaluationSchedule",
-            "pauseEvaluationSchedule", "recordReleaseObservation"} <= ids
-    assert len(ids) == 40
+            "pauseEvaluationSchedule", "recordReleaseObservation",
+            "getQualityTrend", "getBenchmarkLeaderboard",
+            "getOperationalAnalytics", "getJudgeAnalytics", "getAgentAnalytics",
+            "getQualityDrift", "getProjectScorecard", "createAlertRule",
+            "listAlertRules", "pauseAlertRule", "evaluateAlerts",
+            "listAlertEvents"} <= ids
+    assert len(ids) == 52
 
 
 def test_every_identifier_a_request_accepts_can_be_created_through_the_contract():

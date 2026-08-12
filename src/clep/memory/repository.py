@@ -83,6 +83,17 @@ class MemoryRepository:
             evaluator_instability=self._evaluator_instability(project, window_days),
         )
 
+    def judge_calibration(self, project_id: str, *,
+                          window_days: int | None = None) -> tuple:
+        """Per-judge calibration on its own, for a caller that wants only that.
+
+        Phase 11's analytics needs this figure and must not recompute it: two
+        definitions of "how far this judge sits from its ensemble" is how a
+        dashboard and an escalation come to disagree about which judge is
+        drifting. Public here rather than reached into from there.
+        """
+        return self._judge_calibration(ulid_to_uuid(project_id), window_days)
+
     # ------------------------------------------------------------------ pieces
     def _window(self, column: str, window_days: int | None) -> tuple[str, list]:
         """A tenant retention window narrows what is reported, and stops there.
