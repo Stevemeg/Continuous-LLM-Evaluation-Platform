@@ -107,6 +107,34 @@ Discharging ADR-010 at the physical level.
 | P-6 | Cross-tenant access attempts are rejected by the store and emit an audit event. | `REQ-N-SEC-2` |
 | P-7 | Negative isolation tests exist per tenant-scoped table, asserting both denial and audit emission. | ADR-010 rule 6 |
 
+**P-4, as physically realised.** Recorded in Phase 12, when the global category
+acquired tables for the first time. Three scope categories exist, and the schema
+conformance checker models all three:
+
+| Category | Tenant column | Tables |
+|---|---|---|
+| The tenant root | none — it *is* the tenant | `organization` |
+| Globally scoped | **none** | `app_user`, `role`, `role_permission` |
+| Dual-scoped | `organization_id`, **nullable** | `evaluator_definition`, `evaluator_version` |
+| Tenant-scoped | `organization_id NOT NULL` | every other table |
+
+`app_user` realises the `user` entity — renamed because `user` is reserved in
+SQL. `role_permission` is not named in P-4 above and is exempt as the attribute
+table of `role`, having no existence independent of it, in the way
+`evaluator_version` accompanies `evaluator_definition`.
+
+Two entries in P-4 are **not** in the global set: `provider` and `model` are
+realised as tenant-scoped, because a provider endpoint and a model configuration
+are one tenant's credentials and one tenant's parameters. That divergence
+predates Phase 12 and is recorded rather than resolved — exempting them would
+withhold a check from tables that do carry a tenant and should keep being
+checked for it.
+
+Membership of the global set is exact and enumerated, never inferred from a
+name. `tests/test_schema_conformance_rules.py` asserts that a table cannot
+become exempt by resembling one of these, and that a table declared global
+cannot quietly acquire a tenant column.
+
 **P-5 closes a gap that P-1 and P-2 alone leave open.** Per-table policies stop a cross-tenant *read*; without a same-tenant constraint on foreign keys, a write could still link one tenant's row to another's and create a record that no single-table policy rejects.
 
 ## 4. Retention standards

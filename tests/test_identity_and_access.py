@@ -428,6 +428,90 @@ def test_the_role_catalogue_is_readable_and_not_writable(migrated_database,
 
 @pytest.mark.integration
 @requires_postgres
+@pytest.mark.parametrize("table", ["role", "role_permission"])
+def test_the_catalogue_tables_are_keyed_on_id_like_every_other_table(
+        migrated_database, table):
+    """N-2, read from the live catalogue rather than from the DDL.
+
+    Both tables were first written with a natural key — `slug` for one, the
+    `(role_slug, permission)` pair for the other — which the Phase 4 conformance
+    checker correctly rejected. Asserted here against `pg_index` because the
+    question is what the database enforces, not what the file says.
+    """
+    with psycopg.connect(migrated_database) as conn:
+        columns = [r[0] for r in conn.execute(
+            "SELECT a.attname FROM pg_index i "
+            "  JOIN pg_class c ON c.oid = i.indrelid "
+            "  JOIN pg_namespace n ON n.oid = c.relnamespace "
+            "  JOIN pg_attribute a ON a.attrelid = c.oid "
+            "                     AND a.attnum = ANY(i.indkey) "
+            " WHERE n.nspname = 'clep' AND c.relname = %s AND i.indisprimary "
+            " ORDER BY a.attname", (table,)).fetchall()]
+    assert columns == ["id"], f"{table} is keyed on {columns}"
+
+
+@pytest.mark.integration
+@requires_postgres
+def test_the_semantics_the_natural_keys_carried_are_still_enforced(
+        migrated_database, organization):
+    """Changing the primary key must not have loosened anything.
+
+    A surrogate key trivially permits two rows that a natural key forbade, so
+    the uniqueness those keys carried is asserted by attempting the duplicates
+    the old keys made impossible.
+    """
+    with pytest.raises(psycopg.errors.UniqueViolation):
+        with psycopg.connect(MIGRATION_DSN) as conn:
+            conn.execute(
+                "INSERT INTO clep.role (id, slug, display_name, description) "
+                "VALUES (gen_random_uuid(), 'owner', 'Duplicate', 'x')")
+    with pytest.raises(psycopg.errors.UniqueViolation):
+        with psycopg.connect(MIGRATION_DSN) as conn:
+            conn.execute(
+                "INSERT INTO clep.role_permission (id, role_slug, permission) "
+                "VALUES (gen_random_uuid(), 'owner', 'run:create')")
+
+
+@pytest.mark.integration
+@requires_postgres
+def test_every_seeded_catalogue_row_received_a_distinct_identifier(
+        migrated_database):
+    """The seed inserts call `gen_random_uuid()` once per row. A single shared
+    identifier would satisfy a primary key of one row and fail on the second, so
+    this would have failed loudly — but it is asserted rather than assumed,
+    because the seed is the only place these identifiers are ever generated."""
+    with psycopg.connect(migrated_database) as conn:
+        for table in ("role", "role_permission"):
+            rows, distinct = conn.execute(
+                f"SELECT count(*), count(DISTINCT id) FROM clep.{table}"
+            ).fetchone()
+            assert rows == distinct > 0, f"{table}: {rows} rows, {distinct} ids"
+
+
+@pytest.mark.integration
+@requires_postgres
+def test_a_role_binding_still_reaches_its_role_through_the_slug(
+        migrated_database, organization):
+    """The foreign key targets `slug`, which remains unique. A surrogate primary
+    key does not mean an opaque reference: `role_binding.role_slug` stays
+    readable, and the store still refuses a role that does not exist."""
+    user_id, _presented = _bootstrap(organization)
+    with tenant_session(migrated_database, organization) as conn:
+        holders = {b.role_slug for b in
+                   SecurityRepository(conn, organization).list_role_bindings()}
+    assert holders == {"owner"}
+    with pytest.raises(psycopg.errors.ForeignKeyViolation):
+        with psycopg.connect(MIGRATION_DSN) as conn:
+            conn.execute(
+                "INSERT INTO clep.role_binding (id, organization_id, role_slug, "
+                "principal_kind, app_user_id, scope_kind, created_by) "
+                "VALUES (%s, %s, 'sovereign', 'user', %s, 'organization', %s)",
+                (ulid_to_uuid(new_ulid()), organization, ulid_to_uuid(user_id),
+                 ulid_to_uuid(user_id)))
+
+
+@pytest.mark.integration
+@requires_postgres
 def test_every_role_grants_only_permissions_the_platform_recognises(
         migrated_database, organization):
     with tenant_session(migrated_database, organization) as conn:

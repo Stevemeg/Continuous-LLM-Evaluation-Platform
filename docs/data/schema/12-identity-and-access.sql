@@ -59,17 +59,28 @@ COMMENT ON TABLE clep.app_user IS
 -- write policy, so a tenant cannot mint a role carrying permissions nobody
 -- reviewed. ADR-020 defers tenant-defined roles for exactly that reason.
 -- -----------------------------------------------------------------------------
+-- N-2 applies here as everywhere: the primary key is `id`. The slug is what
+-- every other table references and what a human reads, so it stays unique and
+-- stays the foreign-key target — a surrogate key does not mean an opaque one.
+-- Making the slug itself the primary key would have been the convenient choice
+-- and would have put one table's identity on a different footing from the other
+-- eighty-two.
 CREATE TABLE clep.role (
-    slug          text PRIMARY KEY,
+    id            uuid PRIMARY KEY,
+    slug          text NOT NULL,
     display_name  text NOT NULL,
     description   text NOT NULL,
+    CONSTRAINT uq_role__slug UNIQUE (slug),
     CONSTRAINT ck_role__slug_form CHECK (slug ~ '^[a-z][a-z_]*$')
 );
 
 CREATE TABLE clep.role_permission (
+    id          uuid PRIMARY KEY,
     role_slug   text NOT NULL REFERENCES clep.role (slug),
     permission  text NOT NULL,
-    CONSTRAINT pk_role_permission PRIMARY KEY (role_slug, permission),
+    -- The pair stays unique, so a role still cannot hold one permission twice.
+    -- What changed is that the pair is no longer the row's identity.
+    CONSTRAINT uq_role_permission__role_permission UNIQUE (role_slug, permission),
     -- The closed vocabulary of ADR-020 rule 1. It is spelled out here rather
     -- than left to the application, so a permission the platform does not
     -- recognise cannot be granted by writing a row. The same set is declared in
@@ -98,26 +109,26 @@ COMMENT ON CONSTRAINT ck_role_permission__vocabulary ON clep.role_permission IS
 
 -- The catalogue itself. Five roles, each with a stated reason to exist. A sixth
 -- would need a governed action none of these should hold.
-INSERT INTO clep.role (slug, display_name, description) VALUES
-    ('owner',      'Owner',
+INSERT INTO clep.role (id, slug, display_name, description) VALUES
+    (gen_random_uuid(), 'owner',      'Owner',
      'Full authority, including granting roles, managing credentials, setting '
      'governance policy, and requesting erasure.'),
-    ('maintainer', 'Maintainer',
+    (gen_random_uuid(), 'maintainer', 'Maintainer',
      'Every operational action: runs, prompts, baselines, gates, judges, plans, '
      'schedules and alerts. Cannot grant roles, manage credentials, change '
      'governance policy, or erase content.'),
-    ('analyst',    'Analyst',
+    (gen_random_uuid(), 'analyst',    'Analyst',
      'Reads evidence and starts runs. Approves nothing and configures nothing.'),
-    ('auditor',    'Auditor',
+    (gen_random_uuid(), 'auditor',    'Auditor',
      'Reads everything, including the audit trail. Writes nothing at all — the '
      'role REQ-N-COMP-1 exists for.'),
-    ('service',    'Service account',
+    (gen_random_uuid(), 'service',    'Service account',
      'A CI credential: submit a run, read it, evaluate a gate, read the result. '
      'Deliberately cannot approve a baseline or waive a policy, because a '
      'pipeline that can waive its own gate is not a gate.');
 
-INSERT INTO clep.role_permission (role_slug, permission)
-SELECT 'owner', p FROM (VALUES
+INSERT INTO clep.role_permission (id, role_slug, permission)
+SELECT gen_random_uuid(), 'owner', p FROM (VALUES
     ('run:create'), ('run:read'), ('run:cancel'), ('run:reproduce'),
     ('dataset:read'), ('dataset:write'), ('dataset:approve'), ('dataset:erase'),
     ('prompt:read'), ('prompt:write'), ('prompt:publish'), ('experiment:write'),
@@ -130,8 +141,8 @@ SELECT 'owner', p FROM (VALUES
     ('audit:read'), ('credential:manage'), ('role:grant'),
     ('governance:configure')) AS v(p);
 
-INSERT INTO clep.role_permission (role_slug, permission)
-SELECT 'maintainer', p FROM (VALUES
+INSERT INTO clep.role_permission (id, role_slug, permission)
+SELECT gen_random_uuid(), 'maintainer', p FROM (VALUES
     ('run:create'), ('run:read'), ('run:cancel'), ('run:reproduce'),
     ('dataset:read'), ('dataset:write'), ('dataset:approve'),
     ('prompt:read'), ('prompt:write'), ('prompt:publish'), ('experiment:write'),
@@ -142,20 +153,20 @@ SELECT 'maintainer', p FROM (VALUES
     ('schedule:write'), ('release:observe'), ('analytics:read'),
     ('alert:configure'), ('alert:read'), ('alert:evaluate')) AS v(p);
 
-INSERT INTO clep.role_permission (role_slug, permission)
-SELECT 'analyst', p FROM (VALUES
+INSERT INTO clep.role_permission (id, role_slug, permission)
+SELECT gen_random_uuid(), 'analyst', p FROM (VALUES
     ('run:create'), ('run:read'), ('run:reproduce'), ('dataset:read'),
     ('prompt:read'), ('gate:read'), ('judge:read'), ('plan:read'),
     ('memory:read'), ('analytics:read'), ('alert:read')) AS v(p);
 
-INSERT INTO clep.role_permission (role_slug, permission)
-SELECT 'auditor', p FROM (VALUES
+INSERT INTO clep.role_permission (id, role_slug, permission)
+SELECT gen_random_uuid(), 'auditor', p FROM (VALUES
     ('run:read'), ('dataset:read'), ('prompt:read'), ('gate:read'),
     ('judge:read'), ('plan:read'), ('memory:read'), ('analytics:read'),
     ('alert:read'), ('audit:read')) AS v(p);
 
-INSERT INTO clep.role_permission (role_slug, permission)
-SELECT 'service', p FROM (VALUES
+INSERT INTO clep.role_permission (id, role_slug, permission)
+SELECT gen_random_uuid(), 'service', p FROM (VALUES
     ('run:create'), ('run:read'), ('gate:evaluate'), ('gate:read'),
     ('analytics:read')) AS v(p);
 

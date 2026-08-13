@@ -30,6 +30,36 @@ NOT_TENANT_SCOPED = {"organization"}
 # change, which is the point of enumerating rather than inferring.
 NULLABLE_ORG = {"evaluator_definition", "evaluator_version"}
 
+# The third canonical scope category, added in Phase 12.
+#
+# `data-model.md` P-4 states it: "Global tables are an enumerated exception:
+# `user`, `role`, `provider`, `model`, and global evaluator and judge
+# definitions. Any addition is a reviewable change." ADR-010 rule 4 is its
+# architectural source.
+#
+# This checker modelled only two categories — the tenant root, and dual-scoped
+# rows that carry a NULLABLE organization_id — because when it was written those
+# were the only two that existed. A table with NO organization_id at all was
+# therefore reported as a P-1/N-4 defect, which is what happened when Phase 12
+# realised the canonical global entities. The specification permitted them; the
+# checker had never been told.
+#
+# The set is EXACT and it is small. It is not a prefix, not a pattern, and not a
+# rule about what a global table looks like — because a rule about appearance is
+# a rule a future table can accidentally satisfy. A table joins this set by being
+# named here, in a diff somebody reviews.
+#
+# `role_permission` is here although P-4 names only `role`: it is the attribute
+# table of `role` and has no existence independent of it, in the way
+# `evaluator_version` accompanies `evaluator_definition` in the set above. That
+# reasoning is recorded in `data-model.md` P-4 as well, so the two agree.
+#
+# `provider` and `model` are named by P-4 and are NOT here, because this schema
+# realises them as tenant-scoped. That divergence predates Phase 12 and is left
+# alone rather than papered over: adding them here would exempt tables that do
+# carry a tenant and should keep being checked for it.
+GLOBALLY_SCOPED = {"app_user", "role", "role_permission"}
+
 # ADR-011 audit class: the runtime role may insert and read, never update or
 # delete. An actor must not be able to remove the record of their own action.
 AUDIT_TABLES = {"audit_event", "dataset_approval", "suite_grant"}
@@ -134,6 +164,17 @@ def main():
         if t in NOT_TENANT_SCOPED:
             continue
         body = tables[t]
+        if t in GLOBALLY_SCOPED:
+            # Checked in the other direction, which is what keeps the exemption
+            # honest: a table declared global must not quietly acquire a tenant
+            # column. If it does, either the schema or the enumeration is wrong,
+            # and both are worth stopping for. Every other rule below — row-level
+            # security, naming, the audit grants — still applies to it.
+            if "organization_id" in body:
+                fail("P-4", f"{t} is an enumerated global table but carries an "
+                            f"organization_id; the enumeration in this checker "
+                            f"and the schema disagree about its scope")
+            continue
         if "organization_id" not in body:
             fail("P-1/N-4", f"{t} has no organization_id column")
             continue
@@ -176,6 +217,10 @@ def main():
             if target in NOT_TENANT_SCOPED or t in NOT_TENANT_SCOPED:
                 continue
             if target in NULLABLE_ORG or t in NULLABLE_ORG:
+                continue
+            # A reference into a global table cannot carry a tenant, because the
+            # target has no tenant to carry. Same reasoning as the line above.
+            if target in GLOBALLY_SCOPED or t in GLOBALLY_SCOPED:
                 continue
             if "organization_id" not in cols_:
                 fail("P-5", f"{t} references {target} without carrying organization_id; "

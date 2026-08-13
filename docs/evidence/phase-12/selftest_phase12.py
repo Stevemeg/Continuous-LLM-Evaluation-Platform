@@ -46,20 +46,34 @@ PHASE11 = ROOT / "docs/evidence/phase-11/check_phase11.py"
 
 
 def rebuild_fast():
-    """The validator without the slow half.
+    """The validator without the two checks that take most of an hour.
 
     P-1 runs the whole suite and P-5 re-runs an entire earlier gate in an
-    isolated clone; between them they are most of an hour, and neither is what
-    any plant here targets. The blob scan goes too, for the same reason: it
-    walks every object in history and no plant touches history.
+    isolated clone. Those two are excised, and only those two — an earlier
+    version of this function cut everything from P-1 to P-11, which silently
+    took P-2, P-3, P-4 and P-6 with it and left the schema-conformance check
+    with no plant able to reach it. P-2 costs under a second; there was never a
+    reason to lose it.
+
+    The blob scan goes as well: it walks every object in history, and no plant
+    here touches history.
     """
     src = (ROOT / "docs/evidence/phase-12/check_phase12.py").read_text("utf-8")
-    slow_start = src.index("# ===================================================== P-1 ")
-    slow_end = src.index("# ===================================== P-11 the contract leads")
-    src = src[:slow_start] + src[slow_end:]
-    scan_start = src.index("# ============================================================ P-20 secrets")
-    scan_end = src.index("# ============ P-26 every earlier gate is reachable")
-    FAST.write_text(src[:scan_start] + src[scan_end:], encoding="utf-8")
+
+    def excise(text, start_marker, end_marker):
+        start = text.index(start_marker)
+        return text[:start] + text[text.index(end_marker, start):]
+
+    src = excise(src,
+                 "# ===================================================== P-1 ",
+                 "# =================================================== P-2 schema")
+    src = excise(src,
+                 "# ====================== P-5 the preceding gate, at its own tree",
+                 "# ========================================== P-6 Phase 1 milestone")
+    src = excise(src,
+                 "# ============================================================ P-20 secrets",
+                 "# ============ P-26 every earlier gate is reachable")
+    FAST.write_text(src, encoding="utf-8")
 
 
 def restore():
@@ -348,6 +362,50 @@ case("P-15", "a tenant's quota period loses its one-row-per-period key",
 case("P-14", "an ADR goes missing from the index",
      lambda: plant(ROOT / "docs/adr/README.md",
                    "| [ADR-020](ADR-020-authorization-model.md)", "| [ADR-020x]("))
+
+# ------------------------------- P-2 the corrected Phase 4 scope model
+#
+# Phase 12 changed a validator belonging to an earlier phase, which is the most
+# dangerous kind of change to make: a loosened checker stops reporting the thing
+# it exists for and nothing else looks different. These four plants exercise the
+# exemption from both sides — that it still catches an unscoped tenant table,
+# that it cannot be satisfied by a name that merely resembles a global one, and
+# that a global table cannot quietly acquire a tenant column — and one more
+# proves the N-2 correction is enforced rather than merely written down.
+
+case("P-2", "an ordinary tenant table loses its organization_id",
+     lambda: plant(SCHEMA, "CREATE TABLE clep.membership (\n"
+                           "    id               uuid PRIMARY KEY,\n"
+                           "    organization_id  uuid NOT NULL REFERENCES clep.organization (id),",
+                   "CREATE TABLE clep.membership (\n"
+                   "    id               uuid PRIMARY KEY,"))
+
+case("P-2", "a table becomes exempt by resembling a canonical global one",
+     lambda: plant(SCHEMA, "CREATE TABLE clep.role_permission (\n"
+                           "    id          uuid PRIMARY KEY,",
+                   "CREATE TABLE clep.role_permissions (\n"
+                   "    id          uuid PRIMARY KEY,"))
+
+case("P-2", "a canonical global table quietly acquires a tenant column",
+     lambda: plant(SCHEMA, "CREATE TABLE clep.role (\n"
+                           "    id            uuid PRIMARY KEY,",
+                   "CREATE TABLE clep.role (\n"
+                   "    id               uuid PRIMARY KEY,\n"
+                   "    organization_id  uuid NOT NULL,"))
+
+case("P-2", "the role catalogue reverts to a natural primary key",
+     lambda: plant(SCHEMA, "CREATE TABLE clep.role (\n"
+                           "    id            uuid PRIMARY KEY,\n"
+                           "    slug          text NOT NULL,",
+                   "CREATE TABLE clep.role (\n"
+                   "    slug          text PRIMARY KEY,"))
+
+# Deliberately not planted here: removing `uq_role_permission__role_permission`.
+# No validator check targets it, so planting it would produce a guaranteed MISS
+# and prove only that this file can write a mutation nothing looks for. The
+# uniqueness the natural key used to carry is asserted where it can be observed
+# — `test_the_semantics_the_natural_keys_carried_are_still_enforced` attempts
+# both duplicates against the live database, under P-1.
 
 # ----------------------------------------------------------- P-26 closure
 case("P-26", "an earlier gate stops re-running the one before it",
