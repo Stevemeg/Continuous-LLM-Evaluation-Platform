@@ -51,8 +51,12 @@
 [CAUGHT ] P-17   a Phase 12 foreign key stops carrying the tenant (reported FAIL)
 [CAUGHT ] P-15   a tenant's quota period loses its one-row-per-period key (reported FAIL)
 [CAUGHT ] P-14   an ADR goes missing from the index (reported FAIL)
+[CAUGHT ] P-2    an ordinary tenant table loses its organization_id (reported FAIL)
+[CAUGHT ] P-2    a table becomes exempt by resembling a canonical global one (reported FAIL)
+[CAUGHT ] P-2    a canonical global table quietly acquires a tenant column (reported FAIL)
+[CAUGHT ] P-2    the role catalogue reverts to a natural primary key (reported FAIL)
 [CAUGHT ] P-26   an earlier gate stops re-running the one before it (reported FAIL)
 
-self-test: 54/54 planted violations caught
+self-test: 58/58 planted violations caught
 restoration verified: the working tree matches HEAD after every case
 EXIT=0

@@ -9,7 +9,7 @@ Milestones: M12.1 through M12.9
 |---|---|
 | `plan.md` | The implementation plan, written before any Phase 12 code and kept as written |
 | `check_phase12.py` | Phase validator, 31 checks. `python docs/evidence/phase-12/check_phase12.py .` |
-| `selftest_phase12.py` | Plants 54 violations, proves each is caught, and verifies nothing survives |
+| `selftest_phase12.py` | Plants 58 violations, proves each is caught, and verifies nothing survives |
 | `dependency_scan.py` | Queries OSV for every declared dependency at its installed version |
 | `dependency-scan.json` | Verbatim record of that scan, with the failure policy it enforced |
 | `validation-output.txt` | Verbatim output of the validator |
@@ -153,6 +153,37 @@ floor — *after* the CHECK violation had already aborted the transaction. A cle
 refusal became `InFailedSqlTransaction`. The floor is read first and the write
 runs in a savepoint, so the caller's transaction survives the refusal.
 
+### The role catalogue was keyed on a natural key
+
+`clep.role` used `slug` as its primary key and `clep.role_permission` the
+`(role_slug, permission)` pair. Both are in breach of N-2 — *the primary key is
+`id`* — which has been a naming standard since Phase 3 and which the Phase 4
+conformance checker enforces. It was reported by the complete validator, not by
+the fast subset, which is why it survived until the first full run.
+
+Both now carry `id uuid PRIMARY KEY`. The slug stays unique and stays the
+foreign-key target, so a role binding still names `owner` rather than a UUID: a
+surrogate key does not have to mean an opaque reference. The uniqueness the
+natural keys carried is preserved as constraints and proved by attempting both
+duplicates against the live database.
+
+### The Phase 4 checker modelled two scope categories and the model has three
+
+Not a Phase 12 defect — a defect Phase 12 was the first to trigger. The checker
+knew the tenant root and dual-scoped rows carrying a nullable `organization_id`,
+because those were the only two categories that existed when it was written.
+`data-model.md` P-4 has always permitted a third: globally scoped tables with no
+tenant column at all. When this phase realised the canonical global entities the
+checker reported them as `P-1/N-4` defects. The specification allowed them; the
+checker had never been told.
+
+The exemption is an exact set of three names, checked in both directions — a
+table declared global that acquires an `organization_id` is now also a failure —
+and fifteen regression tests drive the checker over synthetic schemas to prove
+that a table cannot become exempt by *resembling* a global one. Six impostors
+are tested, because an exemption implemented as a prefix is one a future table
+can satisfy by accident.
+
 ### The build was running a setuptools with eight advisories
 
 The dependency scan's first real execution found setuptools 65.5.0 in the build
@@ -170,6 +201,7 @@ prevent:
 
 | Check | What was wrong |
 |---|---|
+| `rebuild_fast` | Excised everything from P-1 to P-11, silently taking P-2, P-3, P-4 and P-6 with it — so the schema-conformance check had never had a plant able to reach it |
 | P-35 | Gate evidence is excluded at three statements; removing one left two satisfying a substring search |
 | P-35 | The surviving-object query appears twice; same story |
 | P-35 | A constraint renamed to `..._removed` still contains the name a search looks for |
