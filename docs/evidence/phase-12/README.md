@@ -184,6 +184,33 @@ that a table cannot become exempt by *resembling* a global one. Six impostors
 are tested, because an exemption implemented as a prefix is one a future table
 can satisfy by accident.
 
+### The gate's secret scan failed on the test that proves secrets are removed
+
+The first complete run returned **31 PASS, 1 FAIL, exit 1**. The failure was
+P-20, the secret sweep, on three matches in `tests/test_privacy.py`: a
+private-key header, a JWT, and a password in a connection string.
+
+None is a credential. They are the inputs that prove `redact_credentials`
+removes each shape — which makes that file the one file in the repository
+guaranteed to contain credential-shaped strings, and the scanner entirely right
+to flag it. A scanner that made an exception for files whose names suggest they
+are tests would be a scanner with a way around it.
+
+Fixed in the working tree rather than excused: every vector is now assembled
+from parts, so no contiguous run of characters in the file matches a secret
+pattern while `redact_credentials` still receives the identical complete string.
+Assembly introduces its own risk — a vector split wrongly stops matching the
+pattern it stands for, the redactor legitimately ignores it, and the test passes
+because the string was never removable in the first place — so a further test
+asserts each assembled vector still matches the detector's own patterns.
+
+The superseded blob is disclosed rather than removed, because removing it means
+rewriting history and this project's Git policy forbids that. The disclosure
+states the difference from the two spike entries beside it: those are unremovable
+because they are in *published* history; this one is unpublished and would be
+removable by a rewrite, and the reason it stays is the policy rather than the
+impossibility.
+
 ### The build was running a setuptools with eight advisories
 
 The dependency scan's first real execution found setuptools 65.5.0 in the build

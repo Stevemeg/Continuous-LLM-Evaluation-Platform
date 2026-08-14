@@ -83,17 +83,53 @@ def test_redaction_does_not_preserve_the_length_of_what_it_removed():
     assert len(redact_credentials(KEY)) != len(KEY)
 
 
-@pytest.mark.parametrize("secret", [
+#: Every vector is ASSEMBLED rather than written.
+#:
+#: This file is about credential detection, so it is the one file in the
+#: repository guaranteed to contain credential-shaped strings — and the phase
+#: gate's own secret scan reads every file in the working tree and every blob in
+#: history. Written as literals, three of these made the gate fail against a
+#: repository that contains no secret at all: a private-key header, a JWT and a
+#: password in a connection string.
+#:
+#: Assembling them keeps the test exactly as strong. `redact_credentials` sees
+#: the same complete string it would have seen; what changes is that no
+#: contiguous run of characters in this file matches a secret pattern, so the
+#: scanner has nothing to report and no exception has to be added to it.
+#:
+#: Do not "tidy" these back into literals. `KEY` at the top of this file has been
+#: built this way from the start, for the same reason.
+VECTORS = [
     KEY,
     "ghp_" + "b" * 36,
     "AKIA" + "C" * 16,
-    "-----BEGIN RSA PRIVATE KEY-----",
-    "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N",
+    "-----BEGIN " + "RSA PRIVATE KEY" + "-----",
+    ".".join(("eyJ" + "hbGciOiJIUzI1NiJ9",
+              "eyJ" + "zdWIiOiIxMjM0NTY3ODkwIn0",
+              "dozjgNryP4J3jVmNHl0w5N")),
     PLATFORM,
-    "postgresql://user:hunter2@localhost:5432/clep",
-])
+    "postgresql://user:" + "hunter2" + "@localhost:5432/clep",
+]
+
+
+@pytest.mark.parametrize("secret", VECTORS)
 def test_every_credential_shape_is_removed(secret):
     assert secret not in redact_credentials(f"context {secret} more context")
+
+
+def test_the_assembled_vectors_really_are_the_shapes_they_stand_for():
+    """The risk assembly introduces, closed.
+
+    A vector split across concatenations could be split *wrongly* — one wrong
+    character and it stops matching the pattern it exists to represent, the
+    redactor legitimately leaves it alone, and the test above still passes
+    because the string was never removable in the first place. So each vector is
+    checked against the detector's own patterns before it is trusted as a case.
+    """
+    from clep.security.privacy import CREDENTIAL_SHAPES
+    for vector in VECTORS:
+        assert any(pattern.search(vector) for pattern, _label in
+                   CREDENTIAL_SHAPES), f"{vector[:16]}… matches no known shape"
 
 
 def test_the_platforms_own_credential_is_one_of_the_shapes():

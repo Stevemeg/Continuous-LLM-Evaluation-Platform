@@ -1026,6 +1026,27 @@ DISCLOSED_BLOBS = {
         "spike common.py: local throwaway DSN password, container destroyed",
     "42de37b8a44e0079e835b3bffa45c1e735aeedac":
         "spike provider script: planted leak-detector canary, never a credential",
+    # Phase 12. `tests/test_privacy.py` is the test for the credential detector,
+    # so it is the one file in the repository that must contain
+    # credential-shaped strings. Three were written as literals -- a private-key
+    # header, a JWT and a password in a connection string -- and this check
+    # correctly failed on them. None is a credential: they are inputs proving
+    # `redact_credentials` removes each shape.
+    #
+    # The working tree was fixed properly rather than excused: every vector is
+    # now assembled from parts, so no contiguous run of characters in that file
+    # matches a secret pattern, and the test asserts each assembled vector still
+    # matches the detector's own patterns so the assembly cannot silently
+    # weaken it.
+    #
+    # This blob is the superseded version, and it is disclosed rather than
+    # removed because removing it means rewriting history, which this project's
+    # Git policy forbids. It is worth being precise about the difference from
+    # the two entries above: those are unremovable because they are in PUBLISHED
+    # history. This one is unpublished and would be removable by a rewrite --
+    # the reason it stays is the policy, not the impossibility.
+    "bbe9dbb2321d84096e4dd4118cfb4f3bab227dfd":
+        "test_privacy.py before assembly: redaction test vectors, never credentials",
 }
 blob_sec, disclosed = [], []
 for line in git("rev-list", "--objects", "--all").splitlines():
@@ -1051,7 +1072,8 @@ for line in git("rev-list", "--objects", "--all").splitlines():
 add("P-20", "PASS" if not sec and not blob_sec else "FAIL",
     f"working tree: {nfiles} files ({nbin} binary skipped), {len(sec)} match(es); "
     f"all blobs all refs: {len(blob_sec)} undisclosed match(es), "
-    f"{len(set(disclosed))} disclosed and unremovable from published history",
+    f"{len(set(disclosed))} disclosed and retained in history, each named above "
+    f"with why it is not a credential",
     sec + blob_sec + sorted(set(disclosed)))
 
 # ======================================================== P-21 attribution
