@@ -284,5 +284,5 @@ The hosted-provider risk carried since Phase 9 is unchanged and remains open.
 | ADR-006 rule 4 — isolation outside the evaluator's process | Open, Phase 14 (`SR-2`). A granted evaluator is permitted, not contained |
 | At-rest encryption | A deployment property, Phase 14. In-transit is enforced at startup |
 | `REQ-N-COMP-4` | Deferred to Phase 15, unchanged |
-| Independent audit-retention *expiry* | The floor is stored and constrained; nothing yet expires anything (`T7`) |
+| `REQ-F-12-6` — automatic expiry / scheduled enforcement | **Open, Phase 14 (`D-6`).** The requirement has four mechanisms and this phase delivered three: the **retention policy definition** is implemented, the **minimum retention floor** is enforced by a database CHECK, and **foreground erasure** is implemented and verifies itself. **Automatic expiry — a recurring sweep that deletes records once their retention period elapses — is deferred to Phase 14** and is scheduling and resilience machinery rather than authorization. `REQ-F-12-6` is therefore *not* fully implemented (`T7`) |
 | Authentication failures per attempt | Counted, deliberately not audited — an unauthenticated caller must not be able to grow the one store nobody may prune (`SR-7`) |

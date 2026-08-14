@@ -177,3 +177,51 @@ is where it is recorded rather than quietly counted as delivered by
 without deciding whether it participates in run identity. If it does not, two
 runs in different environments share an identity and a comparison between them
 looks valid — the silent-substitution failure I-11 exists to prevent.
+
+## D-6 — a retention policy is defined and floored, and nothing expires by it
+
+| Field | Value |
+|---|---|
+| Raised | Phase 12, M12.4 |
+| Requirement | `REQ-F-12-6` — per-tenant retention and deletion policies for datasets, runs, artifacts and audit records, subject to the `REQ-N-COMP-3` floor |
+| Owning phase | Deployment and infrastructure (Phase 14) |
+| Status | **Open** |
+
+`REQ-F-12-6` decomposes into four mechanisms, and Phase 12 delivered three of
+them. They are named apart here because a single verdict on the requirement
+would hide which one is missing:
+
+| # | Mechanism | Phase 12 status |
+|---|---|---|
+| 1 | **Retention policy definition** — a per-tenant `retention_policy` row stating how long content, decision and audit records are kept | **Implemented** |
+| 2 | **Minimum retention floor enforcement** — the `REQ-N-COMP-3` audit floor, refused below `clep.audit_retention_floor_days()` by a database CHECK rather than by a service that could be bypassed | **Enforced** |
+| 3 | **Foreground erasure** — an operator- or subject-initiated request that demotes, destroys and then verifies, reaching derived artifacts and recording what it destroyed | **Implemented** |
+| 4 | **Automatic expiry / scheduled enforcement** — a recurring sweep that deletes records once their retention period elapses, with no operator asking | **Deferred to Phase 14** |
+
+Mutation of the policy itself is audited (`retention_policy.set`), so the record
+of who changed a retention period, and when, exists for all four.
+
+**Why it is not fixed here.** A retention sweep is a scheduled background process
+with an operational failure model rather than a request/response one: it needs a
+schedule, a lease so two workers do not sweep the same tenant at once, a
+completion signal, a partial-failure story and a way to observe that it ran at
+all. Every one of those is deployment and resilience machinery, which is Phase
+14's subject by canonical §23, and none of it is authorization, RBAC, isolation
+or audit, which is this phase's. Building the sweep here would mean building the
+scheduling and recovery infrastructure to carry it, in a security phase, and
+`REQ-N-PRIV-3` would still not gain a number because the retention *period* is a
+policy input rather than an engineering choice.
+
+**What holds instead.** Mechanisms 1 to 3. The policy is stored per tenant and
+cannot be set below the audit floor; erasure is a foreground operation that
+verifies its own completion; and nothing accumulates silently without a record,
+because the policy that governs it is auditable. What is genuinely absent is
+*unattended* deletion: today a retention period elapsing causes nothing to
+happen until somebody asks.
+
+**What must not happen.** `REQ-F-12-6` counted as fully implemented on the
+strength of mechanisms 1 to 3. A stored retention period that nothing acts on is
+a stated intention, not a control, and the gap between the two is exactly what
+this entry exists to keep visible. Equally, a Phase 14 sweep must not be allowed
+to delete audit records below the floor in mechanism 2 — the floor is a database
+constraint precisely so that a background job cannot argue with it.

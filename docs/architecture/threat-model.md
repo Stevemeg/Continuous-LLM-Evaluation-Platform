@@ -187,7 +187,7 @@ Named so that a reviewer can tell an enforced mitigation from an intended one.
 | T4 untrusted code | Deny-by-default capability grant, refusal before execution, invocation recorded | Out-of-process isolation (SR-2) |
 | T5 prompt injection | Unchanged, plus credential redaction on the path into a judge | Adversarial breadth (SR-1) |
 | T6 credential exposure | Redaction at the judge prompt and at the rendered report; transport security refused at startup outside a local environment | At-rest encryption, a deployment property (Phase 14) |
-| T7 audit integrity | Justification and target digest written; append-only enforced by grant; cursor paging that cannot skip an event | Independent retention *enforcement* — the floor is stored and constrained, and nothing yet expires anything |
+| T7 audit integrity | Justification and target digest written; append-only enforced by grant; cursor paging that cannot skip an event | Automatic expiry / scheduled enforcement — the retention policy is defined and the floor is enforced by a database CHECK, and nothing yet expires anything unattended. Owned by Phase 14 (`D-6`) |
 
 ## 7. Out of scope, still
 
