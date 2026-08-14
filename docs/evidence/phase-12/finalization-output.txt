@@ -1,0 +1,38 @@
+[PASS   ] P-1    test suite: exit 0; 958 passed; coverage 90.90% against a 85.0% gate
+[PASS   ] P-2    schema conformance: exit 0; 83 tables including the Phase 12 identity, credential and governance tables
+[PASS   ] P-3    traceability: exit 0. traced to an artifact: 149; implementation layer: 85; test layer: 60; deferred with an owner: 1
+[PASS   ] P-4    the committed traceability matrix regenerates identically
+[PASS   ] P-5    Phase 11 gate re-evaluated against its own history (47e88e35), in an isolated clone pruned to 65 reachable commit(s): exit 0 {"PASS": 32}
+[PASS   ] P-6    Phase 1 milestone validators re-run. M1.1 documents: exit 0 {"PASS": 11}; M1.2 competitive: exit 0 {"PASS": 14}; M1.3 requirements: exit 0 {"PASS": 18}
+[PASS   ] P-11   contract declares 66 operations, is read and never written, every identifier it accepts can be created through it, every operation names the permission it requires, and none takes a tenant in its path
+[PASS   ] P-12   vocabularies compared across schema, contract and code: 15; disagreements: 0
+[PASS   ] P-13   11 declared dependencies, each with a recorded reason and a rejected alternative; unjustified: none. Phase 12 added none — the key derivation, the advisory query and the redaction are the standard library.
+[PASS   ] P-14   21 ADRs; undecided: none; absent from the index: none
+[PASS   ] P-15   every externally visible effect carries a unique idempotency key (6 tables, including a judgement, which costs money, and a tenant's quota period); missing: none
+[PASS   ] P-16   82 tables with ENABLE and FORCE, of which 3 are the enumerated global exception; 8 Phase 12 tenant tables each carrying a non-nullable tenant
+[PASS   ] P-17   38 composite foreign-key targets, each with a matching unique constraint; 8 Phase 12 tables, every reference carrying the tenant; missing: none
+[PASS   ] P-18   migrations are applied from docs/data/schema/ with no second copy of the DDL; copies found: none
+[PASS   ] P-31   ADR-019 exercised: a minted secret verifies, a different one does not, the secret is absent from every rendering, five malformed forms are refused before any lookup, and a weak derivation is refused where it is created; defects: 0
+[PASS   ] P-32   ADR-020 rule 6: 62 registered routes, each carrying the permission its own contract operation declares, and an application with no authenticator does not start; defects: 0
+[PASS   ] P-33   ADR-020 rules 4 and 5 exercised: nothing without a binding, a project grant that does not widen, and an unknown permission that is an error rather than a verdict; defects: 0
+[PASS   ] P-34   I-33 and REQ-F-12-4: the runtime role can only append, both governance columns are written, and the cursor cannot skip events sharing a timestamp; defects: 0
+[PASS   ] P-35   REQ-F-05-8 and REQ-N-PRIV-4: demote before destroy, gate evidence spared, completion refused without verification, and the verification obtained by looking; defects: 0
+[PASS   ] P-36   ADR-021 exercised: the limiter fails closed with no broker, keys one bucket per tenant, and — against the real broker at an injected instant — empties at its capacity and refills by what time buys and no more; defects: 0
+[PASS   ] P-37   ADR-006 rules 3 and 5 exercised: an evaluator declaring a capability is not run without it, runs with it, and an unenforceable capability cannot be granted; defects: 0
+[PASS   ] P-38   REQ-N-PRIV-1, REQ-N-PRIV-2 and REQ-N-SEC-5 exercised: a credential inside evaluated content reaches neither the judge nor a report, and the injection defence is undisturbed; defects: 0
+[PASS   ] P-39   REQ-N-SEC-6 exercised: sslmode=prefer is refused outside a local environment, which is the case that matters because it falls back to plaintext without an error; defects: 0
+[PASS   ] P-40   REQ-N-SEC-7: 11 declared dependencies scanned against OSV at their installed versions, with a policy that fails closed when the source is unreachable; defects: 0
+[PASS   ] P-41   D-1 closed by a store-level guard on both tables that need it, with ADR-010 rule 4 unchanged and the register saying so; the open debts D-3, D-4 and D-5 are still recorded; defects: 0
+[PASS   ] P-20   working tree: 317 files (2 binary skipped), 0 match(es); all blobs all refs: 0 undisclosed match(es), 3 disclosed and retained in history, each named above with why it is not a credential
+           - docs/evidence/spike-sprint/common.py: spike common.py: local throwaway DSN password, container destroyed
+           - docs/evidence/spike-sprint/spike_provider_abstraction.py: spike provider script: planted leak-detector canary, never a credential
+           - tests/test_privacy.py: test_privacy.py before assembly: redaction test vectors, never credentials
+[PASS   ] P-21   governed scope: 0 file match(es), 0 history match(es)
+[PASS   ] P-22   authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']
+[PASS   ] P-23   canonical document local=True tracked=False ignored=True refs_scanned=15 reachable_from_published=0 reachable_from_local_undisclosed=0 disclosed_local_only=0
+[PASS   ] P-24   314 tracked file(s); stray: 0; clean tree: True
+[PASS   ] P-25   Phase 13+ artifact classes checked: 7; artifacts Phase 12 must not contain: 0
+[PASS   ] P-26   18 validators in the repository, 18 reachable from this gate; orphaned: none
+------------------------------------------------------------------------------
+SUMMARY: {"PASS": 32}
+OBSERVED_EXIT=0

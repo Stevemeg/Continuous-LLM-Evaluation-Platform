@@ -12,8 +12,8 @@ Milestones: M12.1 through M12.9
 | `selftest_phase12.py` | Plants 58 violations, proves each is caught, and verifies nothing survives |
 | `dependency_scan.py` | Queries OSV for every declared dependency at its installed version |
 | `dependency-scan.json` | Verbatim record of that scan, with the failure policy it enforced |
-| `validation-output.txt` | Verbatim output of the validator |
-| `finalization-output.txt` | The same gate, re-run against the accepted tree |
+| `validation-output.txt` | Verbatim output of the validator — the run that **failed**, 31 PASS / 1 FAIL, exit 1, kept rather than replaced |
+| `finalization-output.txt` | The same gate against the corrected tree: 32 PASS, exit 0 |
 | `selftest-output.txt` | Verbatim output of the self-test |
 | `test-output.txt` | Verbatim output of the test suite with coverage |
 
