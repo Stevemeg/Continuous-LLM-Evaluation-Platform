@@ -1,0 +1,105 @@
+Validator temporary-workspace leak: measurement, reclamation, and proof
+Executed 2026-08-17 on Windows 11 Home Single Language 10.0.26200, Python 3.11.0
+Repository: .claude/worktrees/phase-12, branch phase/13-observability-slos at 65d495b
+
+Sections 1 and 2 are one-time observations: the leak they measure no longer
+exists, so re-running them now reports zero. Section 3 is repeatable and is what
+the Phase 13 validator executes.
+
+
+=============================================================================
+1. THE LEAK, AS MEASURED BEFORE ANYTHING WAS CHANGED
+=============================================================================
+
+TEMP=C:\Users\konab\AppData\Local\Temp
+clep-gate dirs: 936
+other gate-family dirs: 16
+
+total files: 6899
+total bytes: 379955618
+total MB: 362.35
+
+  (the byte total above covers the 936 clep-gate-* directories only)
+
+What a leaked directory actually contained -- one sampled at random:
+
+sample: C:\Users\konab\AppData\Local\Temp\clep-gate-057nhwzn
+files: 3
+read-only files: 3
+--- sample read-only ---
+\tree\.git\objects\pack\pack-6ff19af516482e87eb299af3b3966d09a3369ca1.idx
+\tree\.git\objects\pack\pack-6ff19af516482e87eb299af3b3966d09a3369ca1.pack
+\tree\.git\objects\pack\pack-6ff19af516482e87eb299af3b3966d09a3369ca1.rev
+
+Every file left behind is a git packfile, and every one carries the read-only
+attribute. Nothing else survived. This is the diagnosis: shutil.rmtree raises
+PermissionError on a read-only file on Windows, ignore_errors=True discards the
+exception, and the packfiles remain. It is NOT open file handles, which is what
+the leak had previously been attributed to.
+
+
+=============================================================================
+2. THE ONE-TIME RECLAMATION
+=============================================================================
+
+$ python docs/evidence/tooling/workspace.py <repo> --all
+
+BEFORE clep-gate dirs: 936
+prefixes derived from the repository: clep-ci-, clep-gate-, clep-proof-, p1gate-, p25-, p2gate-, p3gate-
+temporary directory: C:\Users\konab\AppData\Local\Temp
+reclaimed: 952 workspace(s), 379960458 byte(s) (362.36 MB)
+residue: 0
+EXIT=0
+AFTER clep-gate dirs: 0
+AFTER other gate-family dirs: 0
+
+Reconciliation of the two byte totals: section 1 measured the 936 clep-gate-*
+directories at 379,955,618 bytes; the sweep reclaimed 952 directories -- those
+936 plus the 16 clep-ci-/p1gate-/p2gate-/p3gate-/p25- workspaces from earlier
+phases -- at 379,960,458 bytes. The difference, 4,840 bytes, is those 16.
+
+residue: 0 is the load-bearing line. It means no workspace resisted removal and
+none was refused; a non-zero residue exits 1.
+
+
+=============================================================================
+3. THE PROOF (repeatable; this is what the Phase 13 validator runs)
+=============================================================================
+
+--- First run, taken while the 952 abandoned workspaces were still present ---
+
+[PASS] W-1   shutil.rmtree(ignore_errors=True) on a read-only packfile tree: directory survives=True, 3 file(s) left behind and no error raised -- this is the original defect, reproduced
+[PASS] W-2   workspace.remove_tree on the identical tree: removed=True
+[PASS] W-3   a file handle open when removal starts and closed 0.35s later: removed=True, after 0.70s of backoff
+[PASS] W-4   a file handle held open throughout: raised=True, path named in the message=True, platform=nt -- the failure is reported rather than discarded
+[PASS] W-5   a grandchild process two levels down called mkdtemp(prefix='clep-gate-'): it landed inside the contained root=True; new clep-gate-* directories in the system temporary directory: 0
+[PASS] W-6   a junction in the temporary directory pointing at the repository: created=True, refused by the sweep=True; repository still present=True, working tree unchanged=True; the same dry-run sweep sees 952 reclaimable workspace(s), 362.36 MB
+
+SUMMARY: 6/6 PASS
+EXIT=0
+
+--- Second run, after the reclamation in section 2 ---
+
+[PASS] W-1   shutil.rmtree(ignore_errors=True) on a read-only packfile tree: directory survives=True, 3 file(s) left behind and no error raised -- this is the original defect, reproduced
+[PASS] W-2   workspace.remove_tree on the identical tree: removed=True
+[PASS] W-3   a file handle open when removal starts and closed 0.35s later: removed=True, after 0.70s of backoff
+[PASS] W-4   a file handle held open throughout: raised=True, path named in the message=True, platform=nt -- the failure is reported rather than discarded
+[PASS] W-5   a grandchild process two levels down called mkdtemp(prefix='clep-gate-'): it landed inside the contained root=True; new clep-gate-* directories in the system temporary directory: 0
+[PASS] W-6   a junction in the temporary directory pointing at the repository: created=True, refused by the sweep=True; repository still present=True, working tree unchanged=True; the same dry-run sweep sees 0 reclaimable workspace(s), 0.00 MB
+
+SUMMARY: 6/6 PASS
+EXIT=0
+
+The only line that differs between the two runs is W-6's reclaimable count,
+952 -> 0, which is the reclamation being visible from inside the proof.
+
+W-1 is a control, not a check of the fix: it runs the ORIGINAL code against the
+original input and requires it to fail, so that the fix below it is answering a
+demonstrated failure rather than a plausible story about one. It reports PASS
+when the defect reproduces.
+
+W-3 and W-4 are the two halves of "robust when Windows file handles are still
+open". W-3 shows a handle released during the backoff window is ridden out --
+0.70s of retrying, then success. W-4 shows a handle never released produces a
+raised OSError naming the path. Silence is the one outcome neither permits, and
+silence was the original defect.
