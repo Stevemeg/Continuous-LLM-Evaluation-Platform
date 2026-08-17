@@ -142,10 +142,25 @@ ability to join its own logs to ours without letting it choose our identity.
 - Correlation identifier propagation crosses every container boundary, including
   into the evaluator sandbox — where it must not widen the grant ADR-006 rule 3
   establishes. The identifier is carried as data, not as a capability.
-- The three existing `correlation_id` columns keep their present meanings. They
-  are local join keys and this ADR does not repurpose them; the platform
-  correlation identifier is a distinct, additive concern. Renaming them would be
-  a schema change to published tables in service of tidiness.
+- The three existing `correlation_id` columns are not all alike, and inspection
+  before instrumenting found that out:
+  - `run.correlation_id` is declared, nullable, and **never written by anything**.
+    `create_run` accepts the parameter and no caller supplies it, so the
+    contract's `correlationId` field has always been absent from every response.
+    Phase 13 populates it with the platform correlation identifier. That is the
+    column finally doing what it was declared for, not a repurposing.
+  - `evaluator_invocation.correlation_id` is `NOT NULL` and currently written as
+    `f"{sample_id}:{key}"` — a value **fully derivable from `run_sample_id` and
+    `evaluator_version_id` in the same row**, so it carries no information the
+    row does not already hold. It is written with the platform correlation
+    identifier instead. Nothing is lost, and a column named `correlation_id`
+    starts holding a correlation identifier.
+  - `artifact.correlation_id` is `NOT NULL` and is the artifact hop of the chain
+    already; it receives the platform identifier at its writers.
+- The chain is recoverable by one query keyed on the identifier. Hops reachable
+  from the run by foreign key — samples, costs, judge records — are recovered by
+  join rather than by denormalising the identifier onto every table, because a
+  copied identifier is a second thing that can disagree with the first.
 
 ## Deferred
 
