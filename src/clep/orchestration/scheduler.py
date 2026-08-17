@@ -264,6 +264,10 @@ async def execute_scheduled_run(ctx, organization_id: str, schedule_id: str,
     from clep.api.gate_service import GateService
     from clep.orchestration.worker import execute_run
 
+    # Same execution path, different queue. The label distinguishes a run
+    # somebody asked for from one a cadence produced, which is the distinction
+    # an operator needs when queue depth grows and nobody submitted anything.
+    ctx = dict(ctx, queue_label="scheduled")
     dsn = ctx["runtime_dsn"]
     example_source = ctx["example_source"]
 

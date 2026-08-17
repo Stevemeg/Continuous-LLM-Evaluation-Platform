@@ -33,6 +33,7 @@ from clep.judges.consensus import reach_consensus
 from clep.judges.reflection import is_unreadable, regenerate_unreadable
 from clep.judges.sdk import render_prompt, run_judge
 from clep.rag.repository import digest_of
+from clep.telemetry import NULL_TELEMETRY
 
 
 @dataclass
@@ -52,7 +53,7 @@ class JudgePanel:
 
     def __init__(self, *, ensemble, ensemble_id: str, judge_version_ids: dict,
                  gateway, repository, project_id: str, bounds=None,
-                 timeout_ms: int | None = None):
+                 timeout_ms: int | None = None, telemetry=None):
         #: `judge_version_ids` maps a judge's `version_key` to the stored
         #: judge_version id. Supplied by the caller because judge identity is
         #: registry data and this loop may not invent it — the same rule the
@@ -71,6 +72,11 @@ class JudgePanel:
         self._project_id = project_id
         self._bounds = bounds
         self._timeout_ms = timeout_ms
+        #: Metric class 6. This observes judge behaviour; it does not calibrate
+        #: a judge. No threshold is read here, none is set here, and an
+        #: agreement rate becoming visible is not an agreement rate becoming
+        #: justified — the calibration work remains unassigned and unowned.
+        self._telemetry = telemetry or NULL_TELEMETRY
 
     def judge(self, *, run_id: str, run_sample_id: str, sample,
               outcome: PanelOutcome) -> object:
@@ -96,6 +102,8 @@ class JudgePanel:
                 prompt_digest=digest_of(prompt),
                 idempotency_key=f"{run_sample_id}:{judge.version_key}")
             outcome.judgements += 1
+            self._telemetry.observe("clep_judge_vote_total", 1,
+                                    resolution=vote.resolution)
             if vote.is_scoring:
                 outcome.scored += 1
             elif is_unreadable(vote):
@@ -108,8 +116,17 @@ class JudgePanel:
             run_id=run_id, run_sample_id=run_sample_id,
             ensemble_id=self._ensemble_id, consensus=consensus,
             project_id=self._project_id)
+        self._telemetry.observe("clep_judge_consensus_total", 1,
+                                state=consensus.state)
         if consensus.state == "escalated":
             outcome.escalations += 1
+            # An escalation without its reason is a count of unhappiness. The
+            # three reasons are different problems: disagreement above the
+            # threshold is the judges disagreeing, no threshold configured is
+            # nobody having set one, and too few scoring votes is the ensemble
+            # not having answered.
+            self._telemetry.observe("clep_judge_escalation_total", 1,
+                                    reason=consensus.escalation_reason)
         else:
             outcome.agreements += 1
         return consensus

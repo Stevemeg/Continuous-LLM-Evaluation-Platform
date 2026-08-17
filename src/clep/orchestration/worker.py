@@ -15,6 +15,7 @@ because every effect it would repeat is refused by a unique constraint.
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from arq import cron
@@ -26,9 +27,41 @@ from clep.orchestration.repository import RunRepository
 from clep.orchestration.runner import RunExecutor
 from clep.orchestration.scheduler import (SWEEP_SECONDS, execute_scheduled_run,
                                           sweep_schedules)
+from clep.telemetry import NULL_TELEMETRY
 
 JOB_TIMEOUT = int(os.environ.get("CLEP_JOB_TIMEOUT", "300"))
 POLL_DELAY = float(os.environ.get("CLEP_POLL_DELAY", "0.5"))
+
+
+def observe_queue_time(ctx, queue: str = "default") -> None:
+    """Metric class 3, and the only place it can honestly be measured.
+
+    Queue time is enqueue to pick-up, and the worker is the first component that
+    knows both ends: the queue holds the enqueue instant, and this function runs
+    at the pick-up instant. Measured anywhere else it would be a guess.
+
+    It answers the question a single latency figure cannot — whether slowness is
+    contention or execution — and `REQ-N-PERF-2` turns on exactly that
+    distinction, since throughput scaling with concurrency controls looks
+    identical to throughput not scaling at all if you only measure the work.
+    """
+    telemetry = ctx.get("telemetry") or NULL_TELEMETRY
+    enqueued = ctx.get("enqueue_time")
+    if enqueued is not None:
+        # arq hands this back as UTC; a naive value is treated as UTC rather
+        # than as local time, because assuming local would make queue time
+        # jump by the offset on any machine that is not on UTC.
+        if enqueued.tzinfo is None:
+            enqueued = enqueued.replace(tzinfo=timezone.utc)
+        waited = (datetime.now(timezone.utc) - enqueued).total_seconds() * 1000.0
+        telemetry.observe("clep_work_unit_queue_duration_ms",
+                          max(0.0, waited), queue=queue)
+    # A second or later attempt is a redelivery. Retryable, because the queue
+    # would not have redelivered it otherwise — and stability degrading beneath
+    # successful outcomes is exactly what metric class 8 exists to show.
+    if int(ctx.get("job_try") or 1) > 1:
+        telemetry.observe("clep_retry_total", 1, surface="worker",
+                          retryable="retryable")
 
 
 def redis_settings() -> RedisSettings:
@@ -63,12 +96,14 @@ async def execute_run(ctx, organization_id: str, run_id: str,
     dsn = ctx["runtime_dsn"]
     gateway = ctx["gateway"]
     registry = ctx.get("registry") or default_registry()
+    observe_queue_time(ctx, ctx.get("queue_label") or "default")
 
     with tenant_session(dsn, organization_id) as conn:
         repository = RunRepository(conn, organization_id)
         executor = RunExecutor(
             repository, gateway, registry,
             evaluator_ids=ctx.get("evaluator_ids"),
+            telemetry=ctx.get("telemetry"),
             is_cancelled=lambda: _is_cancelled(repository, run_id))
         outcome = executor.execute(
             run_id,
