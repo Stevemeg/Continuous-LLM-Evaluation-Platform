@@ -522,13 +522,23 @@ add("P-21", "PASS" if not debt_defects else "FAIL",
 # ========================================= P-22 no risk closed by assertion
 risk_defects = []
 strategy = read("docs/architecture/observability-strategy.md")
-unset_in_strategy = strategy.count("TARGET NOT YET SET")
-if unset_in_strategy < 3:
-    risk_defects.append(
-        f"observability-strategy.md §5 records {unset_in_strategy} unset "
-        f"target(s); three indicators are blocked and each must say so. "
-        f"Presence alone was checked here before, and left an edit that "
-        f"promoted one target undetected.")
+# Named indicators, not a count. Presence alone was checked first and a
+# promoted target slipped past; a count then slipped past too, because the
+# file legitimately carries a fourth marker for gate latency's unmeasured
+# bands. What must hold is specific: these three indicators are blocked, and
+# each one's own row has to say so.
+BLOCKED_INDICATORS = ("Gate availability", "Run completion",
+                      "Cost attribution accuracy")
+for indicator in BLOCKED_INDICATORS:
+    row = next((l for l in strategy.splitlines()
+                if l.lstrip().startswith(f"| {indicator} ")), None)
+    if row is None:
+        risk_defects.append(f"observability-strategy.md §5 no longer has a row "
+                            f"for {indicator!r}")
+    elif "TARGET NOT YET SET" not in row:
+        risk_defects.append(
+            f"{indicator!r} no longer carries TARGET NOT YET SET; it was "
+            f"promoted without a measurement that could support it")
 threat = read("docs/architecture/threat-model.md")
 if "SR-7" not in threat:
     risk_defects.append("SR-7 has left the threat model")

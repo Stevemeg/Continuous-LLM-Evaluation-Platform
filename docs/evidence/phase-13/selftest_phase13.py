@@ -175,13 +175,18 @@ PLANTS = [
      lambda: edit("docs/architecture/tracked-debt.md",
                   "## D-7 — the correlation chain has no artifact hop",
                   "### Formerly D-7 — the correlation chain has no artifact hop")),
-    # `edit` replaces one occurrence, which is what exposed the check: it tested
-    # presence, so promoting a single blocked target left it satisfied. The
-    # check now counts, and this plant promotes exactly one target — the
-    # smallest violation that must still be caught.
+    # This plant caught the check twice. First the check tested presence, so
+    # promoting one of four markers left it satisfied. Then it counted, and
+    # still passed — the file legitimately carries a fourth marker, for gate
+    # latency's unmeasured bands, so three remained. The check now names the
+    # three indicators that must stay blocked, and this promotes one of them:
+    # the smallest violation, on the row where it matters.
     ("P-22", "one blocked SLO target is quietly promoted in the strategy",
      lambda: edit("docs/architecture/observability-strategy.md",
-                  "TARGET NOT YET SET", "TARGET SET")),
+                  "| Cost attribution accuracy | Agreement between attributed "
+                  "and provider-reported cost | `TARGET NOT YET SET`",
+                  "| Cost attribution accuracy | Agreement between attributed "
+                  "and provider-reported cost | **0.999**")),
     ("P-23", "a credential-shaped string enters the working tree",
      lambda: create("src/clep/telemetry/_leak.py",
                     'DSN = "postgres://admin:' + 'sup3rs3cret' + '@db.invalid/x"\n')),
