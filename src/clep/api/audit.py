@@ -21,6 +21,7 @@ from __future__ import annotations
 import uuid
 
 from clep.identity import actor_uuid, is_ulid, new_ulid, ulid_to_uuid
+from clep.telemetry.correlation import current_id
 
 
 def record(conn, organization_id: str, actor_id: str, action: str,
@@ -46,12 +47,22 @@ def record(conn, organization_id: str, actor_id: str, action: str,
     # that paging, and this is what makes the cursor mean "everything before
     # this event" rather than "everything with a smaller random number".
     event_id = ulid_to_uuid(new_ulid())
+    # The audit trail is the last hop of the correlation chain and the only one
+    # with no foreign key back to a run — an event may be about a route or a
+    # principal rather than an object. Taken from the ambient scope rather than
+    # passed by every caller, because a parameter thirty call sites have to
+    # remember is a parameter some of them will not (I-35).
+    #
+    # None outside a request, and left None: a scheduler waking up genuinely has
+    # no correlation, and inventing one here would produce an identifier that
+    # correlates nothing while looking exactly like one that does.
     conn.execute(
         "INSERT INTO clep.audit_event (id, organization_id, actor_id, action, "
-        "target_type, target_id, justification, target_content_digest) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+        "target_type, target_id, justification, target_content_digest, "
+        "correlation_id) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
         (event_id, str(organization_id), actor_uuid(actor_id), action,
          target_type,
          ulid_to_uuid(target_id) if target_id and is_ulid(target_id) else None,
-         justification, target_content_digest))
+         justification, target_content_digest, current_id()))
     return event_id if returning else None

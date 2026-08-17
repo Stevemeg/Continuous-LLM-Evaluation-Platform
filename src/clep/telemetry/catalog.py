@@ -42,7 +42,15 @@ RESOLUTIONS = ("scored", "failed", "timed_out", "abstained", "unavailable",
 #: allowed to run and whether it produced anything.
 INVOCATION_OUTCOMES = ("scored", "abstained", "unavailable", "refused")
 
-#: `clep.provider_endpoint.endpoint_kind`
+#: `clep.provider_endpoint.endpoint_kind`. Declared because the vocabulary is
+#: real and checked against the schema, and deliberately **not used as a metric
+#: label**. `observability-strategy.md` §3 asks for provider behaviour "per
+#: provider", and a provider name is deployment data: bounded in practice,
+#: not enumerable at declaration time, and a deployment adding one would meet
+#: ADR-022 rule 5's refusal in the middle of a real call. Provider identity is a
+#: store dimension — `clep.provider_endpoint` and `clep.run_sample` carry it, and
+#: per-provider analytics are derived from those rows, which is also where they
+#: remain queryable months later. The metric carries the outcome only.
 ENDPOINT_KINDS = ("hosted", "self_hosted")
 
 #: `clep.providers.port.TAXONOMY`, plus the success case. The fifth member came
@@ -68,7 +76,14 @@ OUTCOME_CLASSES = ("success", "client_error", "authorization", "platform_failure
 #: `REQ-X-10` again, as the thing it is actually about.
 ATTRIBUTIONS = ("platform", "candidate")
 
-HTTP_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
+#: Including `other`, which is not padding. A client may send any token as a
+#: method -- `curl -X BANANA` -- and the router answers 405. Without a declared
+#: bucket for it the middleware would meet ADR-022 rule 5's refusal and turn that
+#: 405 into a 500, which is telemetry changing an outcome. Wherever external
+#: input reaches a label, the label declares somewhere for the unrecognised case
+#: to go; that is a bounded bucket, not a silently dropped sample.
+HTTP_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS",
+                "other")
 
 #: Where a signal came from. A bounded list of the platform's own surfaces.
 SURFACES = ("api", "worker", "scheduler", "gate", "evaluator", "judge",
@@ -99,8 +114,7 @@ def build_catalogue() -> MetricCatalogue:
                         "is the sole egress (ADR-003). Reported separately from "
                         "gate latency so provider time is never attributed to "
                         "the platform (ADR-023 rule 5).",
-            labels={"endpoint_kind": ENDPOINT_KINDS,
-                    "outcome": PROVIDER_OUTCOMES}),
+            labels={"outcome": PROVIDER_OUTCOMES}),
         MetricSpec(
             name="clep_evaluator_duration_ms", kind="histogram",
             metric_class="latency", unit="ms",
@@ -134,18 +148,17 @@ def build_catalogue() -> MetricCatalogue:
         MetricSpec(
             name="clep_provider_call_total", kind="counter",
             metric_class="provider_behaviour", unit="1",
-            description="Provider calls by endpoint kind and outcome, including "
-                        "the five REQ-N-REL-4 failure modes.",
-            labels={"endpoint_kind": ENDPOINT_KINDS,
-                    "outcome": PROVIDER_OUTCOMES}),
+            description="Provider calls by outcome, including the five "
+                        "REQ-N-REL-4 failure modes and the fifth the ADR-003 "
+                        "spike discovered.",
+            labels={"outcome": PROVIDER_OUTCOMES}),
 
         # ---------------------------------------------- 5. tokens and cost
         MetricSpec(
             name="clep_model_tokens_total", kind="counter",
             metric_class="tokens_and_cost", unit="1",
             description="Tokens as the provider reported them, never estimated.",
-            labels={"direction": ("prompt", "completion"),
-                    "endpoint_kind": ENDPOINT_KINDS}),
+            labels={"direction": ("prompt", "completion")}),
         MetricSpec(
             name="clep_model_call_priced_total", kind="counter",
             metric_class="tokens_and_cost", unit="1",

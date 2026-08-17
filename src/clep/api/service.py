@@ -21,6 +21,7 @@ from clep.experiments.repository import IdentityRepository
 from clep.identity import new_ulid
 from clep.orchestration.repository import RunRepository
 from clep.security.repository import SecurityRepository
+from clep.telemetry.correlation import current_id
 
 
 class QuotaExhausted(RuntimeError):
@@ -82,7 +83,12 @@ class RunService:
                 project_id=project_id, suite_version_id=suite_version_id,
                 dataset_version_id=dataset_version_id, identity_digest=digest,
                 integration_tier=integration_tier, idempotency_key=idempotency_key,
-                budget_limit=limit, budget_currency=currency)
+                budget_limit=limit, budget_currency=currency,
+                # The chain's root. `run.correlation_id` has been declared since
+                # Phase 5 and written by nothing, which is why the contract's
+                # `correlationId` has never appeared in a response. It is the
+                # platform's identifier, not the caller's (ADR-022 rule 4).
+                correlation_id=current_id())
             IdentityRepository(conn, organization_id).capture(run_id, identity)
             # `add_candidate` is idempotent on (run, label), so a resubmitted
             # request converges on the same candidates rather than needing the

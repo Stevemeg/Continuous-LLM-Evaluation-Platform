@@ -19,6 +19,7 @@ from typing import Iterable
 
 from clep.providers.port import (CompletionRequest, CompletionResult,
                                  ProviderFailure)
+from clep.telemetry import NULL_TELEMETRY
 
 
 class UnpricedModel(LookupError):
@@ -98,12 +99,18 @@ class CandidateOutcome:
 
 class ProviderGateway:
     def __init__(self, adapters: dict[str, object], price_book: PriceBook | None = None,
-                 *, clock=None):
+                 *, clock=None, telemetry=None):
         self._adapters = dict(adapters)
         self._prices = price_book or PriceBook()
         #: Injected so a test can assert a recorded latency rather than assert
         #: that some number was produced. Monotonic by default.
         self._clock = clock or time.monotonic
+        #: The gateway is the sole egress (ADR-003), which makes it the only
+        #: place provider behaviour can be observed without double-counting.
+        #: A second clock or counter further up would time the queue, the
+        #: evaluators and the parse as well, and report the total as the
+        #: provider's — the blending ADR-023 rule 5 forbids.
+        self._telemetry = telemetry or NULL_TELEMETRY
 
     def endpoints(self) -> list[str]:
         return sorted(self._adapters)
@@ -119,20 +126,42 @@ class ProviderGateway:
         try:
             result = adapter.complete(invocation.request)
         except ProviderFailure as failure:
+            elapsed = self._elapsed(started)
+            # How long an outage took to declare itself is the most useful
+            # latency figure a run produces, so the failure path is measured too.
+            self._observe(failure.kind, elapsed)
+            self._telemetry.observe(
+                "clep_retry_total", 1, surface="provider",
+                retryable="retryable" if failure.is_retryable else "terminal")
             return CandidateOutcome(invocation.candidate_label, failure=failure,
-                                    latency_ms=self._elapsed(started))
+                                    latency_ms=elapsed)
         latency_ms = self._elapsed(started)
+        self._observe("ok", latency_ms)
+        self._telemetry.observe("clep_model_tokens_total",
+                                result.usage.prompt_tokens, direction="prompt")
+        self._telemetry.observe("clep_model_tokens_total",
+                                result.usage.completion_tokens,
+                                direction="completion")
 
         model = result.model
         if not self._prices.has(model):
             # Reported, not guessed. The sample still has a result; what it
             # lacks is a defensible cost, and that distinction is preserved.
+            self._telemetry.observe("clep_model_call_priced_total", 1,
+                                    priced="unpriced")
             return CandidateOutcome(invocation.candidate_label, result=result,
                                     unpriced=True, latency_ms=latency_ms)
         cost = self._prices.cost_of(model, result.usage.prompt_tokens,
                                     result.usage.completion_tokens)
+        self._telemetry.observe("clep_model_call_priced_total", 1,
+                                priced="priced")
         return CandidateOutcome(invocation.candidate_label, result=result,
                                 cost=cost, latency_ms=latency_ms)
+
+    def _observe(self, outcome: str, latency_ms: int) -> None:
+        self._telemetry.observe("clep_provider_call_total", 1, outcome=outcome)
+        self._telemetry.observe("clep_model_call_duration_ms", latency_ms,
+                                outcome=outcome)
 
     def _elapsed(self, started: float) -> int:
         return max(0, int((self._clock() - started) * 1000))

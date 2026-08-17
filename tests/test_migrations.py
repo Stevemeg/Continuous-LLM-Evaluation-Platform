@@ -23,7 +23,8 @@ def test_the_schema_specification_is_the_migration_set():
         "09-rag-and-agent-evaluation.sql",
         "10-release-and-schedules.sql",
         "11-analytics-and-alerts.sql",
-        "12-identity-and-access.sql"]
+        "12-identity-and-access.sql",
+        "13-observability.sql"]
 
 
 def test_files_must_be_ordered(tmp_path):

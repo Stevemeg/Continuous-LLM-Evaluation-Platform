@@ -194,6 +194,27 @@ class RunRepository:
                       row[4], row[5], row[6], row[7], row[8], row[9], row[10],
                       row[11], uuid_to_ulid(row[12]), uuid_to_ulid(row[13]), row[14])
 
+    def adopt_correlation(self, run_id: str, correlation_id: str) -> str:
+        """Give a run a correlation identifier if it does not already have one.
+
+        A run created through the API carries the identifier its request
+        produced. A run created by the scheduler has none, because no request
+        made it — and a chain that starts at the first hop the platform happens
+        to be looking at is not a chain. So execution adopts one, once, and
+        writes it where it is durable.
+
+        Conditional on NULL rather than unconditional: a redelivered job must
+        resume the correlation the first delivery established, not replace it and
+        orphan every record already written under the old one. The `IS NULL`
+        predicate makes that a property of the statement rather than of the
+        caller's memory, and returns whichever identifier is now in force.
+        """
+        row = self._conn.execute(
+            "UPDATE clep.run SET correlation_id = COALESCE(correlation_id, %s) "
+            "WHERE organization_id = %s AND id = %s RETURNING correlation_id",
+            (correlation_id, self._org, ulid_to_uuid(run_id))).fetchone()
+        return row[0] if row else correlation_id
+
     # ---------------------------------------------------------------- samples
     def record_sample(self, *, run_id: str, candidate_id: str, candidate_label: str,
                       example_id: str, sample_index: int, resolution: str,

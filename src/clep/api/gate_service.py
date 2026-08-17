@@ -11,6 +11,7 @@ is missing exactly the parts that failed.
 """
 from __future__ import annotations
 
+import time
 import uuid
 from decimal import Decimal
 
@@ -23,11 +24,14 @@ from clep.regression.repository import (BaselineNotEligible, PolicyFrozen,
                                         PolicyNotPublished, RegressionError,
                                         RegressionRepository)
 from clep.regression.statistics import METHOD_VERSION
+from clep.telemetry import NULL_TELEMETRY
+from clep.telemetry.catalog import GATE_VERDICTS
 
 
 class GateService:
-    def __init__(self, runtime_dsn: str):
+    def __init__(self, runtime_dsn: str, *, telemetry=None):
         self._dsn = runtime_dsn
+        self._telemetry = telemetry or NULL_TELEMETRY
 
     # ------------------------------------------------------------- baselines
     def create_baseline(self, *, organization_id: str, project_id: str,
@@ -114,6 +118,42 @@ class GateService:
     def evaluate_gate(self, *, organization_id: str, project_id: str,
                       candidate_run_id: str, policy_version_id: str,
                       baseline_id: str | None, actor_id: str) -> dict | None:
+        """`REQ-N-PERF-1`'s measurement point, and only the platform's share of it.
+
+        The clock starts here and stops when the decision is persisted, so what
+        it measures is the gate's own work: the statistics, the comparability
+        check and the writes. Provider time is not in it — the candidate run
+        finished before this was called — which is what keeps the gate-latency
+        indicator from silently including somebody else's outage (ADR-023 rule 5).
+
+        `D-4` is untouched. This observes how long a decision took; it changes
+        nothing about what any gate criterion measures or how any verdict is
+        reached.
+        """
+        started = time.monotonic()
+        decision = self._evaluate_gate(
+            organization_id=organization_id, project_id=project_id,
+            candidate_run_id=candidate_run_id,
+            policy_version_id=policy_version_id, baseline_id=baseline_id,
+            actor_id=actor_id)
+        if decision is not None:
+            # `evaluatedOutcome`, not `outcome`: the latter is the effective
+            # result after a live policy exception is applied, and how long the
+            # decision took is a fact about evaluating it, not about waiving it.
+            verdict = decision.get("evaluatedOutcome")
+            # A database CHECK constrains this column to exactly GATE_VERDICTS,
+            # so the guard cannot fire. It is here for what happens if that ever
+            # stops being true: one missing histogram sample, rather than a
+            # CardinalityError turning a real gate decision into a 500.
+            if verdict in GATE_VERDICTS:
+                elapsed = (time.monotonic() - started) * 1000.0
+                self._telemetry.observe("clep_gate_decision_duration_ms",
+                                        elapsed, verdict=verdict)
+        return decision
+
+    def _evaluate_gate(self, *, organization_id: str, project_id: str,
+                       candidate_run_id: str, policy_version_id: str,
+                       baseline_id: str | None, actor_id: str) -> dict | None:
         with tenant_session(self._dsn, organization_id) as conn:
             repo = RegressionRepository(conn, organization_id)
             identities = IdentityRepository(conn, organization_id)

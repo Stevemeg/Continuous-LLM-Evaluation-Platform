@@ -41,6 +41,8 @@ from clep.judges.panel import PanelOutcome
 from clep.orchestration.repository import RunRepository, sample_key
 from clep.providers.gateway import (CandidateInvocation, ProviderGateway)
 from clep.providers.port import CompletionRequest
+from clep.identity import new_ulid
+from clep.telemetry import NULL_TELEMETRY, correlated, current_id
 
 
 class RunCancelled(Exception):
@@ -102,7 +104,11 @@ class RunExecutor:
                  is_cancelled=None, evaluator_timeout_ms: int | None = None,
                  analysis_repository=None, judge_panel=None,
                  judge_timeout_ms: int | None = None,
-                 evaluator_capabilities=()):
+                 evaluator_capabilities=(), telemetry=None):
+        #: Injected like every other dependency, and defaulting to the recorder
+        #: that records nothing (ADR-022 rules 3 and 7). A run must execute
+        #: identically whether or not a deployment configured a backend.
+        self._telemetry = telemetry or NULL_TELEMETRY
         #: What a deployment has granted custom evaluators (ADR-006 rule 3).
         #: Empty by default and empty everywhere in this repository: every
         #: built-in reaches for nothing, so deny-by-default costs them nothing
@@ -130,6 +136,26 @@ class RunExecutor:
                 *, budget_limit: Decimal | None = None,
                 budget_currency: str = "USD",
                 integration_tier: str = "output_only") -> RunOutcome:
+        """`REQ-N-OBS-1`'s crossing point, and the reason it is here.
+
+        Execution happens in a worker, in a different process from the request
+        that asked for it. The correlation could travel in the job payload; it
+        travels in the **run row** instead, because that is the carrier that
+        survives a redelivery, a restart, and a resume from checkpoint. A payload
+        is gone once the job is retried under a new message; the run is still
+        there, and so is its identifier.
+        """
+        correlation = self._repo.adopt_correlation(run_id,
+                                                   current_id() or new_ulid())
+        with correlated(correlation):
+            return self._execute(run_id, examples, candidates,
+                                 budget_limit=budget_limit,
+                                 budget_currency=budget_currency,
+                                 integration_tier=integration_tier)
+
+    def _execute(self, run_id: str, examples: list[Example],
+                 candidates: list[Candidate], *, budget_limit: Decimal | None,
+                 budget_currency: str, integration_tier: str) -> RunOutcome:
         self._run_id = run_id
         resume_from = self._repo.checkpoint(run_id) + 1
         outcome = RunOutcome(completeness="complete", resumed_from_index=resume_from)
@@ -138,6 +164,8 @@ class RunExecutor:
                 f"resumed at example index {resume_from}; the {resume_from} "
                 f"already completed were not recomputed")
         self._repo.mark_running(run_id)
+        self._telemetry.observe("clep_run_state_total", 1,
+                                execution_state="running")
 
         spent = self._repo.cost_total(run_id)[0] or Decimal(0)
 
@@ -170,6 +198,15 @@ class RunExecutor:
 
         outcome.cost_total = self._repo.cost_total(run_id)[0] or Decimal(0)
         self._repo.finish_run(run_id, outcome.completeness, outcome.incomplete_reason)
+        # Metric class 9. Four of these five values are not success, and a
+        # telemetry surface recording only "succeeded" and "failed" is one in
+        # which `partial`, `exhausted`, `cancelled` and `rejected` are invisible
+        # — which is `REQ-X-1` incompleteness propagation becoming unverifiable
+        # in production, the exact thing observability-strategy.md §3 warns of.
+        self._telemetry.observe("clep_run_state_total", 1,
+                                execution_state="terminal")
+        self._telemetry.observe("clep_run_terminal_total", 1,
+                                completeness=outcome.completeness)
         return outcome
 
     # ------------------------------------------------------------------ inner
@@ -303,11 +340,25 @@ class RunExecutor:
             # invocation's fate, which is narrower than the evaluator's six
             # resolutions — a governance reader is asking whether the code was
             # allowed to run and whether it produced anything, not what it said.
+            invocation_outcome = _invocation_outcome(result)
             self._repo.record_evaluator_invocation(
                 sample_id=sample_id, evaluator_version_id=evaluator_version_id,
                 granted_permissions=grant.recorded,
-                outcome=_invocation_outcome(result),
-                correlation_id=f"{sample_id}:{key}")
+                outcome=invocation_outcome,
+                # Was `f"{sample_id}:{key}"` — a value derivable from
+                # `run_sample_id` and `evaluator_version_id` in the same row, so
+                # it carried nothing the row did not already hold. The column is
+                # named `correlation_id`; it now holds a correlation identifier.
+                # The fallback keeps the old value for a run that predates the
+                # chain, because the column is NOT NULL and an empty string
+                # would satisfy the constraint while correlating nothing.
+                correlation_id=current_id() or f"{sample_id}:{key}")
+            self._telemetry.observe("clep_evaluator_invocation_total", 1,
+                                    outcome=invocation_outcome)
+            if result.duration_ms is not None:
+                self._telemetry.observe("clep_evaluator_duration_ms",
+                                        result.duration_ms,
+                                        outcome=invocation_outcome)
             outcome.evaluator_outcomes += 1
 
     def _judge(self, sample_id, example, candidate_outcome, tier, outcome):

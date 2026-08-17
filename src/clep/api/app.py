@@ -18,6 +18,7 @@ Two rules the contract states and this module enforces:
 """
 from __future__ import annotations
 
+import time
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -43,8 +44,28 @@ from clep.api.service import QuotaExhausted
 from clep.regression.repository import PolicyNotPublished
 from clep.security.erasure import BaselinePinned, ErasureError
 from clep.security.repository import SecurityError
+from clep.telemetry import NULL_TELEMETRY, correlated, current_id
+from clep.telemetry.catalog import HTTP_METHODS
 
 PROBLEM_TYPE = "https://clep.invalid/problems/"
+
+
+def outcome_class_for(status: int) -> str:
+    """A status code as one of the four declared outcome classes.
+
+    The same split `Problem.category` makes, because `REQ-X-10` requires platform
+    failure to be distinguishable from everything else *in every surface that
+    reports outcomes* — and a metric is one of those surfaces. Availability and
+    verdict integrity are both computed from this distinction, so collapsing a
+    401 into "error" alongside a 503 would make both figures meaningless.
+    """
+    if status >= 500:
+        return "platform_failure"
+    if status in (401, 403):
+        return "authorization"
+    if status >= 400:
+        return "client_error"
+    return "success"
 
 
 class Problem(BaseModel):
@@ -286,7 +307,7 @@ PLANNING_BOUNDS = Bounds(max_iterations=4, budget=Decimal("0.50"),
 def create_app(run_service, registry_service=None, gate_service=None,
                agentic_service=None, schedule_service=None,
                analytics_service=None, *, authenticator=None,
-               security_service=None, limiter=None) -> FastAPI:
+               security_service=None, limiter=None, telemetry=None) -> FastAPI:
     """`run_service` supplies persistence and execution.
 
     Injected rather than imported so the contract tests can drive every path
@@ -310,6 +331,50 @@ def create_app(run_service, registry_service=None, gate_service=None,
                   version=contract.load()["info"]["version"],
                   openapi_url=None)
     app.state.limiter = limiter
+    telemetry = telemetry or NULL_TELEMETRY
+    app.state.telemetry = telemetry
+
+    @app.middleware("http")
+    async def _correlate(request: Request, call_next):
+        """Ingress: where the chain starts, and the only place it can start.
+
+        Middleware rather than a dependency, because a dependency is per-route
+        and `REQ-N-OBS-1` is about every request — including the ones that never
+        reach a route, which are exactly the requests worth correlating when
+        somebody asks what happened.
+
+        This adds no route, so ADR-020 rule 6 and `_assert_every_route_is_guarded`
+        are untouched.
+        """
+        method = request.method if request.method in HTTP_METHODS else "other"
+        with correlated(inbound_reference=request.headers.get("x-correlation-id")) as c:
+            started = time.monotonic()
+            try:
+                response = await call_next(request)
+            except Exception:
+                # An exception escaping the stack is the platform failing, and it
+                # is recorded as such before it is re-raised. Recording it after
+                # the handler would mean recording only the failures that were
+                # caught, which are the ones already visible.
+                telemetry.observe("clep_request_outcome_total", 1,
+                                  outcome_class="platform_failure")
+                telemetry.observe("clep_failure_attribution_total", 1,
+                                  attribution="platform", surface="api")
+                raise
+            outcome = outcome_class_for(response.status_code)
+            telemetry.observe("clep_http_request_duration_ms",
+                              (time.monotonic() - started) * 1000.0,
+                              method=method, outcome_class=outcome)
+            telemetry.observe("clep_request_outcome_total", 1,
+                              outcome_class=outcome)
+            if outcome == "platform_failure":
+                telemetry.observe("clep_failure_attribution_total", 1,
+                                  attribution="platform", surface="api")
+            # Returned so a client can join its own logs to ours. Safe to
+            # return because the identifier carries no tenant identity
+            # (ADR-022 rule 4) — and it is ours, not the one they sent.
+            response.headers["x-correlation-id"] = c.correlation_id
+            return response
 
     def _guard(method: str, path: str):
         """The one enforcement point (ADR-020 rules 6 and 7).
@@ -467,8 +532,13 @@ def create_app(run_service, registry_service=None, gate_service=None,
         category = "authorization" if exc.status_code in (401, 403) else "client_error"
         if exc.status_code >= 500:
             category = "platform_failure"
+        # Was `request.headers.get("x-correlation-id")` — the caller's own claim
+        # echoed back, which correlates a Problem to nothing the platform
+        # recorded. `current_id()` is the identifier this request actually ran
+        # under and the one every other hop was written with, so a Problem is now
+        # joinable to the run, the audit event and the gate decision behind it.
         return problem(exc.status_code, exc.detail or "request failed", category,
-                       exc.detail or "", request.headers.get("x-correlation-id"))
+                       exc.detail or "", current_id())
 
     @app.post("/projects/{projectId}/runs", status_code=202)
     def create_run(body: RunRequestIn, projectId: str = Path(...),
