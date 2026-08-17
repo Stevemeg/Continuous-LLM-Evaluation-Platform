@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Canonical §19 fixes the required ADR topics; all eleven are present. Two more were added in Phase 4 for the datastore decisions the schema depends on, the two spike-gated ADRs were decided in the Technology Spike Sprint, two more were added in Phase 6 for decisions the reproducible experiment model turns on, one in Phase 7 for the composition rule the quality gate turns on, and three in Phase 12 for the decisions the enterprise security surface turns on.
+Canonical §19 fixes the required ADR topics; all eleven are present. Two more were added in Phase 4 for the datastore decisions the schema depends on, the two spike-gated ADRs were decided in the Technology Spike Sprint, two more were added in Phase 6 for decisions the reproducible experiment model turns on, one in Phase 7 for the composition rule the quality gate turns on, three in Phase 12 for the decisions the enterprise security surface turns on, and three in Phase 13 for the decisions production observability turns on.
 
 | ADR | Topic | Status |
 |---|---|---|
@@ -25,6 +25,9 @@ Canonical §19 fixes the required ADR topics; all eleven are present. Two more w
 | [ADR-019](ADR-019-credential-verification.md) | How a credential is presented, stored, and verified | Accepted |
 | [ADR-020](ADR-020-authorization-model.md) | The authorization model: roles, scopes, and where the decision is made | Accepted |
 | [ADR-021](ADR-021-rate-limits-and-quotas.md) | Where per-tenant rate limits and quotas are enforced, and how they fail | Accepted |
+| [ADR-022](ADR-022-telemetry-port.md) | The telemetry port, optional backends, and the adapter-excluded build | Accepted |
+| [ADR-023](ADR-023-slo-derivation.md) | Service-level objectives are derived from measurement, or they are not set | Accepted |
+| [ADR-024](ADR-024-operational-surface.md) | The operational surface is a separate application | Accepted |
 
 ## The two ADRs that were held open, and are now closed
 
