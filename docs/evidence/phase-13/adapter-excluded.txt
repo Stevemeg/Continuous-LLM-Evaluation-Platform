@@ -1,0 +1,16 @@
+﻿ADR-009 rule 3: the core, in an environment with no telemetry distribution
+Executed: 
+2026-08-17 14:32:48
+Host: Windows 11 Home Single Language 10.0.26200, Python 3.11.0
+Command: python docs/evidence/phase-13/prove_adapter_excluded.py <repo>
+
+[PASS] A-0   a fresh virtual environment, isolated from this project's: exit 0
+[PASS] A-1   pip install . (no extras): exit 0
+[PASS] A-1b  no telemetry distribution in the environment: none
+[PASS] A-2   clep.telemetry imports with no telemetry distribution present: 9 metric classes, 17 declared metrics, otel/prometheus present=False
+[PASS] A-3   the tenant application constructs and every one of its 5 route(s) still carries an authorization guard
+[PASS] A-4   the evaluation path runs: 2 of 3 evaluator(s) scored; correlation is produced by the core; the cardinality refusal still fires with no backend installed
+[PASS] A-5   the OTLP backend refuses at construction and names what is missing, rather than failing at import: available=False, refused=True
+
+SUMMARY: 7/7 PASS
+EXIT=0

@@ -41,6 +41,29 @@ dev = [
     "httpx>=0.27",
 ]
 
+# ADR-022 rule 2, and the reason it is an extra rather than a dependency.
+#
+# `REQ-N-OBS-3` requires the core to function with every vendor adapter
+# excluded, and ADR-009 rule 3 makes that a build configuration rather than a
+# documentation claim. Putting telemetry here inverts the usual arrangement on
+# purpose: the DEFAULT build has no telemetry dependency, so the build that
+# satisfies REQ-N-OBS-3 is the one every test run, every developer's machine and
+# every CI invocation already exercises. Were it the other way round,
+# "vendor-neutral core" would be true only on the day somebody tested it.
+#
+# Nothing under src/clep imports these at module scope. `clep.telemetry.backends`
+# imports them inside functions, so `pip install .` yields a working platform and
+# `pip install '.[otel]'` yields the same platform with an exporter attached.
+#
+# OpenTelemetry is the vendor-neutral standard canonical §14 names, not a
+# proprietary vendor: ADR-022 rule 6 distinguishes the two, and a proprietary
+# platform's adapter would additionally need the licence review of ADR-009 rule 6
+# — which M1.2 already showed is not a formality (finding S-08).
+otel = [
+    "opentelemetry-sdk>=1.27",
+    "opentelemetry-exporter-otlp>=1.27",
+]
+
 [build-system]
 # Raised from 68 in Phase 12, by the scan REQ-N-SEC-7 asks for rather than by
 # preference. The environment this project builds in was running setuptools
