@@ -17,6 +17,7 @@ does** — measured, with the counts actually varied.
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
@@ -77,9 +78,17 @@ def test_every_required_metric_class_is_emitted_by_driven_activity():
         t.observe("clep_failure_attribution_total", 1, attribution="platform",
                   surface="api")
 
-        # 3 queue time
-        observe_queue_time({"telemetry": t, "enqueue_time": None, "job_try": 2})
-        t.observe("clep_work_unit_queue_duration_ms", 4.0, queue="default")
+        # 3 queue time, and 8 retries again — driven through the worker's own
+        # entry point rather than emitted here.
+        #
+        # This used to also call `t.observe("clep_work_unit_queue_duration_ms",
+        # ...)` directly, and the self-test found what that was worth: deleting
+        # the worker's only queue-time emitter left this test passing, because
+        # the test was emitting the class itself. A test that supplies the thing
+        # it is checking for is a test that cannot fail.
+        observe_queue_time({"telemetry": t, "job_try": 2,
+                            "enqueue_time": datetime.now(timezone.utc)
+                            - timedelta(milliseconds=250)})
 
         # 1 latency (gate), 6 judge behaviour, 7 evaluator failures,
         # 9 workflow transitions

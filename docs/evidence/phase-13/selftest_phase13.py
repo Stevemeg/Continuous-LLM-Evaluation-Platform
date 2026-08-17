@@ -132,10 +132,14 @@ def create(rel: str, content: str):
 
 PLANTS = [
     # ---------------------------------------------------------- tier A
-    ("P-2", "a schema file declares a tenant table with no organization_id",
+    # The first version of this plant created a table with no organization_id
+    # and was NOT caught — correctly, as it turned out: a table without the
+    # column is a global table, which the schema rules permit. The plant was
+    # wrong, not the check. This one breaks a rule the checker actually holds.
+    ("P-2", "an index is added that does not use the ix_ or uq_ prefix",
      lambda: edit("docs/data/schema/13-observability.sql",
-                  "ALTER TABLE clep.audit_event\n    ADD COLUMN correlation_id text;",
-                  "CREATE TABLE clep.leak (id uuid PRIMARY KEY, note text);")),
+                  "CREATE INDEX ix_run__correlation",
+                  "CREATE INDEX run_correlation_idx")),
     ("P-4", "the committed traceability matrix is edited by hand",
      lambda: edit("docs/evidence/phase-3/traceability-matrix.md",
                   "| `REQ-N-OBS-1` |", "| `REQ-N-OBS-1` (hand-edited) |")),
@@ -171,7 +175,11 @@ PLANTS = [
      lambda: edit("docs/architecture/tracked-debt.md",
                   "## D-7 — the correlation chain has no artifact hop",
                   "### Formerly D-7 — the correlation chain has no artifact hop")),
-    ("P-22", "the strategy claims every SLO target is now set",
+    # `edit` replaces one occurrence, which is what exposed the check: it tested
+    # presence, so promoting a single blocked target left it satisfied. The
+    # check now counts, and this plant promotes exactly one target — the
+    # smallest violation that must still be caught.
+    ("P-22", "one blocked SLO target is quietly promoted in the strategy",
      lambda: edit("docs/architecture/observability-strategy.md",
                   "TARGET NOT YET SET", "TARGET SET")),
     ("P-23", "a credential-shaped string enters the working tree",

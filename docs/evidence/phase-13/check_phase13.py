@@ -327,8 +327,12 @@ add("P-11", "PASS" if not vendor_hits else "FAIL",
 
 # ================= P-12 telemetry is an optional extra, not a dependency
 pyproject = read("pyproject.toml")
-runtime_block = re.search(r"^dependencies = \[(.*?)\]", pyproject, re.S | re.M)
-extras_block = re.search(r"^otel = \[(.*?)\]", pyproject, re.S | re.M)
+# Anchored on a closing bracket at column 0, not the first one found: a
+# requirement may carry its own extras -- `psycopg[binary]` does -- and a
+# non-greedy match stops there, truncating the list before the entries that
+# matter. The self-test caught exactly that.
+runtime_block = re.search(r"^dependencies = \[$(.*?)^\]$", pyproject, re.S | re.M)
+extras_block = re.search(r"^otel = \[$(.*?)^\]$", pyproject, re.S | re.M)
 extra_defects = []
 if runtime_block and re.search(r"opentelemetry|prometheus", runtime_block.group(1)):
     extra_defects.append("a telemetry distribution is a runtime dependency; "
@@ -518,8 +522,13 @@ add("P-21", "PASS" if not debt_defects else "FAIL",
 # ========================================= P-22 no risk closed by assertion
 risk_defects = []
 strategy = read("docs/architecture/observability-strategy.md")
-if "TARGET NOT YET SET" not in strategy:
-    risk_defects.append("observability-strategy.md §5 claims every target is set")
+unset_in_strategy = strategy.count("TARGET NOT YET SET")
+if unset_in_strategy < 3:
+    risk_defects.append(
+        f"observability-strategy.md §5 records {unset_in_strategy} unset "
+        f"target(s); three indicators are blocked and each must say so. "
+        f"Presence alone was checked here before, and left an edit that "
+        f"promoted one target undetected.")
 threat = read("docs/architecture/threat-model.md")
 if "SR-7" not in threat:
     risk_defects.append("SR-7 has left the threat model")
