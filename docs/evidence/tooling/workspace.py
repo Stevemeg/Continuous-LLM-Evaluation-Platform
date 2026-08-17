@@ -58,7 +58,17 @@ QUIET_SECONDS = 30 * 60
 # system temporary directory belongs to the whole machine, not to this project.
 MIN_PREFIX = 4
 
-_PREFIX_RX = re.compile(r"""mkdtemp\(\s*prefix\s*=\s*["']([A-Za-z0-9_.\-]+)["']""")
+#: Two call shapes, because there are two. `mkdtemp(prefix="clep-gate-")` is what
+#: the earlier phases' gates do directly; `workspace("clep-gate13-")` is what
+#: callers of this module do, and inside `workspace` the prefix is a variable, so
+#: reading only the first pattern discovered none of the second's prefixes.
+#:
+#: That gap was found by execution rather than by review: a closure run was
+#: interrupted, and the sweep afterwards could not see the very directory this
+#: module had created, because nothing in the repository contained the literal
+#: `mkdtemp(prefix="clep-gate13-")`.
+_PREFIX_RX = re.compile(
+    r"""(?:mkdtemp\(\s*prefix\s*=|workspace\()\s*["']([A-Za-z0-9_.\-]+)["']""")
 
 # `onerror` is deprecated from 3.12 and `onexc` does not exist before it. Both
 # hand the callback (function, path, exception-ish), so one handler serves both.
