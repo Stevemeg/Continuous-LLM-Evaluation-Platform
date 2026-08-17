@@ -1,0 +1,36 @@
+﻿Phase 13 self-test
+Executed: 
+2026-08-17 14:46:05
+Command: python docs/evidence/phase-13/selftest_phase13.py <repo>
+
+gate checks        : 30 (P-1, P-2, P-3, P-4, P-5, P-6, P-7, P-8, P-9, P-10, P-11, P-12, P-13, P-14, P-15, P-16, P-17, P-18, P-19, P-20, P-21, P-22, P-23, P-24, P-25, P-26, P-27, P-28, P-29, P-30)
+no plant, too slow : ['P-1', 'P-5', 'P-10', 'P-30'] — each is run once by the complete gate
+planted            : 23
+[note] no plant for: ['P-3', 'P-25', 'P-26']
+[caught ] P-2    an index is added that does not use the ix_ or uq_ prefix
+[caught ] P-4    the committed traceability matrix is edited by hand
+[caught ] P-8    a declared metric gains a run identifier label
+[caught ] P-11   a core module imports OpenTelemetry at module scope
+[caught ] P-12   telemetry becomes a runtime dependency instead of an extra
+[caught ] P-13   the catalogue's vocabulary drifts from the schema's
+[caught ] P-18   an operational endpoint is registered on the tenant application
+[caught ] P-19   an ADR this phase depends on is no longer Accepted
+[caught ] P-21   D-7 is dropped from the tracked-debt register
+[caught ] P-22   one blocked SLO target is quietly promoted in the strategy
+[caught ] P-23   a credential-shaped string enters the working tree
+[caught ] P-24   an attribution trailer enters a governed file
+[caught ] P-27   a stray editor artifact is tracked
+[caught ] P-28   a Phase 14 artifact appears
+[caught ] P-29   a validator exists that no gate invokes
+[caught ] P-6    the audit hop stops carrying the correlation identifier
+[caught ] P-7    the queue-time class loses its only emitter
+[caught ] P-9    the log surface stops resolving classified content
+[caught ] P-14   cost reconciliation compares a number with itself
+[caught ] P-15   an exhausted budget stops being a terminal outcome
+[caught ] P-16   a published SLO figure no longer appears in the raw output
+[caught ] P-17   the operational surface starts leaking a tenant dimension
+[caught ] P-20   the workspace cleanup goes back to discarding its errors
+
+restoration verified against HEAD after every plant: working tree clean (0 modified path(s))
+SUMMARY: 23/23 plant(s) caught
+EXIT=0
