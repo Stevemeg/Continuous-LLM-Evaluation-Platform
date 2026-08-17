@@ -75,6 +75,18 @@ honest exit produces a violation rather than a blocker.
    validator that fails against an SLO has found either a regression or a wrong
    target, and which one it is cannot be decided by editing the number.
 
+8. **An indicator whose requirement admits exactly one value takes that value,
+   and the measurement establishes conformance rather than the target.** Rule 1
+   governs *empirical* targets — how fast, how available, how accurate — where
+   the number could have come out otherwise and measurement is the only thing
+   that can say. A correctness property is not of that kind. `REQ-X-10` requires
+   platform failure to be distinguishable from quality failure; the objective for
+   verdict integrity is therefore 100%, because every other value is a statement
+   that the platform will sometimes report a platform failure as a quality
+   verdict, which is not a service level anybody would choose to publish. Such a
+   target must **name the requirement it is derived from**, and an indicator that
+   cannot name one falls back under rule 1.
+
 ## Rationale
 
 Rule 3 is the one that makes the rest survive contact with the deadline.

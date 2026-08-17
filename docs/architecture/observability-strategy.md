@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | **Draft — pending external review** |
-| Milestone | M2.6 — Observability Strategy |
-| Phase | Phase 2 — Architecture |
+| Status | **Implemented** — the design was accepted in Phase 2 and executed in Phase 13; §5 now carries measured targets and named blockers |
+| Milestone | M2.6 — Observability Strategy; realised by M13.1–M13.6 |
+| Phase | Phase 2 — Architecture; implemented in Phase 13 |
 | Required by | Canonical §14, §18 (observability architecture) |
 | Decided by | [ADR-009](../adr/ADR-009-observability-core.md) — vendor-neutral core, optional adapters |
 | Requirements | `REQ-N-OBS-1`…`REQ-N-OBS-4`, `REQ-N-REL-5`, `REQ-F-11-*` |
@@ -73,19 +73,19 @@ The third rule is easy to violate accidentally. Logging a judge rationale to deb
 
 ## 5. Service-level objectives
 
-`REQ-N-REL-5` requires availability to be defined by an explicit SLO. Canonical §23 places SLO definition in Phase 13, so this section fixes **what will be measured** and leaves the targets unset.
+`REQ-N-REL-5` requires availability to be defined by an explicit SLO. Canonical §23 places SLO definition in Phase 13, and Phase 13 has now run: this section fixed **what would be measured**, and records below **what the measurement produced**. [ADR-023](../adr/ADR-023-slo-derivation.md) governs how a target may come to exist; the derivations, the raw output and the blockers are in [`../evidence/phase-13/slo-targets.md`](../evidence/phase-13/slo-targets.md).
 
 | Candidate SLI | Definition | Target |
 |---|---|---|
-| Gate availability | Proportion of gate requests returning a verdict or an honest refusal, excluding candidate-caused failures | `TARGET NOT YET SET` — Phase 13 |
-| Gate latency | Wall-clock, invocation to reported decision, per suite-size band | `TARGET NOT YET SET` — requires the `REQ-N-PERF-1` spike |
-| Verdict integrity | Proportion of gate outcomes where platform failure was correctly reported as platform failure rather than as a quality verdict | `TARGET NOT YET SET` |
-| Run completion | Proportion of runs reaching a terminal state without platform-caused incompleteness | `TARGET NOT YET SET` |
-| Cost attribution accuracy | Agreement between attributed and provider-reported cost | `TARGET NOT YET SET` — requires the ADR-003 spike |
+| Gate availability | Proportion of gate requests returning a verdict or an honest refusal, excluding candidate-caused failures | `TARGET NOT YET SET` — blocker: availability is a proportion over production traffic and elapsed time; *N* successes in a harness is not an availability figure |
+| Gate latency | Wall-clock, invocation to reported decision, per suite-size band | **p95 ≤ 97.6 ms** for the 3-sample band — the maximum observed across 20 executed evaluations. Other bands `TARGET NOT YET SET` |
+| Verdict integrity | Proportion of gate outcomes where platform failure was correctly reported as platform failure rather than as a quality verdict | **1.000**, under ADR-023 rule 8 — derived from `REQ-X-10`, not from measurement |
+| Run completion | Proportion of runs reaching a terminal state without platform-caused incompleteness | `TARGET NOT YET SET` — measured at 1.000 over 2 runs; a handful of runs cannot distinguish 99% from 99.99% |
+| Cost attribution accuracy | Agreement between attributed and provider-reported cost | `TARGET NOT YET SET` — blocker: no hosted provider issues a billing record here, and no credential in this project could obtain one |
 
-**Verdict integrity is the unusual one and the most important.** It measures the property that decides whether the product is trusted: that a platform failure is never dressed as a quality verdict. It is stated as an SLI now because a property that is not measured is not maintained, and because `REQ-X-10` makes it a correctness requirement rather than an aspiration.
+**Verdict integrity is the unusual one and the most important.** It measures the property that decides whether the product is trusted: that a platform failure is never dressed as a quality verdict. It is stated as an SLI now because a property that is not measured is not maintained, and because `REQ-X-10` makes it a correctness requirement rather than an aspiration. That is also why it is the one target here that is *not* empirical: every value below 1.000 is a published defect rate rather than a service level.
 
-No target is set for any of these. Setting one before measurement would be the invented figure canonical §20 and §24 forbid.
+**Three of the five remain unset, and that is the rule working rather than failing.** Setting a target before measurement would be the invented figure canonical §20 and §24 forbid; ADR-023 rule 3 gives the unmeasurable case a required structure — a named blocker and the evidence of what was attempted — so that the honest outcome is cheaper to produce than the fabricated one.
 
 ## 6. Alerting
 

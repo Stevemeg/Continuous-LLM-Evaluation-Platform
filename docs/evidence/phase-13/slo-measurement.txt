@@ -1,0 +1,40 @@
+﻿SLO measurement run
+Executed: 
+2026-08-17 11:58:47
+Host: Windows 11 Home Single Language 10.0.26200, Python 3.11.0
+PostgreSQL: docker-compose.yml service 'postgres'
+Command: pytest tests/test_slo_measurement.py -s
+
+
+=== gate latency, suite-size band 3 sample(s) ===
+  observations : 20
+  p50          : 70.0 ms
+  p95          : 97.1 ms
+  max          : 97.6 ms
+  method       : nearest-rank percentile over 20 executed gate evaluations against PostgreSQL, platform contribution only (the candidate run had already terminated, so no provider time is included)
+.
+=== verdict integrity ===
+  objective    : 1 (REQ-X-10, ADR-023 rule 8 — derived from the requirement, not from measurement)
+  observed     : 1
+  observations : 1
+  detail       : 0 of 1 decision(s) returned a quality verdict over a candidate run carrying platform-caused incompleteness
+.
+=== run completion ===
+  target       : TARGET NOT YET SET
+  blocker      : an availability-shaped proportion requires observation over production traffic and time; 2 runs in a test harness cannot distinguish 99% from 99.99%
+  observed     : 1
+  observations : 2
+  detail       : 2 of 2 terminal run(s) carried no platform-caused incompleteness (evaluator_error)
+.
+=== cost attribution accuracy ===
+  target       : TARGET NOT YET SET
+  blocker      : Agreement between attributed and provider-reported cost requires a hosted provider that issues a billing record. Every run in this repository executes against deterministic local adapters, so no provider-reported figure exists and no credential in this project could obtain one. Recomputation from recorded token counts is performed instead and reported as what it is.
+  observed     : None
+.
+=== gate availability ===
+  target       : TARGET NOT YET SET
+  blocker      : availability is a proportion over production traffic and elapsed time. A test harness that executes N gate evaluations and observes N successes establishes that the gate works, not that it is available 99.9% of the time; the two differ by every failure mode a test does not induce.
+  observed     : None
+..
+6 passed in 7.28s
+EXIT=0
