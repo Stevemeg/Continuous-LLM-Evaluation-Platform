@@ -1,4 +1,4 @@
-"""The SLO measurements, executed. ADR-023 rules 1 to 8.
+"""The SLO measurements, executed. `REQ-N-REL-5`, under ADR-023 rules 1 to 8.
 
 Every number this file prints came out of a run against a real PostgreSQL. None
 is chosen, and the ones that cannot be measured are not filled in — they are

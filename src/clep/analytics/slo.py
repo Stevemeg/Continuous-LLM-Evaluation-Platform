@@ -1,5 +1,10 @@
 """Service-level indicators, computed from the record the product reports from.
 
+`REQ-N-REL-5` requires availability to be defined by an explicit service-level
+objective. This module is where the indicators behind those objectives are
+computed; the objectives themselves, with their derivations and their blockers,
+are in `docs/evidence/phase-13/slo-targets.md`.
+
 ADR-023 rule 6: indicators come from runs, samples, gate decisions and audit
 events — not from a telemetry backend. Trace backends have short retention and
 are permitted to drop data under load; an availability figure that disagrees with
@@ -7,8 +12,8 @@ the audit trail is worse than no figure.
 
 Two of the five indicators in `observability-strategy.md` §5 are computable from
 the store, and this module computes them. The other three are measured by
-executing a workload, or are blocked; `docs/evidence/phase-13/measure_slos.py`
-does the executing and records which is which.
+executing a workload, or are blocked; `tests/test_slo_measurement.py` does the
+executing and `docs/evidence/phase-13/slo-targets.md` records which is which.
 
 **Verdict integrity is the unusual one**, and it is the reason to read this file.
 `REQ-X-10` requires platform failure to be distinguishable from quality failure.

@@ -225,3 +225,44 @@ a stated intention, not a control, and the gap between the two is exactly what
 this entry exists to keep visible. Equally, a Phase 14 sweep must not be allowed
 to delete audit records below the floor in mechanism 2 — the floor is a database
 constraint precisely so that a background job cannot argue with it.
+
+## D-7 — the correlation chain has no artifact hop, because nothing writes artifacts
+
+| Field | Value |
+|---|---|
+| Raised | Phase 13, M13.1 |
+| Requirement | `REQ-N-OBS-1` — a single request correlatable through workflow, model call, evaluator, judge, **artifact** and gate decision |
+| Owning phase | Deployment and infrastructure (Phase 14), with `D-3` |
+| Status | **Open** |
+
+`REQ-N-OBS-1` names six hops. Phase 13 implemented and demonstrated every one it
+could reach, and one it could not.
+
+| Hop | State |
+|---|---|
+| Workflow (run, work unit) | **Implemented** — `run.correlation_id`, reached by foreign key from samples |
+| Model call | **Implemented** — `sample_cost` and `run_sample.model_latency_ms` |
+| Evaluator invocation | **Implemented** — `evaluator_invocation.correlation_id` |
+| Judge invocation | **Implemented** — `judge_run`, reached by foreign key |
+| Gate decision | **Implemented** — `gate_decision.candidate_run_id` |
+| Audit event | **Implemented** — `audit_event.correlation_id`, added by `13-observability.sql` |
+| **Artifact** | **Absent** — no writer exists anywhere in `src/clep` |
+
+**Why it is not fixed here.** `clep.artifact` is read in `security/rbac.py` and
+`security/erasure.py`, and written nowhere. It cannot be written in this phase
+either: `ck_artifact__erasure_consistent` requires a non-erased artifact to carry
+a `payload_ref`, which is an object-store reference, and the object-store adapter
+is `D-3` — owned by Phase 14.
+
+**What holds instead.** Seven of the eight hops are demonstrated end to end by
+`tests/test_correlation_chain.py`, which recovers them from the durable record
+after the correlation scope has closed. The artifact hop appears in the chain
+result and is **reported as absent**, carrying the reason in the result itself,
+rather than being omitted so that a complete-looking answer implies a complete
+chain. The test asserts the absence, so the day a writer arrives the test fails
+and somebody reads this entry.
+
+**What must not happen.** `REQ-N-OBS-1` being reported as fully implemented; it
+is not, and the demonstration says so. And the hop must not be manufactured by
+inserting rows whose `payload_ref` names a store that does not exist — the chain
+would then be complete and every artifact reference in it would be a lie.
