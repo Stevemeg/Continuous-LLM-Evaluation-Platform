@@ -334,20 +334,46 @@ async def test_a_cron_trigger_produces_a_run_a_gate_decision_and_an_observation(
         return ReleaseObservationRepository(conn, organization).list_for_project(
             seeded["project"])
 
-    observations = await run_worker_until(
+    produced = await run_worker_until(
         dsn, organization, an_observation_exists,
         queue_name=f"arq:test:{uuid.uuid4().hex[:12]}",
         context=worker_context(dsn, seeded))
+    assert produced, "the cron trigger reached no release observation"
 
-    assert len(observations) == 1
-    observation = observations[0]
-    assert observation.trigger_kind == "post_deployment"
-    assert observation.recommendation in ("none", "investigate", "rollback",
-                                          "hold_release")
-    assert observation.gate_decision_id, "the observation cites no gate decision"
-    assert "platform changes nothing itself" in observation.rationale
-
+    # Read after the worker has stopped, and in one snapshot, because both halves
+    # of that sentence were previously assumed rather than arranged.
+    #
+    # This used to assert `len(observations) == 1` against the list the predicate
+    # returned mid-run. That is a wall-clock assumption wearing a cardinality
+    # assertion's clothes: the cadence here is `* * * * *`, so a second minute is
+    # a second legitimate trigger, and whether this test crosses a minute
+    # boundary is decided by how long the tests before it happened to take. Run
+    # alone it did not cross one and passed 5/5; run in the full suite it took
+    # 11.19s and crossed one about half the time, failing 3 of 6 suite runs on a
+    # byte-identical product tree. The scheduler was right every time.
+    #
+    # What the count was reaching for is fire-at-most-once-per-period, and that
+    # is `ALREADY_FIRED`, asserted against an injected moment in
+    # `test_schedules.py::test_a_second_sweep_in_the_same_minute_creates_no_second_run`
+    # -- which also asserts that the *next* minute fires again, the very
+    # behaviour this assertion was contradicting. So the count is not moved here
+    # from a weaker place; it was never this test's to make.
+    #
+    # `list_for_project` orders `observed_at DESC`, so the observation examined
+    # is the newest, which is the one the schedule records as its last run. Under
+    # the old shape a second observation arriving during the worker's shutdown
+    # await would also have skewed `schedule.last_run_id` against a stale list.
     with tenant_session(dsn, organization) as conn:
+        observations = ReleaseObservationRepository(
+            conn, organization).list_for_project(seeded["project"])
+        observation = observations[0]
+        assert observation.trigger_kind == "post_deployment"
+        assert observation.recommendation in ("none", "investigate", "rollback",
+                                              "hold_release")
+        # Before the query below, which would otherwise fail on a None with a
+        # TypeError from `ulid_to_uuid` rather than say what was missing.
+        assert observation.gate_decision_id, "the observation cites no gate decision"
+        assert "platform changes nothing itself" in observation.rationale
         run = conn.execute(
             "SELECT id, trigger_kind, execution_state, completeness, "
             "       idempotency_key FROM clep.run WHERE organization_id = %s "
