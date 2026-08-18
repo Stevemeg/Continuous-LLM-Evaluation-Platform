@@ -20,7 +20,8 @@ correlated to nothing the platform had recorded.
 | [`prove_workspace_cleanup.py`](prove_workspace_cleanup.py) | The validator-infrastructure leak, reproduced and fixed. |
 | [`prove_adapter_excluded.py`](prove_adapter_excluded.py) | A fresh environment with no telemetry, built and driven. |
 | [`slo-targets.md`](slo-targets.md) | Two objectives, three named blockers. |
-| [`validation-output.txt`](validation-output.txt) | The complete gate, run against the finalized tree. |
+| [`validation-output.txt`](validation-output.txt) | The complete gate: 30/30, exit 0. |
+| [`finalization-output.txt`](finalization-output.txt) | The complete gate again, against the finalized tree. |
 | [`selftest-output.txt`](selftest-output.txt) | 23/23 plants caught. |
 | [`workspace_cleanup.txt`](workspace_cleanup.txt) | 952 workspaces reclaimed, 362.36 MB, 0 residue. |
 | [`adapter-excluded.txt`](adapter-excluded.txt) | 7/7, `REQ-N-OBS-3` established in a clean environment. |
@@ -41,7 +42,7 @@ correlated to nothing the platform had recorded.
 | `REQ-N-SEC-5`, `REQ-N-PRIV-2` | **Extended to logs** | Phase 12's redactor reused; 32 adversarial cases. |
 | `SR-7` | **Closed** | Authentication failures reach platform metrics and still do not reach the audit store. |
 
-## The three findings worth reading
+## The four findings worth reading
 
 ### 1. `REQ-N-OBS-1` cannot be fully implemented in this phase
 
@@ -86,6 +87,34 @@ Two fixes, because it was two failures: a removal that clears the attribute and
 that reaches the earlier phases' gates — which leak too and cannot usefully be
 edited, since each runs from its own committed tree. Proven two process levels
 down. See [`../tooling/README.md`](../tooling/README.md).
+
+### 4. The first closure run failed, on a test that was asking the clock
+
+`29/30`, `OBSERVED_EXIT=1`, and the single failure was `P-1` — one test out of
+1065, `test_a_cron_trigger_produces_a_run_a_gate_decision_and_an_observation`,
+carried from Phase 11.
+
+It asserted `len(observations) == 1`. The schedule it creates has cadence
+`* * * * *`, so a second minute is a second legitimate trigger and a second
+observation, and whether the test crossed a minute boundary was decided by how
+long the tests before it happened to take. Run alone it passed 5/5; run in the
+suite it took 11.19 s and failed 3 of 6 suite runs, on a **byte-identical
+product tree**. `P-5` passed 32/32 in the same run, so nothing underneath it was
+moving. The scheduler was correct every time it was accused.
+
+It was fixed rather than re-run, which is the finding: a gate that is re-run until
+the timing cooperates has been passed by chance, and the same coin would have
+been tossed again at Phase 14, at Phase 15 and at final closure. What the count
+was reaching for — fire at most once per period — is `ALREADY_FIRED`, and
+`test_schedules.py` already asserts it against an injected moment. That test also
+asserts that the *next* minute fires again, which is precisely the behaviour the
+failing assertion contradicted. The property was never this test's to make.
+
+The fix is proven against a boundary rather than around one: 17/17 runs in
+isolation, 9 of them crossing a minute boundary deliberately, the crossing swept
+through setup, through the worker's cron window and through the assertions at
+five offsets. No production code was touched. Phase 11's gate is unaffected
+either way — it executes from its own committed tree.
 
 ## What this phase deliberately did not do
 
@@ -147,9 +176,19 @@ so a closure run no longer multiplies the leak it just reclaimed.
 
 ```
 docker compose up -d
+export PYTHONPATH=$PWD/src          # see below; on Windows, set PYTHONPATH
 python docs/evidence/phase-13/check_phase13.py .
 python docs/evidence/phase-13/selftest_phase13.py .
 ```
 
+`PYTHONPATH` is not optional and not a convenience. If the project was installed
+with `pip install -e .` from a different checkout — which is what happens the
+moment the work moves to a second working tree — then `clep` resolves to *that*
+checkout, and the gate silently validates the wrong source. It does not
+necessarily fail: a subset of checks that happen not to touch the newer modules
+will pass, against code that is not the code under review. The run header records
+the resolved `PYTHONPATH` for exactly this reason, so a reader can tell which
+tree an evidence file describes.
+
 The complete gate takes hours: `P-5` runs Phase 12's gate, which runs Phase 11's,
-and so on down the chain.
+and so on down the chain. The closure run recorded here took 5979.2 s.
