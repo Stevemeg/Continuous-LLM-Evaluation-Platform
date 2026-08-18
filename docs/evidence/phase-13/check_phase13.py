@@ -59,9 +59,27 @@ SECRETS = [
     (r"(?i)://[^/\s:@]+:[^/\s:@]+@", "credential in URL"),
 ]
 
-#: Carried from Phase 12 unchanged. Each was established as synthetic and is
-#: retained because removing it means rewriting published history.
-DISCLOSED_BLOBS: dict[str, str] = {}
+#: Carried from Phase 12, and this time actually carried.
+#:
+#: The first version of this file declared an empty dict under a comment saying
+#: the disclosures were carried from Phase 12 unchanged. They were not. P-23
+#: then failed on five matches across the three blobs below — which is the check
+#: working exactly as intended, and a comment that claimed something the code did
+#: not do, which is the class of defect this project exists to catch.
+#:
+#: Each blob was established as synthetic in Phase 12 and each is retained
+#: because removing it means rewriting history, which the Git policy forbids.
+#: The third differs from the first two and Phase 12 said so precisely: those are
+#: in published history and unremovable; that one is unpublished and would be
+#: removable by a rewrite — what keeps it is the policy, not the impossibility.
+DISCLOSED_BLOBS: dict[str, str] = {
+    "0ec58783928780cce1caf9d595decddf3574a54c":
+        "spike common.py: local throwaway DSN password, container destroyed",
+    "42de37b8a44e0079e835b3bffa45c1e735aeedac":
+        "spike provider script: planted leak-detector canary, never a credential",
+    "bbe9dbb2321d84096e4dd4118cfb4f3bab227dfd":
+        "test_privacy.py before assembly: redaction test vectors, never credentials",
+}
 
 
 def add(cid, status, detail, defects=None):
@@ -379,8 +397,13 @@ try:
          schema_enum("ck_gate_decision__evaluated_outcome")),
         ("invocation outcomes", set(C.INVOCATION_OUTCOMES),
          schema_enum("ck_evaluator_invocation__outcome")),
+        # `ck_run_candidate__endpoint_kind`, not `ck_provider_endpoint__kind`:
+        # the constraint under the name this check first used does not exist,
+        # so `schema_enum` returned an empty set. The check refused to treat
+        # that as agreement and failed — which is the one behaviour that made
+        # the wrong constant findable rather than silently vacuous.
         ("endpoint kinds", set(C.ENDPOINT_KINDS),
-         schema_enum("ck_provider_endpoint__kind")),
+         schema_enum("ck_run_candidate__endpoint_kind")),
     ]
     for name, mine, theirs in pairs:
         if not theirs:

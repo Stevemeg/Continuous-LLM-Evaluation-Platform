@@ -1,6 +1,11 @@
 Validator temporary-workspace leak: measurement, reclamation, and proof
 Executed 2026-08-17 on Windows 11 Home Single Language 10.0.26200, Python 3.11.0
-Repository: .claude/worktrees/phase-12, branch phase/13-observability-slos at 65d495b
+Repository: branch phase/13-observability-slos, based at 65d495b
+
+(The working directory path is deliberately not recorded here. It is a local,
+private path, and it also contains a token the attribution scan matches -- which
+is how this line came to be noticed: P-24 flagged this file, correctly, on the
+pattern rather than on any attribution.)
 
 Sections 1 and 2 are one-time observations: the leak they measure no longer
 exists, so re-running them now reports zero. Section 3 is repeatable and is what
