@@ -397,6 +397,11 @@ async def test_a_cron_trigger_produces_a_run_a_gate_decision_and_an_observation(
             "WHERE organization_id = %s AND id = %s",
             (organization, ulid_to_uuid(observation.gate_decision_id))).fetchone()
         schedule = ScheduleRepository(conn, organization).get_schedule(schedule_id)
+        last_run = conn.execute(
+            "SELECT idempotency_key FROM clep.run WHERE organization_id = %s "
+            "AND id = %s",
+            (organization, ulid_to_uuid(schedule.last_run_id))
+        ).fetchone() if schedule.last_run_id else None
 
     # The run happened, and it says why it happened.
     assert run[1] == "post_deployment"
@@ -417,7 +422,22 @@ async def test_a_cron_trigger_produces_a_run_a_gate_decision_and_an_observation(
     assert decision[1] is not None
 
     # And the schedule records what it last produced.
-    assert schedule.last_run_id == observation.run_id
+    #
+    # Not `== observation.run_id`, which was the same wall-clock assumption as
+    # the observation count and survived the first repair of it because the
+    # reasoning that cleared it was wrong. `record_run` is called by the *sweep*,
+    # at run creation (`scheduler.py`), while an observation is written at the
+    # end of execution. So the moment a second period fires, `last_run_id` names
+    # a run that is still executing and has no observation yet, and comparing it
+    # against the newest observation compares two different runs. Observed: the
+    # schedule held 01M0AG7EXN... while the newest observation cited
+    # 01M0AG78QY..., one period apart, with nothing wrong anywhere.
+    #
+    # What the line is for is that the schedule points at its own work rather
+    # than at nothing or at someone else's, and that is what is asserted.
+    assert schedule.last_run_id, "the schedule recorded no run"
+    assert last_run is not None, "the schedule cites a run that does not exist"
+    assert last_run[0].startswith(f"schedule:{schedule_id}:")
 
 
 async def test_a_scheduled_run_evaluates_the_alert_rules_nobody_was_watching(
