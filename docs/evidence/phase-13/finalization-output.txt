@@ -1,0 +1,47 @@
+Phase 13 complete validation — finalization run
+Executed: 2026-08-18 19:39:48
+Host: Windows-10-10.0.26200-SP0
+Python: 3.11.0
+Tree: branch phase/13-observability-slos at ceff51e
+PYTHONPATH: <repo>/src   (required: the virtualenv's editable install resolves `clep` elsewhere)
+Interpreter: the project virtualenv
+Command: python docs/evidence/phase-13/check_phase13.py .
+
+[PASS   ] P-1    test suite: exit 0; 1065 passed; 0 skipped; coverage 91.20% against a 85.0% gate
+[PASS   ] P-2    schema conformance: exit 0; 83 tables including the Phase 13 correlation column and its indexes
+[PASS   ] P-3    traceability: exit 0. traced to an artifact: 149; implementation layer: 95; test layer: 70; deferred with an owner: 1
+[PASS   ] P-4    the committed traceability matrix regenerates identically
+[PASS   ] P-5    Phase 12 gate re-evaluated against its own history (65d495b8), in an isolated clone pruned to 77 reachable commit(s): exit 0 {"PASS": 32}; nested workspaces contained (481 path(s) inside the contained root, removed with it); system temporary directory gained 0 clep-gate-* directory(ies)
+[PASS   ] P-6    REQ-N-OBS-1: one identifier recovered from the store after the scope closed, at 7 hop(s): ['audit_event', 'evaluator_invocation', 'gate_decision', 'judge_invocation', 'model_call', 'run', 'work_unit']; absent: ['artifact'] (the artifact hop has no writer — D-7, D-3, Phase 14); exit 0
+[PASS   ] P-7    REQ-N-OBS-2 and REQ-N-OBS-4: nine classes counted from what a driven platform emitted, and series counted after varying tenants, runs and correlations: exit 0
+[PASS   ] P-8    REQ-N-OBS-4 in the core: 17 declared metrics across 9 classes, whole-catalogue series ceiling 115, computable because no label is unbounded; the refusal fires against a run identifier
+[PASS   ] P-9    REQ-N-SEC-5 and REQ-N-PRIV-2: 32 adversarial cases — credentials in exception messages, nested containers, helpful __str__, the event name itself; every DS class the taxonomy forbids on the log surface; capture explicit, audited and time-bounded: exit 0
+[PASS   ] P-10   ADR-009 rule 3 and REQ-N-OBS-3: a fresh environment, `pip install .` with no extras, no telemetry distribution present, core imports, application constructs, evaluation runs, cardinality still refuses, OTLP refuses clearly: 7/7, exit 0
+[PASS   ] P-11   ADR-022 rule 1: no vendor telemetry import outside src/clep/telemetry/backends/, and none at module scope even there — static inspection is the correct method here, because the property is the absence of an import and executing it would prove less
+[PASS   ] P-12   ADR-022 rule 2: 6 runtime dependency(ies), none of them telemetry; the `otel` extra is declared separately, so the default build is the adapter-excluded one
+[PASS   ] P-13   the catalogue restates 9 vocabularies that already exist in the schema and in domain modules, to avoid an import cycle; each is compared as a set against its source, so a member added on one side and not the other fails here rather than silently refusing a legal value
+[PASS   ] P-14   REQ-N-COST-1 and REQ-N-COST-3: every attributed amount recomputed from recorded usage; a deliberately wrong price required to disagree; an unpriced model reported rather than counted as agreeing; a plan with no history not estimated: exit 0
+[PASS   ] P-15   REQ-N-COST-2: budget exhaustion is a defined terminal outcome reached by driving a run past its limit, not an incident: 1 case(s), exit 0
+[PASS   ] P-16   REQ-N-REL-5 and ADR-023: the measurement executed (exit 0); every published figure appears in the committed raw output; 9 indicator(s) carry TARGET NOT YET SET with a named blocker
+[PASS   ] P-17   ADR-024: an unguarded route on the tenant application still refuses to start; the operational endpoints are absent from the tenant contract; liveness consults no dependency; 100 correlations render as one series; no tenant identity reaches /metrics, /ready or /health: exit 0
+[PASS   ] P-18   ADR-020 rule 6 survives Phase 13: the import-time assertion is still called, no exemption mechanism exists, and no operational endpoint was added to the tenant application
+[PASS   ] P-19   ADR-022, ADR-023 and ADR-024 are Accepted, each records what it rejected, each is indexed, and ADR-009 is unchanged
+[PASS   ] P-20   the validator's own workspace hygiene: the original defect reproduced against the original code (W-1), the fix removes the same tree, a transient handle is ridden out, a permanent one is reported rather than discarded, containment holds two process levels down, and a junction into the repository is refused: 6/6, exit 0
+[PASS   ] P-21   7 debt entries, each naming its owner and status; D-7 records that REQ-N-OBS-1's artifact hop has no writer and is Phase 14's, alongside the still-open D-3, D-4, D-5 and D-6
+[PASS   ] P-22   no carried risk is closed by this phase asserting it: three SLO targets remain unset with blockers, SR-7 remains in the threat model, and judge calibration is explicitly not claimed where the telemetry is emitted
+[PASS   ] P-23   working tree: 457 files (2 binary skipped), 0 match(es); all blobs all refs: 0 undisclosed match(es). The Phase 13 redaction tests contain credential-shaped inputs by necessity and assemble every one from parts, with a test that each still matches the detector
+           - docs/evidence/spike-sprint/common.py: spike common.py: local throwaway DSN password, container destroyed
+           - docs/evidence/spike-sprint/spike_provider_abstraction.py: spike provider script: planted leak-detector canary, never a credential
+           - tests/test_privacy.py: test_privacy.py before assembly: redaction test vectors, never credentials
+[PASS   ] P-24   governed scope: 0 file match(es), 0 history match(es)
+[PASS   ] P-25   authors: ['Stevemeg <konabharath2004@gmail.com>']; committers: ['Stevemeg <konabharath2004@gmail.com>']
+[PASS   ] P-26   canonical document local=True tracked=False ignored=True refs_scanned=16 reachable_from_any_ref=0
+[PASS   ] P-27   352 tracked file(s); stray: 0; clean tree: True
+[PASS   ] P-28   Phase 14+ artifact classes checked: 8; artifacts Phase 13 must not contain: 0
+[PASS   ] P-29   19 validators in the repository, 19 reachable from this gate by traversing the invocation paths each one actually contains; orphaned: none
+[PASS   ] P-30   REQ-N-SEC-7: the advisory database queried for the versions actually installed, failing closed when unreachable: exit 0
+
+SUMMARY: 30/30 PASS
+
+OBSERVED_EXIT=0
+elapsed_seconds=5451.0

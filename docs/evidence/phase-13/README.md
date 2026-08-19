@@ -20,8 +20,8 @@ correlated to nothing the platform had recorded.
 | [`prove_workspace_cleanup.py`](prove_workspace_cleanup.py) | The validator-infrastructure leak, reproduced and fixed. |
 | [`prove_adapter_excluded.py`](prove_adapter_excluded.py) | A fresh environment with no telemetry, built and driven. |
 | [`slo-targets.md`](slo-targets.md) | Two objectives, three named blockers. |
-| [`validation-output.txt`](validation-output.txt) | The complete gate: 30/30, exit 0. |
-| [`finalization-output.txt`](finalization-output.txt) | The complete gate again, against the finalized tree. |
+| [`validation-output.txt`](validation-output.txt) | The complete gate at `f7f00d4`: 30/30, exit 0. |
+| [`finalization-output.txt`](finalization-output.txt) | The complete gate again at `ceff51e`, the finalized tree: 30/30, exit 0. |
 | [`selftest-output.txt`](selftest-output.txt) | 23/23 plants caught. |
 | [`workspace_cleanup.txt`](workspace_cleanup.txt) | 952 workspaces reclaimed, 362.36 MB, 0 residue. |
 | [`adapter-excluded.txt`](adapter-excluded.txt) | 7/7, `REQ-N-OBS-3` established in a clean environment. |
@@ -88,7 +88,7 @@ that reaches the earlier phases' gates — which leak too and cannot usefully be
 edited, since each runs from its own committed tree. Proven two process levels
 down. See [`../tooling/README.md`](../tooling/README.md).
 
-### 4. The first closure run failed, on a test that was asking the clock
+### 4. Two runs failed, on one test that was asking the clock in two places
 
 `29/30`, `OBSERVED_EXIT=1`, and the single failure was `P-1` — one test out of
 1065, `test_a_cron_trigger_produces_a_run_a_gate_decision_and_an_observation`,
@@ -115,6 +115,46 @@ isolation, 9 of them crossing a minute boundary deliberately, the crossing swept
 through setup, through the worker's cron window and through the assertions at
 five offsets. No production code was touched. Phase 11's gate is unaffected
 either way — it executes from its own committed tree.
+
+That fix was incomplete, and the record should say so plainly. The closure run
+recorded in [`validation-output.txt`](validation-output.txt) passed 30/30 at
+`f7f00d4`, and the **finalization** run against that same tree then failed `P-1`
+on the same test again:
+
+    AssertionError: assert '01M0AG7EXNSSVYH19FWBCH140E'
+                        == '01M0AG78QY159VC2XB8MKTBC4N'
+
+`assert schedule.last_run_id == observation.run_id`, one line below the count
+that had just been removed. It was left in place on the reasoning that
+`list_for_project` returns newest-first, so the newest observation must belong to
+the newest run. That reasoning was wrong. `record_run` is called by the *sweep*,
+at run **creation**; an observation is written at the end of **execution**. So
+`last_run_id` names the most recently created run while the newest observation
+names the most recently finished one, and the moment a second period fires the
+second run exists, is still executing, has no observation, and is what the
+schedule points at. Two different runs, one cadence period apart, with nothing
+wrong anywhere — the same wall clock, wearing a different assertion.
+
+The line's purpose is that the schedule points at its own work rather than at
+nothing or at another schedule's, so that is what it now asserts: the schedule
+records a run, that run exists, and its idempotency key carries this schedule's
+identifier. Proven the same way — the whole file 12/12, four tests per run, a
+minute boundary crossed in **every** run, 48 test executions with none of them
+lucky — plus the full suite three times at 1065 passed, exit 0, in 9m07s, 9m46s
+and 10m36s. The suite is slower than it was that morning as the test database
+grows, which widens the window this class of defect lives in rather than
+narrowing it. [`finalization-output.txt`](finalization-output.txt) is the run
+against the repaired tree.
+
+Two things a reviewer should carry forward from this. First, a green closure run
+is evidence about one execution, not a proof that a timing assumption is gone;
+this one survived a 30/30 gate. Second, the sibling test
+`test_a_scheduled_run_evaluates_the_alert_rules_nobody_was_watching` asserts
+`len(events) == 1` with the identical shape — `events_for_project` is
+newest-first and one event is written per run. It held 12/12 under forced
+boundaries and was left alone, because repairing it is outside the authorization
+that produced these two fixes. It is flagged here so the decision is the
+reviewer's rather than the next failing run's.
 
 ## What this phase deliberately did not do
 
@@ -191,4 +231,5 @@ the resolved `PYTHONPATH` for exactly this reason, so a reader can tell which
 tree an evidence file describes.
 
 The complete gate takes hours: `P-5` runs Phase 12's gate, which runs Phase 11's,
-and so on down the chain. The closure run recorded here took 5979.2 s.
+and so on down the chain. The closure run recorded here took 5979.2 s and the
+finalization run 5451.0 s.
