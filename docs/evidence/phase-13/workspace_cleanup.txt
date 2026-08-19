@@ -7,6 +7,17 @@ private path, and it also contains a token the attribution scan matches -- which
 is how this line came to be noticed: P-24 flagged this file, correctly, on the
 pattern rather than on any attribution.)
 
+(That care was not applied to the *temporary* directory, and this file published
+the operator's account name three times before anyone noticed. The paths below
+now read `<tmp>`, the same token Phase 11 introduced in `47e88e3` when its CI
+evidence made the identical mistake. Nothing else changed: every count, byte
+total and verdict here was decided on the raw path when the measurement ran, and
+only the record is tokenised. The already-published blob at `a06ac1d` keeps the
+old paths; removing it would require rewriting published history, which is
+forbidden and is not warranted for a disclosure of this kind. `D-8` records that
+no gate in this repository looks for operator paths at all, which is why neither
+`P-23` nor `P-24` caught it.)
+
 Sections 1 and 2 are one-time observations: the leak they measure no longer
 exists, so re-running them now reports zero. Section 3 is repeatable and is what
 the Phase 13 validator executes.
@@ -16,7 +27,7 @@ the Phase 13 validator executes.
 1. THE LEAK, AS MEASURED BEFORE ANYTHING WAS CHANGED
 =============================================================================
 
-TEMP=C:\Users\konab\AppData\Local\Temp
+TEMP=<tmp>
 clep-gate dirs: 936
 other gate-family dirs: 16
 
@@ -28,7 +39,7 @@ total MB: 362.35
 
 What a leaked directory actually contained -- one sampled at random:
 
-sample: C:\Users\konab\AppData\Local\Temp\clep-gate-057nhwzn
+sample: <tmp>\clep-gate-057nhwzn
 files: 3
 read-only files: 3
 --- sample read-only ---
@@ -51,7 +62,7 @@ $ python docs/evidence/tooling/workspace.py <repo> --all
 
 BEFORE clep-gate dirs: 936
 prefixes derived from the repository: clep-ci-, clep-gate-, clep-proof-, p1gate-, p25-, p2gate-, p3gate-
-temporary directory: C:\Users\konab\AppData\Local\Temp
+temporary directory: <tmp>
 reclaimed: 952 workspace(s), 379960458 byte(s) (362.36 MB)
 residue: 0
 EXIT=0

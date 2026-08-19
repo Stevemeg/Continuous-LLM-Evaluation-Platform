@@ -266,3 +266,39 @@ and somebody reads this entry.
 is not, and the demonstration says so. And the hop must not be manufactured by
 inserting rows whose `payload_ref` names a store that does not exist — the chain
 would then be complete and every artifact reference in it would be a lie.
+
+## D-8 — no gate looks for the operator's filesystem, in any phase
+
+| Field | Value |
+|---|---|
+| Raised | Phase 13, at publication |
+| Requirement | Governance: published evidence must not disclose the environment that produced it |
+| Owning phase | Deployment and infrastructure (Phase 14) |
+| Status | **Open** |
+
+`docs/evidence/phase-13/workspace_cleanup.txt` published an account name and a
+Windows profile path three times, and reached `main` through a thirty-check gate
+that objected to none of it. That is not a near miss; it is a class of disclosure
+this repository has no detector for.
+
+Phase 11 hit the same class in `47e88e3` and fixed it *locally*: `ci_execution.py`
+gained a token table and a `_refuse_local_paths` backstop, and `P-28` in that
+phase's gate requires the recorded path to begin with `<venv>/`. Both are scoped
+to one generator's output. Nothing scans the repository.
+
+`P-23` searches for credential shapes and `P-24` for attribution markers. A
+username is neither. The file even says, in its own header, that the working
+directory is deliberately withheld because it is private — and then prints
+`TEMP=` with the account name in it, because the care was applied to one path and
+not the other. A rule enforced by remembering is not enforced.
+
+**What Phase 14 owes.** A repository-wide check, over the working tree *and* over
+the blobs reachable from published refs, for drive-letter paths, home
+directories, account names and profile directories — reported per file, failing
+closed, with the detector's own pattern table excluded by construction rather
+than by an allowlist that grows. It must be reachable from the derived-closure
+mechanism like every other validator.
+
+**What must not happen.** The existing disclosure being removed by rewriting
+published history. It stays at `a06ac1d`; the ruling in `47e88e3` applies
+unchanged, and this entry is the record that it was seen rather than missed.
